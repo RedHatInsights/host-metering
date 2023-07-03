@@ -3,6 +3,7 @@ package notify
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -43,6 +44,11 @@ func PrometheusRemoteWrite(hostinfo *hostinfo.HostInfo, cfg *config.Config) erro
 		if resp.StatusCode/100 == 2 {
 			return nil // success
 		}
+		body, err := io.ReadAll(resp.Body)
+		if err == nil {
+			fmt.Println("PrometheusRemoteWrite: Response body:", string(body))
+		}
+
 		if resp.StatusCode/100 == 5 || resp.StatusCode == 429 {
 			attempt++
 			fmt.Printf("PrometheusRemoteWrite: Http Error: %d, retrying\n", resp.StatusCode)

@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	prometheusUrl := flag.String("prometheus-url", "http://localhost:8080", "URL of the Prometheus server")
+	prometheusUrl := flag.String("prometheus-url", "http://localhost:9090/api/v1/write", "URL of the Prometheus server")
 	tick := flag.Uint("tick", 600, "Report every tick seconds")
 	certPath := flag.String("cert", "", "Host certificate path")
 	keyPath := flag.String("key", "", "Host certificate key path")

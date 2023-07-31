@@ -91,7 +91,7 @@ func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo) *prompb.WriteRequest {
 	labels := []prompb.Label{
 		{
 			Name:  "__name__",
-			Value: "cpu_core_count",
+			Value: "system_cpu_logical_count",
 		},
 		{
 			Name:  "hostId",
@@ -101,7 +101,7 @@ func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo) *prompb.WriteRequest {
 
 	samples := []prompb.Sample{
 		{
-			Value:     float64(hostinfo.CpuCoreCount),
+			Value:     float64(hostinfo.CpuCount),
 			Timestamp: timestamp,
 		},
 	}

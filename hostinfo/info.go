@@ -7,15 +7,15 @@ import (
 )
 
 type HostInfo struct {
-	CpuCoreCount uint
-	HostId       string
-	CertPath     string
-	CertKeyPath  string
+	CpuCount    uint
+	HostId      string
+	CertPath    string
+	CertKeyPath string
 }
 
 func LoadHostInfo(c *config.Config) (*HostInfo, error) {
 
-	cpuCoreCount, err := GetCPUCount()
+	cpuCount, err := GetCPUCount()
 	if err != nil {
 		return nil, err
 	}
@@ -26,16 +26,16 @@ func LoadHostInfo(c *config.Config) (*HostInfo, error) {
 	}
 
 	return &HostInfo{
-		CpuCoreCount: cpuCoreCount,
-		HostId:       hostId,
-		CertPath:     GetCertPath(c),
-		CertKeyPath:  GetCertKeyPath(c),
+		CpuCount:    cpuCount,
+		HostId:      hostId,
+		CertPath:    GetCertPath(c),
+		CertKeyPath: GetCertKeyPath(c),
 	}, nil
 }
 
 func (hi *HostInfo) Print() {
 	fmt.Println("HostInfo:")
-	fmt.Println("  CpuCoreCount: ", hi.CpuCoreCount)
+	fmt.Println("  CpuCount: ", hi.CpuCount)
 	fmt.Println("  HostId: ", hi.HostId)
 	fmt.Println("  CertPath: ", hi.CertPath)
 	fmt.Println("  CertKeyPath: ", hi.CertKeyPath)

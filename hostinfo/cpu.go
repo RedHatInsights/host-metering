@@ -19,11 +19,6 @@ func GetCPUCount() (uint, error) {
 		return 0, fmt.Errorf("GetCPUCount: failed to load CPUInfo: %w", err)
 	}
 
-	if len(info) == 0 {
-		return 0, fmt.Errorf("GetCPUCount: no value in CPUInfo")
-	}
-
-	cpuCores := info[0].CPUCores
-
-	return cpuCores, nil
+	cpuCount := uint(len(info))
+	return cpuCount, nil
 }

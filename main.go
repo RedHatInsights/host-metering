@@ -6,7 +6,6 @@ import (
 
 	"redhat.com/milton/config"
 	"redhat.com/milton/daemon"
-	"redhat.com/milton/hostinfo"
 )
 
 func main() {
@@ -32,31 +31,22 @@ func main() {
 	switch command {
 	case "help":
 		printUsage()
-		return
 	case "daemon", "once":
 		cfg := config.NewConfig()
 		cfg.UpdateFromConfigFile(*configPath)
 		cfg.UpdateFromEnvVars()
 		cfg.UpdateFromCliOptions(*writeUrl, *tick, *certPath, *keyPath)
 		cfg.Print()
-		hostInfo, err := hostinfo.LoadHostInfo(cfg)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-		hostInfo.Print()
-		d := daemon.NewDaemon(cfg, hostInfo)
+		d := daemon.NewDaemon(cfg)
 
 		if command == "once" {
 			d.RunOnce()
 			return
 		}
 		d.Run()
-		return
 	default:
 		fmt.Println("Error: unknown subcommand", command)
 		printUsage()
-		return
 	}
 }
 

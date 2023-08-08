@@ -17,11 +17,8 @@ type Daemon struct {
 	hostInfo *hostinfo.HostInfo
 }
 
-func NewDaemon(config *config.Config, hostInfo *hostinfo.HostInfo) *Daemon {
-	return &Daemon{
-		config:   config,
-		hostInfo: hostInfo,
-	}
+func NewDaemon(config *config.Config) *Daemon {
+	return &Daemon{config: config}
 }
 
 func (d *Daemon) Run() error {
@@ -44,12 +41,10 @@ func (d *Daemon) Run() error {
 				d.doPrometheusRequest()
 			case <-reloadCh:
 				fmt.Println("Reloading HostInfo...")
-				hostInfo, err := hostinfo.LoadHostInfo(d.config)
-				if err != nil {
+				if err := d.loadHostInfo(); err != nil {
 					fmt.Println(err)
 					continue
 				}
-				d.hostInfo = hostInfo
 				fmt.Println("HostInfo reloaded")
 			case <-stopCh:
 				ticker.Stop()
@@ -64,12 +59,29 @@ func (d *Daemon) Run() error {
 }
 
 func (d *Daemon) RunOnce() error {
+	fmt.Println("Load HostInfo...")
+	if err := d.loadHostInfo(); err != nil {
+		return err
+	}
+	fmt.Println("HostInfo reloaded")
 	fmt.Println("Executing once...")
 	err := d.doPrometheusRequest()
 	return err
 }
 
+func (d *Daemon) loadHostInfo() error {
+	hostInfo, err := hostinfo.LoadHostInfo(d.config)
+	if err != nil {
+		return err
+	}
+	d.hostInfo = hostInfo
+	return nil
+}
+
 func (d *Daemon) doPrometheusRequest() error {
+	if d.config == nil {
+		return fmt.Errorf("Missing internal HostInfo. Make sure to call loadHostInfo first.")
+	}
 	fmt.Println("Sending Prometheus request...")
 	err := notify.PrometheusRemoteWrite(d.hostInfo, d.config)
 	if err != nil {

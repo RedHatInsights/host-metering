@@ -35,7 +35,7 @@ func (d *Daemon) Run() error {
 	reloadCh := make(chan os.Signal, 1)
 	signal.Notify(reloadCh, syscall.SIGHUP)
 
-	ticker := time.NewTicker(time.Duration(d.config.Tick) * time.Second)
+	ticker := time.NewTicker(time.Duration(d.config.WriteInterval) * time.Second)
 
 	go func() {
 		for {

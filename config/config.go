@@ -3,15 +3,15 @@ package config
 import "fmt"
 
 type Config struct {
-	PrometheusUrl   string
+	WriteUrl        string
 	Tick            uint // in seconds
 	HostCertPath    string
 	HostCertKeyPath string
 }
 
-func NewConfig(prometheusUrl string, tick uint, certPath string, keyPath string) *Config {
+func NewConfig(writeUrl string, tick uint, certPath string, keyPath string) *Config {
 	return &Config{
-		PrometheusUrl:   prometheusUrl,
+		WriteUrl:        writeUrl,
 		Tick:            tick,
 		HostCertPath:    certPath,
 		HostCertKeyPath: keyPath,
@@ -20,7 +20,7 @@ func NewConfig(prometheusUrl string, tick uint, certPath string, keyPath string)
 
 func (c *Config) Print() {
 	fmt.Println("Config:")
-	fmt.Println("  PrometheusUrl: ", c.PrometheusUrl)
+	fmt.Println("  WriteUrl: ", c.WriteUrl)
 	fmt.Println("  Tick: ", c.Tick)
 	fmt.Println("  HostCertPath: ", c.HostCertPath)
 	fmt.Println("  HostCertKeyPath: ", c.HostCertKeyPath)

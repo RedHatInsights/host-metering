@@ -71,7 +71,7 @@ func NewPrometheusRequest(hostinfo *hostinfo.HostInfo, cfg *config.Config) (*htt
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", cfg.PrometheusUrl, bytes.NewReader(compressedData))
+	req, err := http.NewRequest("POST", cfg.WriteUrl, bytes.NewReader(compressedData))
 	if err != nil {
 		return nil, err
 	}

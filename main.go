@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	prometheusUrl := flag.String("prometheus-url", "http://localhost:9090/api/v1/write", "URL of the Prometheus server")
+	writeUrl := flag.String("write-url", "http://localhost:9090/api/v1/write", "Prometheus remote write endpoint")
 	tick := flag.Uint("tick", 600, "Report every tick seconds")
 	certPath := flag.String("cert", "", "Host certificate path")
 	keyPath := flag.String("key", "", "Host certificate key path")
@@ -33,7 +33,7 @@ func main() {
 		printUsage()
 		return
 	case "daemon", "once":
-		cfg := config.NewConfig(*prometheusUrl, *tick, *certPath, *keyPath)
+		cfg := config.NewConfig(*writeUrl, *tick, *certPath, *keyPath)
 		cfg.Print()
 		hostInfo, err := hostinfo.LoadHostInfo(cfg)
 		if err != nil {

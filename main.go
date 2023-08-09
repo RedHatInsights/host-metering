@@ -14,6 +14,7 @@ func main() {
 	tick := flag.Uint("tick", 0, "Report every tick seconds")
 	certPath := flag.String("cert", "", "Host certificate path")
 	keyPath := flag.String("key", "", "Host certificate key path")
+	configPath := flag.String("config", config.DefaultConfigPath, "Configuration file path")
 
 	flag.NewFlagSet("help", flag.ExitOnError)
 	flag.NewFlagSet("daemon", flag.ExitOnError)
@@ -34,6 +35,7 @@ func main() {
 		return
 	case "daemon", "once":
 		cfg := config.NewConfig()
+		cfg.UpdateFromConfigFile(*configPath)
 		cfg.UpdateFromEnvVars()
 		cfg.UpdateFromCliOptions(*writeUrl, *tick, *certPath, *keyPath)
 		cfg.Print()

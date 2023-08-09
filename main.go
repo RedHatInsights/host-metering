@@ -10,10 +10,10 @@ import (
 )
 
 func main() {
-	writeUrl := flag.String("write-url", config.DefaultWriteUrl, "Prometheus remote write endpoint")
-	tick := flag.Uint("tick", config.DefaultWriteInterval, "Report every tick seconds")
-	certPath := flag.String("cert", config.DefaultCertPath, "Host certificate path")
-	keyPath := flag.String("key", config.DefaultKeyPath, "Host certificate key path")
+	writeUrl := flag.String("write-url", "", "Prometheus remote write endpoint")
+	tick := flag.Uint("tick", 0, "Report every tick seconds")
+	certPath := flag.String("cert", "", "Host certificate path")
+	keyPath := flag.String("key", "", "Host certificate key path")
 
 	flag.NewFlagSet("help", flag.ExitOnError)
 	flag.NewFlagSet("daemon", flag.ExitOnError)
@@ -33,7 +33,9 @@ func main() {
 		printUsage()
 		return
 	case "daemon", "once":
-		cfg := config.NewConfig(*writeUrl, *tick, *certPath, *keyPath)
+		cfg := config.NewConfig()
+		cfg.UpdateFromEnvVars()
+		cfg.UpdateFromCliOptions(*writeUrl, *tick, *certPath, *keyPath)
 		cfg.Print()
 		hostInfo, err := hostinfo.LoadHostInfo(cfg)
 		if err != nil {

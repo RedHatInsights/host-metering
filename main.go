@@ -10,10 +10,10 @@ import (
 )
 
 func main() {
-	writeUrl := flag.String("write-url", "http://localhost:9090/api/v1/write", "Prometheus remote write endpoint")
-	tick := flag.Uint("tick", 600, "Report every tick seconds")
-	certPath := flag.String("cert", "", "Host certificate path")
-	keyPath := flag.String("key", "", "Host certificate key path")
+	writeUrl := flag.String("write-url", config.DefaultWriteUrl, "Prometheus remote write endpoint")
+	tick := flag.Uint("tick", config.DefaultWriteInterval, "Report every tick seconds")
+	certPath := flag.String("cert", config.DefaultCertPath, "Host certificate path")
+	keyPath := flag.String("key", config.DefaultKeyPath, "Host certificate key path")
 
 	flag.NewFlagSet("help", flag.ExitOnError)
 	flag.NewFlagSet("daemon", flag.ExitOnError)

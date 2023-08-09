@@ -2,6 +2,18 @@ package config
 
 import "fmt"
 
+const (
+	DefaultConfigPath           = "/etc/milton.conf"
+	DefaultWriteUrl             = "http://localhost:9090/api/v1/write"
+	DefaultWriteInterval        = 600
+	DefaultCertPath             = "/etc/pki/consumer/cert.pem"
+	DefaultKeyPath              = "/etc/pki/consumer/key.pem"
+	DefaultCollectInterval      = 0
+	DefaultLabelRefreshInterval = 86400
+	DefaultWriteRetryAttempts   = 3
+	DefaultWriteRetryInterval   = 1
+)
+
 type Config struct {
 	WriteUrl             string
 	WriteInterval        uint // in seconds
@@ -19,10 +31,10 @@ func NewConfig(writeUrl string, writeInterval uint, certPath string, keyPath str
 		WriteInterval:        writeInterval,
 		HostCertPath:         certPath,
 		HostCertKeyPath:      keyPath,
-		CollectInterval:      0,
-		LabelRefreshInterval: 86400,
-		WriteRetryAttempts:   3,
-		WriteRetryInterval:   1,
+		CollectInterval:      DefaultCollectInterval,
+		LabelRefreshInterval: DefaultLabelRefreshInterval,
+		WriteRetryAttempts:   DefaultWriteRetryAttempts,
+		WriteRetryInterval:   DefaultWriteRetryInterval,
 	}
 }
 

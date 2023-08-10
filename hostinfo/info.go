@@ -7,8 +7,16 @@ import (
 )
 
 type HostInfo struct {
-	CpuCount uint
-	HostId   string
+	CpuCount                     uint
+	HostId                       string
+	SocketCount                  string
+	Product                      string
+	Support                      string
+	Usage                        string
+	BillingModel                 string
+	BillingMarketplace           string
+	BillingMarketplaceAccount    string
+	BillingMarketplaceInstanceId string
 }
 
 func LoadHostInfo(c *config.Config) (*HostInfo, error) {
@@ -18,19 +26,25 @@ func LoadHostInfo(c *config.Config) (*HostInfo, error) {
 		return nil, err
 	}
 
-	hostId, err := GetHostId(c)
-	if err != nil {
-		return nil, err
+	hi := &HostInfo{
+		CpuCount: cpuCount,
 	}
 
-	return &HostInfo{
-		CpuCount: cpuCount,
-		HostId:   hostId,
-	}, nil
+	LoadSubManInformation(c, hi)
+
+	return hi, nil
 }
 
 func (hi *HostInfo) Print() {
 	fmt.Println("HostInfo:")
 	fmt.Println("  CpuCount: ", hi.CpuCount)
 	fmt.Println("  HostId: ", hi.HostId)
+	fmt.Println("  SocketCount: ", hi.SocketCount)
+	fmt.Println("  Product: ", hi.Product)
+	fmt.Println("  Support: ", hi.Support)
+	fmt.Println("  Usage: ", hi.Usage)
+	fmt.Println("  BillingModel: ", hi.BillingModel)
+	fmt.Println("  BillingMarketplace: ", hi.BillingMarketplace)
+	fmt.Println("  BillingMarketplaceAccount: ", hi.BillingMarketplaceAccount)
+	fmt.Println("  BillingMarketplaceInstanceId: ", hi.BillingMarketplaceInstanceId)
 }

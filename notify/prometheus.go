@@ -22,18 +22,17 @@ import (
 // - Persistence It is recommended that Prometheus Remote Write compatible senders should persistently buffer sample data in the event of outages in the receiver.
 //
 
-const retryWait = 1 * time.Second
-
 func PrometheusRemoteWrite(hostinfo *hostinfo.HostInfo, cfg *config.Config) error {
 	req, err := NewPrometheusRequest(hostinfo, cfg)
 	if err != nil {
 		return err
 	}
 
-	attempt := 0
-	retries := 3
+	var attempt uint = 0
+	var maxRetryWait = time.Duration(cfg.WriteRetryMaxInt) * time.Second
+	retryWait := time.Duration(cfg.WriteRetryMinInt) * time.Second
 
-	for attempt < retries {
+	for attempt < cfg.WriteRetryAttempts {
 		client := NewMTLSHttpClient(hostinfo)
 		resp, err := client.Do(req)
 
@@ -51,6 +50,11 @@ func PrometheusRemoteWrite(hostinfo *hostinfo.HostInfo, cfg *config.Config) erro
 
 		if resp.StatusCode/100 == 5 || resp.StatusCode == 429 {
 			attempt++
+			retryWait = retryWait * 2
+			if retryWait > maxRetryWait {
+				retryWait = maxRetryWait
+			}
+
 			fmt.Printf("PrometheusRemoteWrite: Http Error: %d, retrying\n", resp.StatusCode)
 			time.Sleep(retryWait)
 			continue

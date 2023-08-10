@@ -16,8 +16,9 @@ const (
 	DefaultKeyPath              = "/etc/pki/consumer/key.pem"
 	DefaultCollectInterval      = 0
 	DefaultLabelRefreshInterval = 86400
-	DefaultWriteRetryAttempts   = 3
-	DefaultWriteRetryInterval   = 1
+	DefaultWriteRetryAttempts   = 8
+	DefaultWriteRetryMinInt     = 1
+	DefaultWriteRetryMaxInt     = 10
 )
 
 type Config struct {
@@ -28,7 +29,8 @@ type Config struct {
 	HostCertPath         string
 	HostCertKeyPath      string
 	WriteRetryAttempts   uint
-	WriteRetryInterval   uint // in seconds
+	WriteRetryMinInt     uint // in seconds
+	WriteRetryMaxInt     uint // in seconds
 }
 
 func NewConfig() *Config {
@@ -40,7 +42,8 @@ func NewConfig() *Config {
 		CollectInterval:      DefaultCollectInterval,
 		LabelRefreshInterval: DefaultLabelRefreshInterval,
 		WriteRetryAttempts:   DefaultWriteRetryAttempts,
-		WriteRetryInterval:   DefaultWriteRetryInterval,
+		WriteRetryMinInt:     DefaultWriteRetryMinInt,
+		WriteRetryMaxInt:     DefaultWriteRetryMaxInt,
 	}
 }
 
@@ -53,7 +56,8 @@ func (c *Config) Print() {
 	fmt.Println("  CollectInterval: ", c.CollectInterval)
 	fmt.Println("  LabelRefreshInterval: ", c.LabelRefreshInterval)
 	fmt.Println("  WriteRetryAttempts: ", c.WriteRetryAttempts)
-	fmt.Println("  WriteRetryInterval: ", c.WriteRetryInterval)
+	fmt.Println("  WriteRetryMinInt: ", c.WriteRetryMinInt)
+	fmt.Println("  WriteRetryMaxInt: ", c.WriteRetryMaxInt)
 }
 
 func (c *Config) UpdateFromCliOptions(writeUrl string, writeInterval uint, certPath string, keyPath string) {
@@ -98,7 +102,8 @@ func (c *Config) UpdateFromEnvVars() {
 	c.CollectInterval = parseEnvVarUint("MILTON_COLLECT_INTERVAL", c.CollectInterval)
 	c.LabelRefreshInterval = parseEnvVarUint("MILTON_LABEL_REFRESH_INTERVAL", c.LabelRefreshInterval)
 	c.WriteRetryAttempts = parseEnvVarUint("MILTON_WRITE_RETRY_ATTEMPTS", c.WriteRetryAttempts)
-	c.WriteRetryInterval = parseEnvVarUint("MILTON_WRITE_RETRY_INTERVAL", c.WriteRetryInterval)
+	c.WriteRetryMinInt = parseEnvVarUint("MILTON_WRITE_RETRY_MIN_INT", c.WriteRetryMinInt)
+	c.WriteRetryMaxInt = parseEnvVarUint("MILTON_WRITE_RETRY_MAX_INT", c.WriteRetryMaxInt)
 }
 
 func parseConfigUint(name string, value string, currentValue uint) uint {
@@ -182,7 +187,10 @@ func (c *Config) UpdateFromConfigFile(path string) {
 	if v, ok := config["milton"]["write_retry_attempts"]; ok {
 		c.WriteRetryAttempts = parseConfigUint("write_retry_attempts", v, c.WriteRetryAttempts)
 	}
-	if v, ok := config["milton"]["write_retry_interval"]; ok {
-		c.WriteRetryInterval = parseConfigUint("write_retry_interval", v, c.WriteRetryInterval)
+	if v, ok := config["milton"]["write_retry_min_int"]; ok {
+		c.WriteRetryMinInt = parseConfigUint("write_retry_min_int", v, c.WriteRetryMinInt)
+	}
+	if v, ok := config["milton"]["write_retry_max_int"]; ok {
+		c.WriteRetryMaxInt = parseConfigUint("write_retry_max_int", v, c.WriteRetryMaxInt)
 	}
 }

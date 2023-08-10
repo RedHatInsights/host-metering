@@ -87,21 +87,66 @@ func NewPrometheusRequest(hostinfo *hostinfo.HostInfo, cfg *config.Config) (*htt
 	return req, nil
 }
 
+func filterEmptyLabels(labels []prompb.Label) []prompb.Label {
+	var result []prompb.Label
+	for _, label := range labels {
+		if label.Value != "" {
+			result = append(result, label)
+		}
+	}
+	return result
+}
+
 func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo) *prompb.WriteRequest {
 
 	now := time.Now()
 	timestamp := now.UnixMilli()
 
+	// Labels must be sorted by name
 	labels := []prompb.Label{
 		{
 			Name:  "__name__",
 			Value: "system_cpu_logical_count",
 		},
 		{
-			Name:  "hostId",
+			Name:  "_id",
 			Value: hostinfo.HostId,
 		},
+		{
+			Name:  "billing_marketplace",
+			Value: hostinfo.BillingMarketplace,
+		},
+		{
+			Name:  "billing_marketplace_account",
+			Value: hostinfo.BillingMarketplaceAccount,
+		},
+		{
+			Name:  "billing_marketplace_instance_id",
+			Value: hostinfo.BillingMarketplaceInstanceId,
+		},
+		{
+			Name:  "billing_model",
+			Value: hostinfo.BillingModel,
+		},
+		{
+			Name:  "product",
+			Value: hostinfo.Product,
+		},
+		{
+			Name:  "socket_count",
+			Value: hostinfo.SocketCount,
+		},
+		{
+			Name:  "support",
+			Value: hostinfo.Support,
+		},
+		{
+			Name:  "usage",
+			Value: hostinfo.Usage,
+		},
 	}
+
+	labels = filterEmptyLabels(labels)
 
 	samples := []prompb.Sample{
 		{

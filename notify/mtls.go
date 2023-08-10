@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"time"
 
-	"redhat.com/milton/hostinfo"
+	"redhat.com/milton/config"
 )
 
 const requestTimeout time.Duration = 60 * time.Second
 
 // Create HTTP client with host certificate for Mutual TLS authentication
-func NewMTLSHttpClient(hostInfo *hostinfo.HostInfo) *http.Client {
-	cert, err := tls.LoadX509KeyPair(hostInfo.CertPath, hostInfo.CertKeyPath)
+func NewMTLSHttpClient(cfg *config.Config) *http.Client {
+	cert, err := tls.LoadX509KeyPair(cfg.HostCertPath, cfg.HostCertKeyPath)
 	if err != nil {
 		panic(err)
 	}

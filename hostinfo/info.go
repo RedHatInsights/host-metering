@@ -7,10 +7,8 @@ import (
 )
 
 type HostInfo struct {
-	CpuCount    uint
-	HostId      string
-	CertPath    string
-	CertKeyPath string
+	CpuCount uint
+	HostId   string
 }
 
 func LoadHostInfo(c *config.Config) (*HostInfo, error) {
@@ -26,10 +24,8 @@ func LoadHostInfo(c *config.Config) (*HostInfo, error) {
 	}
 
 	return &HostInfo{
-		CpuCount:    cpuCount,
-		HostId:      hostId,
-		CertPath:    GetCertPath(c),
-		CertKeyPath: GetCertKeyPath(c),
+		CpuCount: cpuCount,
+		HostId:   hostId,
 	}, nil
 }
 
@@ -37,6 +33,4 @@ func (hi *HostInfo) Print() {
 	fmt.Println("HostInfo:")
 	fmt.Println("  CpuCount: ", hi.CpuCount)
 	fmt.Println("  HostId: ", hi.HostId)
-	fmt.Println("  CertPath: ", hi.CertPath)
-	fmt.Println("  CertKeyPath: ", hi.CertKeyPath)
 }

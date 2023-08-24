@@ -15,6 +15,7 @@ import (
 type Daemon struct {
 	config   *config.Config
 	hostInfo *hostinfo.HostInfo
+	cpuCache *notify.CpuCache
 }
 
 func NewDaemon(config *config.Config) *Daemon {
@@ -32,15 +33,33 @@ func (d *Daemon) Run() error {
 	reloadCh := make(chan os.Signal, 1)
 	signal.Notify(reloadCh, syscall.SIGHUP)
 
-	ticker := time.NewTicker(time.Duration(d.config.WriteInterval) * time.Second)
+	var collectTicker *time.Ticker
+	if d.config.CollectInterval > 0 {
+		collectTicker = time.NewTicker(time.Duration(d.config.CollectInterval) * time.Second)
+	} else {
+		// Create dummy stopped ticker if collect interval is not configured
+		collectTicker = time.NewTicker(time.Duration(1) * time.Hour)
+		collectTicker.Stop()
+	}
+
+	writeTicker := time.NewTicker(time.Duration(d.config.WriteInterval) * time.Second)
+
 	if err := d.loadHostInfo(); err != nil {
+		return err
+	}
+	if err := d.initCpuCache(); err != nil {
 		return err
 	}
 
 	go func() {
 		for {
 			select {
-			case <-ticker.C:
+			case <-collectTicker.C:
+				d.collectMetrics()
+			case <-writeTicker.C:
+				if d.config.CollectInterval == 0 {
+					d.collectMetrics()
+				}
 				d.doPrometheusRequest()
 			case <-reloadCh:
 				fmt.Println("Reloading HostInfo...")
@@ -50,7 +69,8 @@ func (d *Daemon) Run() error {
 				}
 				fmt.Println("HostInfo reloaded")
 			case <-stopCh:
-				ticker.Stop()
+				collectTicker.Stop()
+				writeTicker.Stop()
 				return
 			}
 		}
@@ -65,7 +85,11 @@ func (d *Daemon) RunOnce() error {
 	if err := d.loadHostInfo(); err != nil {
 		return err
 	}
+	if err := d.initCpuCache(); err != nil {
+		return err
+	}
 	fmt.Println("Executing once...")
+	d.collectMetrics()
 	err := d.doPrometheusRequest()
 	return err
 }
@@ -81,12 +105,52 @@ func (d *Daemon) loadHostInfo() error {
 	return nil
 }
 
+func (d *Daemon) initCpuCache() error {
+	fmt.Println("Initializing CPU cache...")
+	cache, err := notify.NewCpuCache(d.config.CpuCachePath)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	d.cpuCache = cache
+	fmt.Println("CPU cache initialized")
+	return nil
+}
+
+func (d *Daemon) collectMetrics() {
+	fmt.Println("Collecting metrics...")
+
+	d.hostInfo.RefreshCpuCount()
+	err := d.cpuCache.Write(d.hostInfo.CpuCount)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("Metrics collected")
+}
+
 func (d *Daemon) doPrometheusRequest() error {
 	if d.hostInfo == nil {
 		return fmt.Errorf("missing internal HostInfo")
 	}
-	fmt.Println("Sending Prometheus request...")
-	err := notify.PrometheusRemoteWrite(d.hostInfo, d.config)
+	fmt.Println("Initiating Prometheus request...")
+	samples, lastIndex, err := d.cpuCache.GetAllSamples()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	count := len(samples)
+	if count == 0 {
+		fmt.Println("No samples to send")
+		return nil
+	}
+	fmt.Println("Sending ", count, " sample(s)...")
+	err = notify.PrometheusRemoteWrite(d.hostInfo, d.config, samples)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	err = d.cpuCache.TruncateTo(lastIndex)
 	if err != nil {
 		fmt.Println(err)
 		return err

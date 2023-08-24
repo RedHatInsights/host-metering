@@ -48,3 +48,13 @@ func (hi *HostInfo) Print() {
 	fmt.Println("  BillingMarketplaceAccount: ", hi.BillingMarketplaceAccount)
 	fmt.Println("  BillingMarketplaceInstanceId: ", hi.BillingMarketplaceInstanceId)
 }
+
+func (hi *HostInfo) RefreshCpuCount() {
+	cpuCount, err := GetCPUCount()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	hi.CpuCount = cpuCount
+}

@@ -22,8 +22,8 @@ import (
 // - Persistence It is recommended that Prometheus Remote Write compatible senders should persistently buffer sample data in the event of outages in the receiver.
 //
 
-func PrometheusRemoteWrite(hostinfo *hostinfo.HostInfo, cfg *config.Config) error {
-	req, err := NewPrometheusRequest(hostinfo, cfg)
+func PrometheusRemoteWrite(hostinfo *hostinfo.HostInfo, cfg *config.Config, samples []prompb.Sample) error {
+	req, err := NewPrometheusRequest(hostinfo, cfg, samples)
 	if err != nil {
 		return err
 	}
@@ -71,8 +71,8 @@ func PrometheusRemoteWrite(hostinfo *hostinfo.HostInfo, cfg *config.Config) erro
 	return nil
 }
 
-func NewPrometheusRequest(hostinfo *hostinfo.HostInfo, cfg *config.Config) (*http.Request, error) {
-	writeRequest := hostInfo2WriteRequest(hostinfo)
+func NewPrometheusRequest(hostinfo *hostinfo.HostInfo, cfg *config.Config, samples []prompb.Sample) (*http.Request, error) {
+	writeRequest := hostInfo2WriteRequest(hostinfo, samples)
 	compressedData, err := writeRequest2Payload(writeRequest)
 	if err != nil {
 		return nil, err
@@ -100,11 +100,7 @@ func filterEmptyLabels(labels []prompb.Label) []prompb.Label {
 	return result
 }
 
-func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo) *prompb.WriteRequest {
-
-	now := time.Now()
-	timestamp := now.UnixMilli()
-
+func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo, samples []prompb.Sample) *prompb.WriteRequest {
 	// Labels must be sorted by name
 	labels := []prompb.Label{
 		{
@@ -150,13 +146,6 @@ func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo) *prompb.WriteRequest {
 	}
 
 	labels = filterEmptyLabels(labels)
-
-	samples := []prompb.Sample{
-		{
-			Value:     float64(hostinfo.CpuCount),
-			Timestamp: timestamp,
-		},
-	}
 
 	writeRequest := &prompb.WriteRequest{
 		Timeseries: []prompb.TimeSeries{

@@ -19,6 +19,7 @@ const (
 	DefaultWriteRetryAttempts   = 8
 	DefaultWriteRetryMinInt     = 1
 	DefaultWriteRetryMaxInt     = 10
+	DefaultCpuCachePath         = "/var/run/milton/cpucache"
 )
 
 type Config struct {
@@ -31,6 +32,7 @@ type Config struct {
 	WriteRetryAttempts   uint
 	WriteRetryMinInt     uint // in seconds
 	WriteRetryMaxInt     uint // in seconds
+	CpuCachePath         string
 }
 
 func NewConfig() *Config {
@@ -44,6 +46,7 @@ func NewConfig() *Config {
 		WriteRetryAttempts:   DefaultWriteRetryAttempts,
 		WriteRetryMinInt:     DefaultWriteRetryMinInt,
 		WriteRetryMaxInt:     DefaultWriteRetryMaxInt,
+		CpuCachePath:         DefaultCpuCachePath,
 	}
 }
 
@@ -58,6 +61,7 @@ func (c *Config) Print() {
 	fmt.Println("  WriteRetryAttempts: ", c.WriteRetryAttempts)
 	fmt.Println("  WriteRetryMinInt: ", c.WriteRetryMinInt)
 	fmt.Println("  WriteRetryMaxInt: ", c.WriteRetryMaxInt)
+	fmt.Println("  CpuCachePath: ", c.CpuCachePath)
 }
 
 func (c *Config) UpdateFromCliOptions(writeUrl string, writeInterval uint, certPath string, keyPath string) {
@@ -104,6 +108,9 @@ func (c *Config) UpdateFromEnvVars() {
 	c.WriteRetryAttempts = parseEnvVarUint("MILTON_WRITE_RETRY_ATTEMPTS", c.WriteRetryAttempts)
 	c.WriteRetryMinInt = parseEnvVarUint("MILTON_WRITE_RETRY_MIN_INT", c.WriteRetryMinInt)
 	c.WriteRetryMaxInt = parseEnvVarUint("MILTON_WRITE_RETRY_MAX_INT", c.WriteRetryMaxInt)
+	if v := os.Getenv("MILTON_CPU_CACHE_PATH"); v != "" {
+		c.CpuCachePath = v
+	}
 }
 
 func parseConfigUint(name string, value string, currentValue uint) uint {
@@ -192,5 +199,8 @@ func (c *Config) UpdateFromConfigFile(path string) {
 	}
 	if v, ok := config["milton"]["write_retry_max_int"]; ok {
 		c.WriteRetryMaxInt = parseConfigUint("write_retry_max_int", v, c.WriteRetryMaxInt)
+	}
+	if v, ok := config["milton"]["cpu_cache_path"]; ok {
+		c.CpuCachePath = v
 	}
 }

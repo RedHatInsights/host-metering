@@ -1,14 +1,11 @@
 package notify
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/tidwall/wal"
-)
-
-const (
-	DefaultCpuCachePath = "/var/run/milton/cpucache"
 )
 
 type CpuCache struct {
@@ -19,7 +16,7 @@ type CpuCache struct {
 
 func NewCpuCache(path string) (*CpuCache, error) {
 	if path == "" {
-		path = DefaultCpuCachePath
+		return nil, fmt.Errorf("cpuCache path cannot be empty")
 	}
 	w, err := wal.Open(path, nil)
 	if err != nil {

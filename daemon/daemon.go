@@ -33,6 +33,9 @@ func (d *Daemon) Run() error {
 	signal.Notify(reloadCh, syscall.SIGHUP)
 
 	ticker := time.NewTicker(time.Duration(d.config.WriteInterval) * time.Second)
+	if err := d.loadHostInfo(); err != nil {
+		return err
+	}
 
 	go func() {
 		for {
@@ -59,28 +62,28 @@ func (d *Daemon) Run() error {
 }
 
 func (d *Daemon) RunOnce() error {
-	fmt.Println("Load HostInfo...")
 	if err := d.loadHostInfo(); err != nil {
 		return err
 	}
-	fmt.Println("HostInfo reloaded")
 	fmt.Println("Executing once...")
 	err := d.doPrometheusRequest()
 	return err
 }
 
 func (d *Daemon) loadHostInfo() error {
+	fmt.Println("Load HostInfo...")
 	hostInfo, err := hostinfo.LoadHostInfo(d.config)
 	if err != nil {
 		return err
 	}
+	fmt.Println("HostInfo reloaded")
 	d.hostInfo = hostInfo
 	return nil
 }
 
 func (d *Daemon) doPrometheusRequest() error {
-	if d.config == nil {
-		return fmt.Errorf("Missing internal HostInfo. Make sure to call loadHostInfo first.")
+	if d.hostInfo == nil {
+		return fmt.Errorf("missing internal HostInfo")
 	}
 	fmt.Println("Sending Prometheus request...")
 	err := notify.PrometheusRemoteWrite(d.hostInfo, d.config)

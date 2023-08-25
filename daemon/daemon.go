@@ -51,6 +51,12 @@ func (d *Daemon) Run() error {
 		return err
 	}
 
+	certWatcher, err := hostinfo.NewCertWatcher(d.config.HostCertPath)
+	if err != nil {
+		// CertWatch failure should not be fatal
+		fmt.Println(err)
+	}
+
 	go func() {
 		for {
 			select {
@@ -68,6 +74,19 @@ func (d *Daemon) Run() error {
 					continue
 				}
 				fmt.Println("HostInfo reloaded")
+			case event, ok := <-certWatcher.Event:
+				if !ok {
+					continue
+				}
+				switch event {
+				case hostinfo.WriteEvent:
+					fmt.Println("Host cert updated")
+				case hostinfo.RemoveEvent:
+					fmt.Println("Host cert removed")
+				}
+				if err := d.loadHostInfo(); err != nil {
+					fmt.Println(err)
+				}
 			case <-stopCh:
 				collectTicker.Stop()
 				writeTicker.Stop()

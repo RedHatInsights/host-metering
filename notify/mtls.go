@@ -11,10 +11,10 @@ import (
 const requestTimeout time.Duration = 60 * time.Second
 
 // Create HTTP client with host certificate for Mutual TLS authentication
-func NewMTLSHttpClient(cfg *config.Config) *http.Client {
+func NewMTLSHttpClient(cfg *config.Config) (*http.Client, error) {
 	cert, err := tls.LoadX509KeyPair(cfg.HostCertPath, cfg.HostCertKeyPath)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	// Not specifying a RootCAs field as we rely on the system's root CA store
@@ -27,5 +27,5 @@ func NewMTLSHttpClient(cfg *config.Config) *http.Client {
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
 		},
-	}
+	}, nil
 }

@@ -33,7 +33,10 @@ func PrometheusRemoteWrite(hostinfo *hostinfo.HostInfo, cfg *config.Config) erro
 	retryWait := time.Duration(cfg.WriteRetryMinInt) * time.Second
 
 	for attempt < cfg.WriteRetryAttempts {
-		client := NewMTLSHttpClient(cfg)
+		client, err := NewMTLSHttpClient(cfg)
+		if err != nil {
+			return fmt.Errorf("Http Client: %w", err)
+		}
 		resp, err := client.Do(req)
 
 		if err != nil {

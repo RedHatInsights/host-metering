@@ -101,6 +101,7 @@ func (d *Daemon) loadHostInfo() error {
 		return err
 	}
 	fmt.Println("HostInfo reloaded")
+	hostInfo.Print()
 	d.hostInfo = hostInfo
 	return nil
 }

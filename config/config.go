@@ -20,6 +20,8 @@ const (
 	DefaultWriteRetryMinIntSec     = 1
 	DefaultWriteRetryMaxIntSec     = 10
 	DefaultCpuCachePath            = "/var/run/milton/cpucache"
+	DefaultLogLevel                = "INFO"
+	DefaultLogPath                 = "" //Default to stderr, will be logged in journal.
 )
 
 type Config struct {
@@ -33,6 +35,8 @@ type Config struct {
 	WriteRetryMinIntSec     uint // in seconds
 	WriteRetryMaxIntSec     uint // in seconds
 	CpuCachePath            string
+	LogLevel                string // one of "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
+	LogPath                 string
 }
 
 func NewConfig() *Config {
@@ -47,21 +51,28 @@ func NewConfig() *Config {
 		WriteRetryMinIntSec:     DefaultWriteRetryMinIntSec,
 		WriteRetryMaxIntSec:     DefaultWriteRetryMaxIntSec,
 		CpuCachePath:            DefaultCpuCachePath,
+		LogLevel:                DefaultLogLevel,
+		LogPath:                 DefaultLogPath,
 	}
 }
 
-func (c *Config) Print() {
-	fmt.Println("Config:")
-	fmt.Println("  WriteUrl: ", c.WriteUrl)
-	fmt.Println("  WriteIntervalSec: ", c.WriteIntervalSec)
-	fmt.Println("  HostCertPath: ", c.HostCertPath)
-	fmt.Println("  HostCertKeyPath: ", c.HostCertKeyPath)
-	fmt.Println("  CollectIntervalSec: ", c.CollectIntervalSec)
-	fmt.Println("  LabelRefreshIntervalSec: ", c.LabelRefreshIntervalSec)
-	fmt.Println("  WriteRetryAttempts: ", c.WriteRetryAttempts)
-	fmt.Println("  WriteRetryMinIntSec: ", c.WriteRetryMinIntSec)
-	fmt.Println("  WriteRetryMaxIntSec: ", c.WriteRetryMaxIntSec)
-	fmt.Println("  CpuCachePath: ", c.CpuCachePath)
+func (c *Config) String() string {
+	return strings.Join(
+		[]string{
+			"Config:",
+			fmt.Sprintf("  WriteUrl: %s", c.WriteUrl),
+			fmt.Sprintf("  WriteIntervalSec: %d", c.WriteIntervalSec),
+			fmt.Sprintf("  HostCertPath: %s", c.HostCertPath),
+			fmt.Sprintf("  HostCertKeyPath: %s", c.HostCertKeyPath),
+			fmt.Sprintf("  CollectIntervalSec: %d", c.CollectIntervalSec),
+			fmt.Sprintf("  LabelRefreshIntervalSec: %d", c.LabelRefreshIntervalSec),
+			fmt.Sprintf("  WriteRetryAttempts: %d", c.WriteRetryAttempts),
+			fmt.Sprintf("  WriteRetryMinIntSec: %d", c.WriteRetryMinIntSec),
+			fmt.Sprintf("  WriteRetryMaxIntSec: %d", c.WriteRetryMaxIntSec),
+			fmt.Sprintf("  CpuCachePath: %s", c.CpuCachePath),
+			fmt.Sprintf("  LogLevel: %s", c.LogLevel),
+			fmt.Sprintf("  LogPath: %s", c.LogPath),
+		}, "\n")
 }
 
 func (c *Config) UpdateFromCliOptions(writeUrl string, writeIntervalSec uint, certPath string, keyPath string) {
@@ -79,62 +90,85 @@ func (c *Config) UpdateFromCliOptions(writeUrl string, writeIntervalSec uint, ce
 	}
 }
 
-func parseEnvVarUint(name string, currentValue uint) uint {
+func parseEnvVarUint(name string, currentValue uint) (uint, error) {
 	if v := os.Getenv(name); v != "" {
 		val, err := strconv.ParseUint(v, 10, 32)
 		if err == nil {
-			return uint(val)
+			return uint(val), nil
 		} else {
-			fmt.Printf("Error parsing var: %s %v %s\n", name, v, err)
+			return currentValue, fmt.Errorf("error parsing var: %s %v %w", name, v, err)
 		}
 	}
-	return currentValue
+	return currentValue, nil
 }
 
-func (c *Config) UpdateFromEnvVars() {
-	fmt.Println("Updating config from environment variables...")
+func (c *Config) UpdateFromEnvVars() string {
+	var errors strings.Builder
 	if v := os.Getenv("MILTON_WRITE_URL"); v != "" {
 		c.WriteUrl = v
 	}
-	c.WriteIntervalSec = parseEnvVarUint("MILTON_WRITE_INTERVAL_SEC", c.WriteIntervalSec)
+	var err error
+	c.WriteIntervalSec, err = parseEnvVarUint("MILTON_WRITE_INTERVAL_SEC", c.WriteIntervalSec)
+	if err != nil {
+		errors.WriteString(err.Error())
+	}
+
 	if v := os.Getenv("MILTON_HOST_CERT"); v != "" {
 		c.HostCertPath = v
 	}
 	if v := os.Getenv("MILTON_HOST_KEY"); v != "" {
 		c.HostCertKeyPath = v
 	}
-	c.CollectIntervalSec = parseEnvVarUint("MILTON_COLLECT_INTERVAL_SEC", c.CollectIntervalSec)
-	c.LabelRefreshIntervalSec = parseEnvVarUint("MILTON_LABEL_REFRESH_INTERVAL_SEC", c.LabelRefreshIntervalSec)
-	c.WriteRetryAttempts = parseEnvVarUint("MILTON_WRITE_RETRY_ATTEMPTS", c.WriteRetryAttempts)
-	c.WriteRetryMinIntSec = parseEnvVarUint("MILTON_WRITE_RETRY_MIN_INT_SEC", c.WriteRetryMinIntSec)
-	c.WriteRetryMaxIntSec = parseEnvVarUint("MILTON_WRITE_RETRY_MAX_INT_SEC", c.WriteRetryMaxIntSec)
+	c.CollectIntervalSec, err = parseEnvVarUint("MILTON_COLLECT_INTERVAL_SEC", c.CollectIntervalSec)
+	if err != nil {
+		errors.WriteString(err.Error())
+	}
+	c.LabelRefreshIntervalSec, err = parseEnvVarUint("MILTON_LABEL_REFRESH_INTERVAL_SEC", c.LabelRefreshIntervalSec)
+	if err != nil {
+		errors.WriteString(err.Error())
+	}
+	c.WriteRetryAttempts, err = parseEnvVarUint("MILTON_WRITE_RETRY_ATTEMPTS", c.WriteRetryAttempts)
+	if err != nil {
+		errors.WriteString(err.Error())
+	}
+	c.WriteRetryMinIntSec, err = parseEnvVarUint("MILTON_WRITE_RETRY_MIN_INT_SEC", c.WriteRetryMinIntSec)
+	if err != nil {
+		errors.WriteString(err.Error())
+	}
+	c.WriteRetryMaxIntSec, err = parseEnvVarUint("MILTON_WRITE_RETRY_MAX_INT_SEC", c.WriteRetryMaxIntSec)
+	if err != nil {
+		errors.WriteString(err.Error())
+	}
+
 	if v := os.Getenv("MILTON_CPU_CACHE_PATH"); v != "" {
 		c.CpuCachePath = v
 	}
+	if v := os.Getenv("MILTON_LOG_LEVEL"); v != "" {
+		c.LogLevel = v
+	}
+	if v := os.Getenv("MILTON_LOG_PATH"); v != "" {
+		c.LogPath = v
+	}
+	return errors.String()
 }
 
-func parseConfigUint(name string, value string, currentValue uint) uint {
+func parseConfigUint(name string, value string, currentValue uint) (uint, error) {
 	val, err := strconv.ParseUint(value, 10, 32)
 	if err == nil {
-		return uint(val)
+		return uint(val), nil
 	} else {
-		fmt.Printf("Error parsing var: %s %v %s\n", name, value, err)
+		return currentValue, fmt.Errorf("error parsing var: %s %v %w", name, value, err)
 	}
-	return currentValue
 }
 
-func (c *Config) UpdateFromConfigFile(path string) {
-	fmt.Println("Updating config from config file...")
-
+func (c *Config) UpdateFromConfigFile(path string) string {
 	if _, err := os.Stat(path); err != nil {
-		fmt.Println("Config file ", path, " doesn't exist, skipping...")
-		return
+		return fmt.Sprintf("Config file %s doesn't exist, skipping...\n", path)
 	}
 
 	file, err := os.Open(path)
 	if err != nil {
-		fmt.Println("Error opening config file:", err)
-		return
+		return fmt.Sprintf("Error opening config file: %s\n", err.Error())
 	}
 	defer file.Close()
 
@@ -168,16 +202,19 @@ func (c *Config) UpdateFromConfigFile(path string) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Println("Error reading config file:", err)
-		return
+		return fmt.Sprintf("Error reading config file: %s", err.Error())
 	}
 
+	var errors strings.Builder
 	// Update config from parsed INI file
 	if v, ok := config["milton"]["write_url"]; ok {
 		c.WriteUrl = v
 	}
 	if v, ok := config["milton"]["write_interval_sec"]; ok {
-		c.WriteIntervalSec = parseConfigUint("write_interval_sec", v, c.WriteIntervalSec)
+		c.WriteIntervalSec, err = parseConfigUint("write_interval_sec", v, c.WriteIntervalSec)
+		if err != nil {
+			errors.WriteString(err.Error())
+		}
 	}
 	if v, ok := config["milton"]["cert_path"]; ok {
 		c.HostCertPath = v
@@ -186,21 +223,44 @@ func (c *Config) UpdateFromConfigFile(path string) {
 		c.HostCertKeyPath = v
 	}
 	if v, ok := config["milton"]["collect_interval_sec"]; ok {
-		c.CollectIntervalSec = parseConfigUint("collect_interval_sec", v, c.CollectIntervalSec)
+		c.CollectIntervalSec, err = parseConfigUint("collect_interval_sec", v, c.CollectIntervalSec)
+		if err != nil {
+			errors.WriteString(err.Error())
+		}
 	}
 	if v, ok := config["milton"]["label_refresh_interval_sec"]; ok {
-		c.LabelRefreshIntervalSec = parseConfigUint("label_refresh_interval_sec", v, c.LabelRefreshIntervalSec)
+		c.LabelRefreshIntervalSec, err = parseConfigUint("label_refresh_interval_sec", v, c.LabelRefreshIntervalSec)
+		if err != nil {
+			errors.WriteString(err.Error())
+		}
 	}
 	if v, ok := config["milton"]["write_retry_attempts"]; ok {
-		c.WriteRetryAttempts = parseConfigUint("write_retry_attempts", v, c.WriteRetryAttempts)
+		c.WriteRetryAttempts, err = parseConfigUint("write_retry_attempts", v, c.WriteRetryAttempts)
+		if err != nil {
+			errors.WriteString(err.Error())
+		}
 	}
 	if v, ok := config["milton"]["write_retry_min_int_sec"]; ok {
-		c.WriteRetryMinIntSec = parseConfigUint("write_retry_min_int_sec", v, c.WriteRetryMinIntSec)
+		c.WriteRetryMinIntSec, err = parseConfigUint("write_retry_min_int_sec", v, c.WriteRetryMinIntSec)
+		if err != nil {
+			errors.WriteString(err.Error())
+		}
 	}
 	if v, ok := config["milton"]["write_retry_max_int_sec"]; ok {
-		c.WriteRetryMaxIntSec = parseConfigUint("write_retry_max_int_sec", v, c.WriteRetryMaxIntSec)
+		c.WriteRetryMaxIntSec, err = parseConfigUint("write_retry_max_int_sec", v, c.WriteRetryMaxIntSec)
+		if err != nil {
+			errors.WriteString(err.Error())
+		}
 	}
 	if v, ok := config["milton"]["cpu_cache_path"]; ok {
 		c.CpuCachePath = v
 	}
+	if v, ok := config["milton"]["log_level"]; ok {
+		c.LogLevel = v
+	}
+	if v, ok := config["milton"]["log_path"]; ok {
+		c.LogLevel = v
+	}
+
+	return errors.String()
 }

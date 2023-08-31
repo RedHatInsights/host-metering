@@ -14,6 +14,8 @@ require (
 	github.com/tidwall/wal v1.1.7 // direct
 )
 
+require git.sr.ht/~spc/go-log v0.0.0-20230531172318-1397be06f5f4
+
 require (
 	github.com/tidwall/gjson v1.16.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect

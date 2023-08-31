@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"redhat.com/milton/config"
+	"redhat.com/milton/logger"
 )
 
 ///etc/insights-client/machine-id
@@ -39,28 +40,31 @@ func LoadSubManInformation(cfg *config.Config, hi *HostInfo) {
 
 	hostId, err := GetHostId(cfg)
 	if err != nil {
-		fmt.Println(err)
+		logger.Warnf("Error getting host id: %s\n", err.Error())
 	} else {
 		hi.HostId = hostId
 	}
 
+	logger.Debugln("Getting`subscription-manager usage`")
 	usage, err := GetUsage()
 	if err != nil {
-		fmt.Println(err)
+		logger.Warnf("Error getting host usage: %s\n", err.Error())
 	} else {
 		hi.Usage = usage
 	}
 
+	logger.Debugln("Getting`subscription-manager service-level`")
 	serviceLevel, err := GetServiceLevel()
 	if err != nil {
-		fmt.Println(err)
+		logger.Warnf("Error getting service level: %s\n", err.Error())
 	} else {
 		hi.Support = serviceLevel
 	}
 
+	logger.Debugln("Getting`subscription-manager facts`")
 	facts, err := GetSubManFacts()
 	if err != nil {
-		fmt.Println(err)
+		logger.Warnf("Error getting host facts: %s\n", err.Error())
 	} else {
 		FactsToHostInfo(facts, hi)
 	}
@@ -69,11 +73,9 @@ func LoadSubManInformation(cfg *config.Config, hi *HostInfo) {
 func GetUsage() (string, error) {
 	cmd := exec.Command("subscription-manager", "usage")
 
-	fmt.Println("Getting`subscription-manager usage`")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println("Error: executing `subscription-manager usage`: ", err)
-		return "", err
+		return "", fmt.Errorf("error: executing `subscription-manager usage`: %w", err)
 	}
 	parts := strings.SplitN(string(output), ":", 2)
 	if len(parts) == 2 {
@@ -85,11 +87,9 @@ func GetUsage() (string, error) {
 func GetServiceLevel() (string, error) {
 	cmd := exec.Command("subscription-manager", "service-level")
 
-	fmt.Println("Getting`subscription-manager service-level`")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println("Error: executing `subscription-manager service-level`: ", err)
-		return "", err
+		return "", fmt.Errorf("error: executing `subscription-manager service-level`: %w", err)
 	}
 	parts := strings.SplitN(string(output), ":", 2)
 	if len(parts) == 2 {
@@ -103,11 +103,9 @@ func GetSubManFacts() (map[string]string, error) {
 
 	cmd := exec.Command("subscription-manager", "facts")
 
-	fmt.Println("Getting`subscription-manager facts`")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println("Error: executing `subscription-manager facts`: ", err)
-		return facts, err
+		return facts, fmt.Errorf("error: executing `subscription-manager facts`: %w", err)
 	}
 	reader := strings.NewReader(string(output))
 	scanner := bufio.NewScanner(reader)

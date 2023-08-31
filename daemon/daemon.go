@@ -9,6 +9,7 @@ import (
 
 	"redhat.com/milton/config"
 	"redhat.com/milton/hostinfo"
+	"redhat.com/milton/logger"
 	"redhat.com/milton/notify"
 )
 
@@ -23,7 +24,7 @@ func NewDaemon(config *config.Config) *Daemon {
 }
 
 func (d *Daemon) Run() error {
-	fmt.Println("Starting server...")
+	logger.Infoln("Starting server...")
 
 	// Wait for SIGINT or SIGTERM to stop server
 	stopCh := make(chan os.Signal, 1)
@@ -68,24 +69,24 @@ func (d *Daemon) Run() error {
 				}
 				d.doPrometheusRequest()
 			case <-reloadCh:
-				fmt.Println("Reloading HostInfo...")
+				logger.Infoln("Reloading HostInfo...")
 				if err := d.loadHostInfo(); err != nil {
-					fmt.Println(err)
+					logger.Errorln(err.Error())
 					continue
 				}
-				fmt.Println("HostInfo reloaded")
+				logger.Infoln("HostInfo reloaded")
 			case event, ok := <-certWatcher.Event:
 				if !ok {
 					continue
 				}
 				switch event {
 				case hostinfo.WriteEvent:
-					fmt.Println("Host cert updated")
+					logger.Infoln("Host cert updated")
 				case hostinfo.RemoveEvent:
-					fmt.Println("Host cert removed")
+					logger.Infoln("Host cert removed")
 				}
 				if err := d.loadHostInfo(); err != nil {
-					fmt.Println(err)
+					logger.Errorf("Host info load error: %s\n", err.Error())
 				}
 			case <-stopCh:
 				collectTicker.Stop()
@@ -96,7 +97,7 @@ func (d *Daemon) Run() error {
 	}()
 
 	<-stopCh
-	fmt.Println("Stopping server...")
+	logger.Infoln("Stopping server...")
 	return nil
 }
 
@@ -107,74 +108,79 @@ func (d *Daemon) RunOnce() error {
 	if err := d.initCpuCache(); err != nil {
 		return err
 	}
-	fmt.Println("Executing once...")
+	logger.Infoln("Executing once...")
 	d.collectMetrics()
 	err := d.doPrometheusRequest()
 	return err
 }
 
 func (d *Daemon) loadHostInfo() error {
-	fmt.Println("Load HostInfo...")
+	logger.Debugln("Load HostInfo...")
 	hostInfo, err := hostinfo.LoadHostInfo(d.config)
 	if err != nil {
 		return err
 	}
-	fmt.Println("HostInfo reloaded")
-	hostInfo.Print()
+	logger.Infoln("HostInfo loaded")
+	logger.Infoln(hostInfo.String())
 	d.hostInfo = hostInfo
 	return nil
 }
 
 func (d *Daemon) initCpuCache() error {
-	fmt.Println("Initializing CPU cache...")
+	logger.Debugln("Initializing CPU cache...")
 	cache, err := notify.NewCpuCache(d.config.CpuCachePath)
 	if err != nil {
-		fmt.Println(err)
+		logger.Errorln(err.Error())
 		return err
 	}
 	d.cpuCache = cache
-	fmt.Println("CPU cache initialized")
+	logger.Debugln("CPU cache initialized")
 	return nil
 }
 
 func (d *Daemon) collectMetrics() {
-	fmt.Println("Collecting metrics...")
+	logger.Debugln("Collecting metrics...")
 
-	d.hostInfo.RefreshCpuCount()
-	err := d.cpuCache.Write(d.hostInfo.CpuCount)
+	err := d.hostInfo.RefreshCpuCount()
 	if err != nil {
-		fmt.Println(err)
+		logger.Warnf("Error refreshing CPU count: %s\n", err.Error())
 		return
 	}
-	fmt.Println("Metrics collected")
+
+	err = d.cpuCache.Write(d.hostInfo.CpuCount)
+	if err != nil {
+		logger.Warnf("Error writing CPU cache: %s\n", err.Error())
+		return
+	}
+	logger.Debugln("Metrics collected")
 }
 
 func (d *Daemon) doPrometheusRequest() error {
 	if d.hostInfo == nil {
 		return fmt.Errorf("missing internal HostInfo")
 	}
-	fmt.Println("Initiating Prometheus request...")
+	logger.Debugln("Initiating Prometheus request...")
 	samples, lastIndex, err := d.cpuCache.GetAllSamples()
 	if err != nil {
-		fmt.Println(err)
+		logger.Warnf("Error getting samples: %s\n", err.Error())
 		return err
 	}
 	count := len(samples)
 	if count == 0 {
-		fmt.Println("No samples to send")
+		logger.Debugln("No samples to send")
 		return nil
 	}
-	fmt.Println("Sending ", count, " sample(s)...")
+	logger.Debugf("Sending %d sample(s)...\n", count)
 	err = notify.PrometheusRemoteWrite(d.hostInfo, d.config, samples)
 	if err != nil {
-		fmt.Println(err)
+		logger.Warnf("Error calling PrometheusRemoteWrite: %s\n", err.Error())
 		return err
 	}
 	err = d.cpuCache.TruncateTo(lastIndex)
 	if err != nil {
-		fmt.Println(err)
+		logger.Warnf("Error truncating WAL: %s\n", err.Error())
 		return err
 	}
-	fmt.Println("Prometheus remote write successful")
+	logger.Debugln("Prometheus remote write successful")
 	return nil
 }

@@ -1,5 +1,7 @@
 github.com/fsnotify/fsnotify v1.6.0 h1:n+5WquG0fcWoWp6xPWfHdbskMCQaFnG6PfBrh1Ky4HY=
 github.com/fsnotify/fsnotify v1.6.0/go.mod h1:sl3t1tCWJFWoRz9R8WJCbQihKKwmorjAbSClcnxKAGw=
+git.sr.ht/~spc/go-log v0.0.0-20230531172318-1397be06f5f4 h1:Z49DWDPi2qdWYkpgq+WEv1hQIGB2fVmva361Zs7/Qzg=
+git.sr.ht/~spc/go-log v0.0.0-20230531172318-1397be06f5f4/go.mod h1:IKiYUc0lWbZO4uSV0kWNzJSFnABNdrybpPWo46CGgFM=
 github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
 github.com/gogo/protobuf v1.3.2/go.mod h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=
 github.com/golang/snappy v0.0.4 h1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=

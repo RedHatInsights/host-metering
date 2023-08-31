@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"redhat.com/milton/config"
 	"redhat.com/milton/daemon"
+	"redhat.com/milton/logger"
 )
 
 func main() {
@@ -33,10 +35,36 @@ func main() {
 		printUsage()
 	case "daemon", "once":
 		cfg := config.NewConfig()
-		cfg.UpdateFromConfigFile(*configPath)
-		cfg.UpdateFromEnvVars()
+
+		var configurationErrors strings.Builder
+
+		configurationErrors.WriteString("Updating config from config file...\n")
+		errors := cfg.UpdateFromConfigFile(*configPath)
+		if errors != "" {
+			configurationErrors.WriteString(errors)
+		}
+
+		configurationErrors.WriteString("Updating config from environment variables...\n")
+		errors = cfg.UpdateFromEnvVars()
+		if errors != "" {
+			configurationErrors.WriteString(errors)
+		}
+
 		cfg.UpdateFromCliOptions(*writeUrl, *tick, *certPath, *keyPath)
-		cfg.Print()
+
+		// initialize the logger according to the given configuration
+		err := logger.InitLogger(cfg.LogPath, cfg.LogLevel)
+
+		if err != nil {
+			logger.Debugf("Error initializing logger: %s\n", err.Error())
+		}
+
+		//Now that the logger is configured, we can report configuration state.
+		logger.Debugln(configurationErrors.String())
+
+		//print out the configuration
+		logger.Infoln(cfg.String())
+
 		d := daemon.NewDaemon(cfg)
 
 		if command == "once" {

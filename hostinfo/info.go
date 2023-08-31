@@ -2,6 +2,7 @@ package hostinfo
 
 import (
 	"fmt"
+	"strings"
 
 	"redhat.com/milton/config"
 )
@@ -35,26 +36,29 @@ func LoadHostInfo(c *config.Config) (*HostInfo, error) {
 	return hi, nil
 }
 
-func (hi *HostInfo) Print() {
-	fmt.Println("HostInfo:")
-	fmt.Println("  CpuCount: ", hi.CpuCount)
-	fmt.Println("  HostId: ", hi.HostId)
-	fmt.Println("  SocketCount: ", hi.SocketCount)
-	fmt.Println("  Product: ", hi.Product)
-	fmt.Println("  Support: ", hi.Support)
-	fmt.Println("  Usage: ", hi.Usage)
-	fmt.Println("  BillingModel: ", hi.BillingModel)
-	fmt.Println("  BillingMarketplace: ", hi.BillingMarketplace)
-	fmt.Println("  BillingMarketplaceAccount: ", hi.BillingMarketplaceAccount)
-	fmt.Println("  BillingMarketplaceInstanceId: ", hi.BillingMarketplaceInstanceId)
+func (hi *HostInfo) String() string {
+	return strings.Join(
+		[]string{
+			"HostInfo:",
+			fmt.Sprintf("  CpuCount: %d", hi.CpuCount),
+			fmt.Sprintf("  HostId: %s", hi.HostId),
+			fmt.Sprintf("  SocketCount: %s", hi.SocketCount),
+			fmt.Sprintf("  Product: %s", hi.Product),
+			fmt.Sprintf("  Support: %s", hi.Support),
+			fmt.Sprintf("  Usage: %s", hi.Usage),
+			fmt.Sprintf("  BillingModel: %s", hi.BillingModel),
+			fmt.Sprintf("  BillingMarketplace: %s", hi.BillingMarketplace),
+			fmt.Sprintf("  BillingMarketplaceAccount: %s", hi.BillingMarketplaceAccount),
+			fmt.Sprintf("  BillingMarketplaceInstanceId: %s", hi.BillingMarketplaceInstanceId),
+		}, "\n")
 }
 
-func (hi *HostInfo) RefreshCpuCount() {
+func (hi *HostInfo) RefreshCpuCount() error {
 	cpuCount, err := GetCPUCount()
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 
 	hi.CpuCount = cpuCount
+	return nil
 }

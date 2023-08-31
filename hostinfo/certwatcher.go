@@ -1,12 +1,12 @@
 package hostinfo
 
 import (
-	"fmt"
 	"path"
 	"path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"redhat.com/milton/logger"
 )
 
 type CertEvent int64
@@ -45,7 +45,7 @@ func NewCertWatcher(certPath string) (*CertWatcher, error) {
 
 	certWatcher := &CertWatcher{certPath: certPath, watcher: watcher}
 	certWatcher.watch()
-	fmt.Printf("Watching cert directory %s for changes\n", dirPath)
+	logger.Infof("Watching cert directory %s for changes\n", dirPath)
 	return certWatcher, nil
 }
 
@@ -80,7 +80,7 @@ func (cw *CertWatcher) watch() <-chan CertEvent {
 			select {
 			case event, ok := <-cw.watcher.Events:
 				if !ok {
-					fmt.Printf("stopped watching cert directory")
+					logger.Debugln("stopped watching cert directory")
 					return
 				}
 				// ignore other files
@@ -88,7 +88,7 @@ func (cw *CertWatcher) watch() <-chan CertEvent {
 					continue
 				}
 
-				fmt.Printf("raw event: %s\n", event)
+				logger.Debugf("raw event: %s\n", event)
 
 				if event.Has(fsnotify.Create) || event.Has(fsnotify.Write) {
 					cw.reportWriteEvent()
@@ -99,10 +99,10 @@ func (cw *CertWatcher) watch() <-chan CertEvent {
 				}
 			case err, ok := <-cw.watcher.Errors:
 				if !ok {
-					fmt.Printf("stopped watching cert directory")
+					logger.Debugln("stopped watching cert directory")
 					return
 				}
-				fmt.Printf("cert watcher error: %s\n", err)
+				logger.Infof("cert watcher error: %s\n", err)
 			}
 		}
 	}()

@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 	"redhat.com/milton/config"
 	"redhat.com/milton/hostinfo"
+	"redhat.com/milton/logger"
 )
 
 // alternative to prombp could be:
@@ -35,7 +36,7 @@ func PrometheusRemoteWrite(hostinfo *hostinfo.HostInfo, cfg *config.Config, samp
 	for attempt < cfg.WriteRetryAttempts {
 		client, err := NewMTLSHttpClient(cfg)
 		if err != nil {
-			return fmt.Errorf("Http Client: %w", err)
+			return fmt.Errorf("error in Http Client: %w", err)
 		}
 		resp, err := client.Do(req)
 
@@ -48,7 +49,8 @@ func PrometheusRemoteWrite(hostinfo *hostinfo.HostInfo, cfg *config.Config, samp
 		}
 		body, err := io.ReadAll(resp.Body)
 		if err == nil {
-			fmt.Println("PrometheusRemoteWrite: Response body:", string(body))
+			logger.Infoln("PrometheusRemoteWrite: Success")
+			logger.Debugf("PrometheusRemoteWrite: Response body: %s\n", string(body))
 		}
 
 		if resp.StatusCode/100 == 5 || resp.StatusCode == 429 {
@@ -58,7 +60,7 @@ func PrometheusRemoteWrite(hostinfo *hostinfo.HostInfo, cfg *config.Config, samp
 				retryWait = maxRetryWait
 			}
 
-			fmt.Printf("PrometheusRemoteWrite: Http Error: %d, retrying\n", resp.StatusCode)
+			logger.Infof("PrometheusRemoteWrite: Http Error: %d, retrying\n", resp.StatusCode)
 			time.Sleep(retryWait)
 			continue
 		}

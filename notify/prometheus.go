@@ -29,8 +29,8 @@ func PrometheusRemoteWrite(hostinfo *hostinfo.HostInfo, cfg *config.Config, samp
 	}
 
 	var attempt uint = 0
-	var maxRetryWait = time.Duration(cfg.WriteRetryMaxInt) * time.Second
-	retryWait := time.Duration(cfg.WriteRetryMinInt) * time.Second
+	var maxRetryWait = time.Duration(cfg.WriteRetryMaxIntSec) * time.Second
+	retryWait := time.Duration(cfg.WriteRetryMinIntSec) * time.Second
 
 	for attempt < cfg.WriteRetryAttempts {
 		client, err := NewMTLSHttpClient(cfg)

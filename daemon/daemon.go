@@ -34,15 +34,15 @@ func (d *Daemon) Run() error {
 	signal.Notify(reloadCh, syscall.SIGHUP)
 
 	var collectTicker *time.Ticker
-	if d.config.CollectInterval > 0 {
-		collectTicker = time.NewTicker(time.Duration(d.config.CollectInterval) * time.Second)
+	if d.config.CollectIntervalSec > 0 {
+		collectTicker = time.NewTicker(time.Duration(d.config.CollectIntervalSec) * time.Second)
 	} else {
 		// Create dummy stopped ticker if collect interval is not configured
 		collectTicker = time.NewTicker(time.Duration(1) * time.Hour)
 		collectTicker.Stop()
 	}
 
-	writeTicker := time.NewTicker(time.Duration(d.config.WriteInterval) * time.Second)
+	writeTicker := time.NewTicker(time.Duration(d.config.WriteIntervalSec) * time.Second)
 
 	if err := d.loadHostInfo(); err != nil {
 		return err
@@ -63,7 +63,7 @@ func (d *Daemon) Run() error {
 			case <-collectTicker.C:
 				d.collectMetrics()
 			case <-writeTicker.C:
-				if d.config.CollectInterval == 0 {
+				if d.config.CollectIntervalSec == 0 {
 					d.collectMetrics()
 				}
 				d.doPrometheusRequest()

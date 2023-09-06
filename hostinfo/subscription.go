@@ -2,6 +2,7 @@ package hostinfo
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -71,12 +72,7 @@ func LoadSubManInformation(cfg *config.Config, hi *HostInfo) {
 }
 
 func GetUsage() (string, error) {
-	cmd := exec.Command("subscription-manager", "usage")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("error: executing `subscription-manager usage`: %w", err)
-	}
+	output, _ := execSubManCommand("usage")
 	parts := strings.SplitN(string(output), ":", 2)
 	if len(parts) == 2 {
 		return strings.TrimSpace(parts[1]), nil
@@ -85,12 +81,7 @@ func GetUsage() (string, error) {
 }
 
 func GetServiceLevel() (string, error) {
-	cmd := exec.Command("subscription-manager", "service-level")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("error: executing `subscription-manager service-level`: %w", err)
-	}
+	output, _ := execSubManCommand("service-level")
 	parts := strings.SplitN(string(output), ":", 2)
 	if len(parts) == 2 {
 		return strings.TrimSpace(parts[1]), nil
@@ -100,13 +91,7 @@ func GetServiceLevel() (string, error) {
 
 func GetSubManFacts() (map[string]string, error) {
 	facts := make(map[string]string)
-
-	cmd := exec.Command("subscription-manager", "facts")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return facts, fmt.Errorf("error: executing `subscription-manager facts`: %w", err)
-	}
+	output, _ := execSubManCommand("facts")
 	reader := strings.NewReader(string(output))
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
@@ -174,4 +159,22 @@ func FactsToHostInfo(facts map[string]string, hi *HostInfo) {
 	if hi.Billing.Marketplace != "" {
 		hi.Billing.Model = "marketplace"
 	}
+}
+
+func execSubManCommand(command string) (string, error) {
+	cmd := exec.Command("subscription-manager", command)
+	logger.Debugf("Executing `subscription-manager %s`...\n", command)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	err := cmd.Run()
+
+	if err != nil {
+		err = fmt.Errorf("`subscription-manager %s` has failed: %s", command, err.Error())
+		logger.Debugf("Stderr: %s\n", strings.TrimSpace(stderr.String()))
+		logger.Errorf("Error executing subscription manager: %s", err.Error())
+		return "", err
+	}
+
+	return stdout.String(), nil
 }

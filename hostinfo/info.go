@@ -3,8 +3,6 @@ package hostinfo
 import (
 	"fmt"
 	"strings"
-
-	"redhat.com/milton/config"
 )
 
 type HostInfo struct {
@@ -24,8 +22,7 @@ type BillingInfo struct {
 	MarketplaceInstanceId string
 }
 
-func LoadHostInfo(c *config.Config) (*HostInfo, error) {
-
+func LoadHostInfo() (*HostInfo, error) {
 	cpuCount, err := GetCPUCount()
 	if err != nil {
 		return nil, err
@@ -34,8 +31,7 @@ func LoadHostInfo(c *config.Config) (*HostInfo, error) {
 	hi := &HostInfo{
 		CpuCount: cpuCount,
 	}
-
-	LoadSubManInformation(c, hi)
+	LoadSubManInformation(hi)
 
 	return hi, nil
 }

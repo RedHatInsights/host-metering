@@ -116,7 +116,7 @@ func (d *Daemon) RunOnce() error {
 
 func (d *Daemon) loadHostInfo() error {
 	logger.Debugln("Load HostInfo...")
-	hostInfo, err := hostinfo.LoadHostInfo(d.config)
+	hostInfo, err := hostinfo.LoadHostInfo()
 	if err != nil {
 		return err
 	}

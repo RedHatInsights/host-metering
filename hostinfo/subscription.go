@@ -73,46 +73,19 @@ func LoadSubManInformation(cfg *config.Config, hi *HostInfo) {
 
 func GetUsage() (string, error) {
 	output, _ := execSubManCommand("usage")
-	parts := strings.SplitN(string(output), ":", 2)
-	if len(parts) == 2 {
-		return strings.TrimSpace(parts[1]), nil
-	}
-	return "", fmt.Errorf("error parsing `subscription-manager usage` output")
+	values := parseSubManOutput(output)
+	return values.get("Current Usage")
 }
 
 func GetServiceLevel() (string, error) {
 	output, _ := execSubManCommand("service-level")
-	parts := strings.SplitN(string(output), ":", 2)
-	if len(parts) == 2 {
-		return strings.TrimSpace(parts[1]), nil
-	}
-	return "", fmt.Errorf("error parsing `subscription-manager service-level` output")
+	values := parseSubManOutput(output)
+	return values.get("Current service level")
 }
 
-func GetSubManFacts() (map[string]string, error) {
-	facts := make(map[string]string)
+func GetSubManFacts() (SubManValues, error) {
 	output, _ := execSubManCommand("facts")
-	reader := strings.NewReader(string(output))
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		line := scanner.Text()
-		line = strings.TrimSpace(line)
-
-		// Skip empty lines and comments
-		if line == "" || strings.HasPrefix(line, ";") || strings.HasPrefix(line, "#") {
-			continue
-		} else {
-			// Parse key-value pairs
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) == 2 {
-				key := strings.TrimSpace(parts[0])
-				value := strings.TrimSpace(parts[1])
-				facts[key] = value
-			}
-		}
-	}
-
-	return facts, nil
+	return parseSubManOutput(output), nil
 }
 
 func FactsToHostInfo(facts map[string]string, hi *HostInfo) {
@@ -177,4 +150,49 @@ func execSubManCommand(command string) (string, error) {
 	}
 
 	return stdout.String(), nil
+}
+
+func parseSubManOutput(output string) SubManValues {
+	values := SubManValues{}
+	reader := strings.NewReader(output)
+	scanner := bufio.NewScanner(reader)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		line = strings.TrimSpace(line)
+
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, ";") || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Parse key-value pairs
+		parts := strings.SplitN(line, ":", 2)
+
+		if len(parts) != 2 {
+			continue
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+
+		// Unify the letter case of keys.
+		values[strings.ToLower(key)] = value
+	}
+
+	return values
+}
+
+type SubManValues map[string]string
+
+func (values SubManValues) get(name string) (string, error) {
+	v, ok := values[strings.ToLower(name)]
+
+	if !ok {
+		err := fmt.Errorf("`%s` not found", name)
+		logger.Errorf("Error getting subscription info: %s", err.Error())
+		return "", err
+	}
+
+	return v, nil
 }

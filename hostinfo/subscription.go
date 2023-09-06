@@ -98,8 +98,8 @@ func FactsToHostInfo(facts map[string]string, hi *HostInfo) {
 	}
 
 	// GCP
-	if v, ok := facts["gcp_instance_id"]; ok {
-		hi.Billing.Marketplace = v
+	if _, ok := facts["gcp_instance_id"]; ok {
+		hi.Billing.Marketplace = "gcp"
 	}
 	if v, ok := facts["gcp_project_number"]; ok {
 		hi.Billing.MarketplaceAccount = v

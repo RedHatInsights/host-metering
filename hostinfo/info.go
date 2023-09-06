@@ -8,16 +8,20 @@ import (
 )
 
 type HostInfo struct {
-	CpuCount                     uint
-	HostId                       string
-	SocketCount                  string
-	Product                      string
-	Support                      string
-	Usage                        string
-	BillingModel                 string
-	BillingMarketplace           string
-	BillingMarketplaceAccount    string
-	BillingMarketplaceInstanceId string
+	CpuCount    uint
+	HostId      string
+	SocketCount string
+	Product     string
+	Support     string
+	Usage       string
+	Billing     BillingInfo
+}
+
+type BillingInfo struct {
+	Model                 string
+	Marketplace           string
+	MarketplaceAccount    string
+	MarketplaceInstanceId string
 }
 
 func LoadHostInfo(c *config.Config) (*HostInfo, error) {
@@ -46,10 +50,10 @@ func (hi *HostInfo) String() string {
 			fmt.Sprintf("  Product: %s", hi.Product),
 			fmt.Sprintf("  Support: %s", hi.Support),
 			fmt.Sprintf("  Usage: %s", hi.Usage),
-			fmt.Sprintf("  BillingModel: %s", hi.BillingModel),
-			fmt.Sprintf("  BillingMarketplace: %s", hi.BillingMarketplace),
-			fmt.Sprintf("  BillingMarketplaceAccount: %s", hi.BillingMarketplaceAccount),
-			fmt.Sprintf("  BillingMarketplaceInstanceId: %s", hi.BillingMarketplaceInstanceId),
+			fmt.Sprintf("  Billing.Model: %s", hi.Billing.Model),
+			fmt.Sprintf("  Billing.Marketplace: %s", hi.Billing.Marketplace),
+			fmt.Sprintf("  Billing.MarketplaceAccount: %s", hi.Billing.MarketplaceAccount),
+			fmt.Sprintf("  Billing.MarketplaceInstanceId: %s", hi.Billing.MarketplaceInstanceId),
 		}, "\n")
 }
 

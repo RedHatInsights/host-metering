@@ -140,38 +140,38 @@ func FactsToHostInfo(facts map[string]string, hi *HostInfo) {
 
 	// AWS
 	if _, ok := facts["aws_instance_id"]; ok {
-		hi.BillingMarketplace = "aws"
+		hi.Billing.Marketplace = "aws"
 	}
 	if v, ok := facts["aws_account_id"]; ok {
-		hi.BillingMarketplaceAccount = v
+		hi.Billing.MarketplaceAccount = v
 	}
 	if v, ok := facts["aws_instance_id"]; ok {
-		hi.BillingMarketplaceInstanceId = v
+		hi.Billing.MarketplaceInstanceId = v
 	}
 
 	// Azure
 	if _, ok := facts["azure_instance_id"]; ok {
-		hi.BillingMarketplace = "azure"
+		hi.Billing.Marketplace = "azure"
 	}
 	if v, ok := facts["azure_subscription_id"]; ok {
-		hi.BillingMarketplaceAccount = v
+		hi.Billing.MarketplaceAccount = v
 	}
 	if v, ok := facts["azure_instance_id"]; ok {
-		hi.BillingMarketplaceInstanceId = v
+		hi.Billing.MarketplaceInstanceId = v
 	}
 
 	// GCP
 	if v, ok := facts["gcp_instance_id"]; ok {
-		hi.BillingMarketplace = v
+		hi.Billing.Marketplace = v
 	}
 	if v, ok := facts["gcp_project_number"]; ok {
-		hi.BillingMarketplaceAccount = v
+		hi.Billing.MarketplaceAccount = v
 	}
 	if v, ok := facts["gcp_instance_id"]; ok {
-		hi.BillingMarketplaceInstanceId = v
+		hi.Billing.MarketplaceInstanceId = v
 	}
 
-	if hi.BillingMarketplace != "" {
-		hi.BillingModel = "marketplace"
+	if hi.Billing.Marketplace != "" {
+		hi.Billing.Model = "marketplace"
 	}
 }

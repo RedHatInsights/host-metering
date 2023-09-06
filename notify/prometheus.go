@@ -115,19 +115,19 @@ func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo, samples []prompb.Sample)
 		},
 		{
 			Name:  "billing_marketplace",
-			Value: hostinfo.BillingMarketplace,
+			Value: hostinfo.Billing.Marketplace,
 		},
 		{
 			Name:  "billing_marketplace_account",
-			Value: hostinfo.BillingMarketplaceAccount,
+			Value: hostinfo.Billing.MarketplaceAccount,
 		},
 		{
 			Name:  "billing_marketplace_instance_id",
-			Value: hostinfo.BillingMarketplaceInstanceId,
+			Value: hostinfo.Billing.MarketplaceInstanceId,
 		},
 		{
 			Name:  "billing_model",
-			Value: hostinfo.BillingModel,
+			Value: hostinfo.Billing.Model,
 		},
 		{
 			Name:  "product",

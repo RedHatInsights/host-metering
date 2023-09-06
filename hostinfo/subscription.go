@@ -11,37 +11,14 @@ import (
 )
 
 func LoadSubManInformation(hi *HostInfo) {
+	hi.HostId, _ = GetHostId()
+	hi.Usage, _ = GetUsage()
+	hi.Support, _ = GetServiceLevel()
 
-	hostId, err := GetHostId()
-	if err != nil {
-		logger.Warnf("Error getting host id: %s\n", err.Error())
-	} else {
-		hi.HostId = hostId
-	}
-
-	logger.Debugln("Getting`subscription-manager usage`")
-	usage, err := GetUsage()
-	if err != nil {
-		logger.Warnf("Error getting host usage: %s\n", err.Error())
-	} else {
-		hi.Usage = usage
-	}
-
-	logger.Debugln("Getting`subscription-manager service-level`")
-	serviceLevel, err := GetServiceLevel()
-	if err != nil {
-		logger.Warnf("Error getting service level: %s\n", err.Error())
-	} else {
-		hi.Support = serviceLevel
-	}
-
-	logger.Debugln("Getting`subscription-manager facts`")
-	facts, err := GetSubManFacts()
-	if err != nil {
-		logger.Warnf("Error getting host facts: %s\n", err.Error())
-	} else {
-		FactsToHostInfo(facts, hi)
-	}
+	facts, _ := GetSubManFacts()
+	hi.SocketCount, _ = GetSocketCount(facts)
+	hi.Product, _ = GetProduct(facts)
+	hi.Billing, _ = GetBillingInfo(facts)
 }
 
 func GetHostId() (string, error) {
@@ -67,50 +44,43 @@ func GetSubManFacts() (SubManValues, error) {
 	return parseSubManOutput(output), nil
 }
 
-func FactsToHostInfo(facts map[string]string, hi *HostInfo) {
-	if v, ok := facts["cpu.cpu_socket(s)"]; ok {
-		hi.SocketCount = v
-	}
-	if v, ok := facts["distribution.name"]; ok {
-		hi.Product = v
+func GetSocketCount(facts SubManValues) (string, error) {
+	return facts.get("cpu.cpu_socket(s)")
+}
+
+func GetProduct(facts SubManValues) (string, error) {
+	return facts.get("distribution.name")
+}
+
+func GetBillingInfo(facts SubManValues) (BillingInfo, error) {
+	bi := BillingInfo{
+		Model: "marketplace",
 	}
 
-	// AWS
-	if _, ok := facts["aws_instance_id"]; ok {
-		hi.Billing.Marketplace = "aws"
-	}
-	if v, ok := facts["aws_account_id"]; ok {
-		hi.Billing.MarketplaceAccount = v
-	}
-	if v, ok := facts["aws_instance_id"]; ok {
-		hi.Billing.MarketplaceInstanceId = v
+	if facts.has("aws_instance_id") {
+		bi.Marketplace = "aws"
+		bi.MarketplaceAccount, _ = facts.get("aws_account_id")
+		bi.MarketplaceInstanceId, _ = facts.get("aws_instance_id")
+		return bi, nil
 	}
 
-	// Azure
-	if _, ok := facts["azure_instance_id"]; ok {
-		hi.Billing.Marketplace = "azure"
-	}
-	if v, ok := facts["azure_subscription_id"]; ok {
-		hi.Billing.MarketplaceAccount = v
-	}
-	if v, ok := facts["azure_instance_id"]; ok {
-		hi.Billing.MarketplaceInstanceId = v
+	if facts.has("azure_instance_id") {
+		bi.Marketplace = "azure"
+		bi.MarketplaceAccount, _ = facts.get("azure_subscription_id")
+		bi.MarketplaceInstanceId, _ = facts.get("azure_instance_id")
+		return bi, nil
 	}
 
-	// GCP
-	if _, ok := facts["gcp_instance_id"]; ok {
-		hi.Billing.Marketplace = "gcp"
-	}
-	if v, ok := facts["gcp_project_number"]; ok {
-		hi.Billing.MarketplaceAccount = v
-	}
-	if v, ok := facts["gcp_instance_id"]; ok {
-		hi.Billing.MarketplaceInstanceId = v
+	if facts.has("gcp_instance_id") {
+		bi.Marketplace = "gcp"
+		bi.MarketplaceAccount, _ = facts.get("gcp_project_number")
+		bi.MarketplaceInstanceId, _ = facts.get("gcp_instance_id")
+		return bi, nil
 	}
 
-	if hi.Billing.Marketplace != "" {
-		hi.Billing.Model = "marketplace"
-	}
+	err := fmt.Errorf("unsupported or missing marketplace values")
+	logger.Errorf("Error getting billing info: %s", err.Error())
+	return BillingInfo{}, err
 }
 
 func execSubManCommand(command string) (string, error) {
@@ -163,6 +133,11 @@ func parseSubManOutput(output string) SubManValues {
 }
 
 type SubManValues map[string]string
+
+func (values SubManValues) has(name string) bool {
+	_, ok := values[strings.ToLower(name)]
+	return ok
+}
 
 func (values SubManValues) get(name string) (string, error) {
 	v, ok := values[strings.ToLower(name)]

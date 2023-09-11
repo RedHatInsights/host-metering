@@ -24,7 +24,7 @@ func TestMetricsLogBasics(t *testing.T) {
 	samples, checkpoint, err := log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")
 	checkSamples(t, samples, 4, 6)
-	checkIndex(t, checkpoint, 2)
+	checkIndex(t, checkpoint, 3)
 
 	// Truncate the log to the last item read
 	err = log.RemoveSamples(checkpoint)
@@ -34,7 +34,7 @@ func TestMetricsLogBasics(t *testing.T) {
 	samples, checkpoint, err = log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")
 	checkSamples(t, samples)
-	checkIndex(t, checkpoint, 2)
+	checkIndex(t, checkpoint, 3)
 
 	// Try again, but this time there is nothing to truncate
 	err = log.RemoveSamples(checkpoint)
@@ -47,7 +47,7 @@ func TestMetricsLogBasics(t *testing.T) {
 	samples, checkpoint, err = log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")
 	checkSamples(t, samples, 8)
-	checkIndex(t, checkpoint, 3)
+	checkIndex(t, checkpoint, 5)
 
 	err = log.RemoveSamples(checkpoint)
 	checkError(t, err, "failed to truncate MetricsLog")
@@ -72,7 +72,7 @@ func TestRestart(t *testing.T) {
 	samples, checkpoint, err := log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")
 	checkSamples(t, samples, 1, 2, 3, 4, 5)
-	checkIndex(t, checkpoint, 5)
+	checkIndex(t, checkpoint, 6)
 
 	err = log.Close()
 	checkError(t, err, "failed to close MetricsLog")
@@ -80,16 +80,10 @@ func TestRestart(t *testing.T) {
 	// Second run of milton
 	log, _ = NewMetricsLog(logPath)
 
-	// There is a bug that if the log was never truncated then the subsequent
-	// runs of miltons will not get the first sample. Milton behaves like this
-	// because of workaround for https://github.com/tidwall/wal/issues/20
-	// It could be solved by recording the last index in a separate file. But
-	// that migth be unnecessary added complexity and this behavior could be
-	// acceptable.
 	samples, checkpoint, err = log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")
-	checkSamples(t, samples, 2, 3, 4, 5)
-	checkIndex(t, checkpoint, 5)
+	checkSamples(t, samples, 1, 2, 3, 4, 5)
+	checkIndex(t, checkpoint, 6)
 
 	err = log.RemoveSamples(checkpoint)
 	checkError(t, err, "failed to truncate MetricsLog")
@@ -105,7 +99,7 @@ func TestRestart(t *testing.T) {
 	samples, checkpoint, err = log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")
 	checkSamples(t, samples)
-	checkIndex(t, checkpoint, 5)
+	checkIndex(t, checkpoint, 6)
 }
 
 func createMetricsPath(t *testing.T) string {

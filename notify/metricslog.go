@@ -2,6 +2,7 @@ package notify
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/prometheus/prometheus/prompb"
@@ -9,6 +10,7 @@ import (
 )
 
 type MetricsLog struct {
+	mu   sync.Mutex
 	path string
 	wal  *wal.Log
 }
@@ -30,6 +32,9 @@ func NewMetricsLog(path string) (*MetricsLog, error) {
 }
 
 func (log *MetricsLog) WriteSample(cpuCount uint) error {
+	log.mu.Lock()
+	defer log.mu.Unlock()
+
 	sample := &prompb.Sample{
 		Value:     float64(cpuCount),
 		Timestamp: time.Now().UnixMilli(),
@@ -55,6 +60,9 @@ func (log *MetricsLog) writeSample(sample *prompb.Sample) error {
 }
 
 func (log *MetricsLog) GetSamples() (samples []prompb.Sample, checkpoint uint64, err error) {
+	log.mu.Lock()
+	defer log.mu.Unlock()
+
 	// Mark the end of the sample series and
 	// make sure that the log is not empty.
 	checkpoint, err = log.getCheckpoint()
@@ -155,10 +163,16 @@ func (log *MetricsLog) readSample(index uint64) (*prompb.Sample, error) {
 }
 
 func (log *MetricsLog) RemoveSamples(checkpoint uint64) error {
+	log.mu.Lock()
+	defer log.mu.Unlock()
+
 	// Remove all data entries that are before the specified checkpoint.
 	return log.wal.TruncateFront(checkpoint)
 }
 
 func (log *MetricsLog) Close() error {
+	log.mu.Lock()
+	defer log.mu.Unlock()
+
 	return log.wal.Close()
 }

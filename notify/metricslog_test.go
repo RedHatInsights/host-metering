@@ -4,33 +4,33 @@ import (
 	"testing"
 )
 
-// Test basic functionality of the CpuCache - how it would be used by milton
-func TestCpuCacheBasics(t *testing.T) {
-	// Create a new CpuCache instance
+// Test basic functionality of the MetricsLog - how it would be used by milton
+func TestMetricsLogBasics(t *testing.T) {
+	// Create a new MetricsLog instance
 	dir := t.TempDir()
-	logPath := dir + "/cpucache"
-	cache, err := NewCpuCache(logPath)
+	logPath := dir + "/metrics"
+	log, err := NewMetricsLog(logPath)
 	if err != nil {
-		t.Fatalf("failed to create CpuCache: %v", err)
+		t.Fatalf("failed to create MetricsLog: %v", err)
 	}
-	defer cache.Close()
+	defer log.Close()
 
-	// Write some sample cpuCount data to the cache
-	err = cache.Write(4)
+	// Write some sample cpuCount data to the log
+	err = log.Write(4)
 	if err != nil {
-		t.Fatalf("failed to write sample data to CpuCache: %v", err)
+		t.Fatalf("failed to write sample data to MetricsLog: %v", err)
 	}
 
 	// Another sample
-	err = cache.Write(6)
+	err = log.Write(6)
 	if err != nil {
-		t.Fatalf("failed to write sample data to CpuCache: %v", err)
+		t.Fatalf("failed to write sample data to MetricsLog: %v", err)
 	}
 
-	// Get all samples from the cache
-	samples, lastIndex, err := cache.GetAllSamples()
+	// Get all samples from the log
+	samples, lastIndex, err := log.GetAllSamples()
 	if err != nil {
-		t.Fatalf("failed to get samples from CpuCache: %v", err)
+		t.Fatalf("failed to get samples from MetricsLog: %v", err)
 	}
 
 	// Verify that the last index is 2 as there should be 2 samples
@@ -49,19 +49,19 @@ func TestCpuCacheBasics(t *testing.T) {
 		t.Fatalf("expected sample value of 6, got %f", samples[1].Value)
 	}
 
-	// Truncate the cache to the last item read
-	err = cache.TruncateTo(lastIndex)
+	// Truncate the log to the last item read
+	err = log.TruncateTo(lastIndex)
 	if err != nil {
-		t.Fatalf("failed to truncate CpuCache: %v", err)
+		t.Fatalf("failed to truncate MetricsLog: %v", err)
 	}
 
-	// Get all samples from the cache again, to check that the truncation worked
-	samples, lastIndex, err = cache.GetAllSamples()
+	// Get all samples from the log again, to check that the truncation worked
+	samples, lastIndex, err = log.GetAllSamples()
 	if err != nil {
-		t.Fatalf("failed to get samples from CpuCache: %v", err)
+		t.Fatalf("failed to get samples from MetricsLog: %v", err)
 	}
 
-	// Verify that the cache is now empty
+	// Verify that the log is now empty
 	if len(samples) != 0 {
 		t.Fatalf("expected 0 samples, got %d", len(samples))
 	}
@@ -71,19 +71,19 @@ func TestCpuCacheBasics(t *testing.T) {
 	}
 
 	// Try again, but this time there is nothing to truncate
-	err = cache.TruncateTo(lastIndex)
+	err = log.TruncateTo(lastIndex)
 	if err != nil {
-		t.Fatalf("failed to truncate CpuCache when there is nothing to truncate: %v", err)
+		t.Fatalf("failed to truncate MetricsLog when there is nothing to truncate: %v", err)
 	}
 
 	// Simulate next iteration: write sample, obtain it and truncate
-	err = cache.Write(8)
+	err = log.Write(8)
 	if err != nil {
-		t.Fatalf("failed to write sample data to CpuCache: %v", err)
+		t.Fatalf("failed to write sample data to MetricsLog: %v", err)
 	}
-	samples, lastIndex, err = cache.GetAllSamples()
+	samples, lastIndex, err = log.GetAllSamples()
 	if err != nil {
-		t.Fatalf("failed to get samples from CpuCache: %v", err)
+		t.Fatalf("failed to get samples from MetricsLog: %v", err)
 	}
 	if len(samples) != 1 {
 		t.Fatalf("expected 1 sample, got %d", len(samples))
@@ -91,33 +91,33 @@ func TestCpuCacheBasics(t *testing.T) {
 	if samples[0].Value != 8 {
 		t.Fatalf("expected sample value of 8, got %f", samples[0].Value)
 	}
-	err = cache.TruncateTo(lastIndex)
+	err = log.TruncateTo(lastIndex)
 	if err != nil {
-		t.Fatalf("failed to truncate CpuCache: %v", err)
+		t.Fatalf("failed to truncate MetricsLog: %v", err)
 	}
 
 }
 
-// Test scenario where Prometheus server is not intially reachable (cache is not
-// truncated). And milton is restarted in the mean time.
+// Test scenario where Prometheus server is not initially reachable
+// (log is not truncated). And milton is restarted in the meantime.
 func TestRestart(t *testing.T) {
 	dir := t.TempDir()
-	logPath := dir + "/cpucache"
+	logPath := dir + "/metrics"
 
 	// First run of milton
-	cache, err := NewCpuCache(logPath)
+	log, err := NewMetricsLog(logPath)
 	if err != nil {
-		t.Fatalf("failed to create CpuCache: %v", err)
+		t.Fatalf("failed to create MetricsLog: %v", err)
 	}
 
-	// Write some sample cpuCount data to the cache
-	cache.Write(1) // index 1
-	cache.Write(2) // index 2
-	cache.Write(3) // index 3
-	cache.Write(4) // index 4
-	cache.Write(5) // index 5
+	// Write some sample cpuCount data to the log
+	log.Write(1) // index 1
+	log.Write(2) // index 2
+	log.Write(3) // index 3
+	log.Write(4) // index 4
+	log.Write(5) // index 5
 
-	samples, lastIndex, _ := cache.GetAllSamples()
+	samples, lastIndex, _ := log.GetAllSamples()
 	if len(samples) != 5 {
 		t.Fatalf("expected 5 samples, got %d", len(samples))
 	}
@@ -125,18 +125,18 @@ func TestRestart(t *testing.T) {
 		t.Fatalf("expected last index of 5, got %d", lastIndex)
 	}
 
-	cache.Close()
+	log.Close()
 
 	// Second run of milton
-	cache, _ = NewCpuCache(logPath)
+	log, _ = NewMetricsLog(logPath)
 
-	// There is a bug that if the cache was never truncated then the subsequent
+	// There is a bug that if the log was never truncated then the subsequent
 	// runs of miltons will not get the first sample. Milton behaves like this
 	// because of workaround for https://github.com/tidwall/wal/issues/20
 	// It could be solved by recording the last index in a separate file. But
 	// that migth be unnecessary added complexity and this behavior could be
 	// acceptable.
-	samples, lastIndex, _ = cache.GetAllSamples()
+	samples, lastIndex, _ = log.GetAllSamples()
 	if len(samples) != 4 {
 		t.Fatalf("expected 4 samples, got %d", len(samples))
 	}
@@ -147,14 +147,14 @@ func TestRestart(t *testing.T) {
 		t.Fatalf("expected last index of 5, got %d", lastIndex)
 	}
 
-	cache.TruncateTo(lastIndex)
-	cache.Close()
+	log.TruncateTo(lastIndex)
+	log.Close()
 
-	// Third run of milton - after cache was truncated
-	cache, _ = NewCpuCache(logPath)
-	defer cache.Close()
+	// Third run of milton - after log was truncated
+	log, _ = NewMetricsLog(logPath)
+	defer log.Close()
 
-	samples, lastIndex, _ = cache.GetAllSamples()
+	samples, lastIndex, _ = log.GetAllSamples()
 	if len(samples) != 0 {
 		t.Fatalf("expected that after truncation the samples to send is 0, got %d", len(samples))
 	}

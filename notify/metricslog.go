@@ -8,15 +8,15 @@ import (
 	"github.com/tidwall/wal"
 )
 
-type CpuCache struct {
+type MetricsLog struct {
 	path               string
 	wal                *wal.Log
 	lastTruncatedIndex uint64
 }
 
-func NewCpuCache(path string) (*CpuCache, error) {
+func NewMetricsLog(path string) (*MetricsLog, error) {
 	if path == "" {
-		return nil, fmt.Errorf("cpuCache path cannot be empty")
+		return nil, fmt.Errorf("metrics log path cannot be empty")
 	}
 	w, err := wal.Open(path, nil)
 	if err != nil {
@@ -28,18 +28,18 @@ func NewCpuCache(path string) (*CpuCache, error) {
 		return nil, err
 	}
 
-	return &CpuCache{
+	return &MetricsLog{
 		path:               path,
 		wal:                w,
 		lastTruncatedIndex: firstIndex,
 	}, nil
 }
 
-func (c *CpuCache) Close() error {
-	return c.wal.Close()
+func (log *MetricsLog) Close() error {
+	return log.wal.Close()
 }
 
-func (c *CpuCache) Write(cpuCount uint) error {
+func (log *MetricsLog) Write(cpuCount uint) error {
 	sample := prompb.Sample{
 		Value:     float64(cpuCount),
 		Timestamp: time.Now().UnixMilli(),
@@ -49,17 +49,17 @@ func (c *CpuCache) Write(cpuCount uint) error {
 		return err
 	}
 
-	lastIndex, err := c.wal.LastIndex()
+	lastIndex, err := log.wal.LastIndex()
 	if err != nil {
 		return err
 	}
 
-	return c.wal.Write(lastIndex+1, data)
+	return log.wal.Write(lastIndex+1, data)
 }
 
-func (c *CpuCache) GetAllSamples() (samples []prompb.Sample, lastIndex uint64, err error) {
+func (log *MetricsLog) GetAllSamples() (samples []prompb.Sample, lastIndex uint64, err error) {
 
-	firstIndex, err := c.wal.FirstIndex()
+	firstIndex, err := log.wal.FirstIndex()
 	if err != nil {
 		return nil, 0, err
 	}
@@ -67,11 +67,11 @@ func (c *CpuCache) GetAllSamples() (samples []prompb.Sample, lastIndex uint64, e
 	// after trunctation, the last element is left, thus the first index
 	// is the one after the last truncated index
 	// https://github.com/tidwall/wal/issues/20
-	if c.lastTruncatedIndex != 0 {
-		firstIndex = c.lastTruncatedIndex + 1
+	if log.lastTruncatedIndex != 0 {
+		firstIndex = log.lastTruncatedIndex + 1
 	}
 
-	lastIndex, err = c.wal.LastIndex()
+	lastIndex, err = log.wal.LastIndex()
 	if err != nil {
 		return nil, 0, err
 	}
@@ -81,7 +81,7 @@ func (c *CpuCache) GetAllSamples() (samples []prompb.Sample, lastIndex uint64, e
 	}
 
 	for i := firstIndex; i <= lastIndex; i++ {
-		data, err := c.wal.Read(i)
+		data, err := log.wal.Read(i)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -96,11 +96,11 @@ func (c *CpuCache) GetAllSamples() (samples []prompb.Sample, lastIndex uint64, e
 	return samples, lastIndex, nil
 }
 
-func (c *CpuCache) TruncateTo(index uint64) error {
-	err := c.wal.TruncateFront(index)
+func (log *MetricsLog) TruncateTo(index uint64) error {
+	err := log.wal.TruncateFront(index)
 	if err != nil {
 		return err
 	}
-	c.lastTruncatedIndex = index
+	log.lastTruncatedIndex = index
 	return nil
 }

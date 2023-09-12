@@ -14,9 +14,9 @@ import (
 )
 
 type Daemon struct {
-	config   *config.Config
-	hostInfo *hostinfo.HostInfo
-	cpuCache *notify.CpuCache
+	config     *config.Config
+	hostInfo   *hostinfo.HostInfo
+	metricsLog *notify.MetricsLog
 }
 
 func NewDaemon(config *config.Config) *Daemon {
@@ -48,7 +48,7 @@ func (d *Daemon) Run() error {
 	if err := d.loadHostInfo(); err != nil {
 		return err
 	}
-	if err := d.initCpuCache(); err != nil {
+	if err := d.initMetricsLog(); err != nil {
 		return err
 	}
 
@@ -105,7 +105,7 @@ func (d *Daemon) RunOnce() error {
 	if err := d.loadHostInfo(); err != nil {
 		return err
 	}
-	if err := d.initCpuCache(); err != nil {
+	if err := d.initMetricsLog(); err != nil {
 		return err
 	}
 	logger.Infoln("Executing once...")
@@ -126,15 +126,15 @@ func (d *Daemon) loadHostInfo() error {
 	return nil
 }
 
-func (d *Daemon) initCpuCache() error {
-	logger.Debugln("Initializing CPU cache...")
-	cache, err := notify.NewCpuCache(d.config.CpuCachePath)
+func (d *Daemon) initMetricsLog() error {
+	logger.Debugln("Initializing metrics log...")
+	log, err := notify.NewMetricsLog(d.config.MetricsWALPath)
 	if err != nil {
 		logger.Errorln(err.Error())
 		return err
 	}
-	d.cpuCache = cache
-	logger.Debugln("CPU cache initialized")
+	d.metricsLog = log
+	logger.Debugln("Metrics log initialized")
 	return nil
 }
 
@@ -147,9 +147,9 @@ func (d *Daemon) collectMetrics() {
 		return
 	}
 
-	err = d.cpuCache.Write(d.hostInfo.CpuCount)
+	err = d.metricsLog.Write(d.hostInfo.CpuCount)
 	if err != nil {
-		logger.Warnf("Error writing CPU cache: %s\n", err.Error())
+		logger.Warnf("Error writing metrics log: %s\n", err.Error())
 		return
 	}
 	logger.Debugln("Metrics collected")
@@ -160,7 +160,7 @@ func (d *Daemon) doPrometheusRequest() error {
 		return fmt.Errorf("missing internal HostInfo")
 	}
 	logger.Debugln("Initiating Prometheus request...")
-	samples, lastIndex, err := d.cpuCache.GetAllSamples()
+	samples, lastIndex, err := d.metricsLog.GetAllSamples()
 	if err != nil {
 		logger.Warnf("Error getting samples: %s\n", err.Error())
 		return err
@@ -176,7 +176,7 @@ func (d *Daemon) doPrometheusRequest() error {
 		logger.Warnf("Error calling PrometheusRemoteWrite: %s\n", err.Error())
 		return err
 	}
-	err = d.cpuCache.TruncateTo(lastIndex)
+	err = d.metricsLog.TruncateTo(lastIndex)
 	if err != nil {
 		logger.Warnf("Error truncating WAL: %s\n", err.Error())
 		return err

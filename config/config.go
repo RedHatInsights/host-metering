@@ -19,7 +19,7 @@ const (
 	DefaultWriteRetryAttempts      = 8
 	DefaultWriteRetryMinIntSec     = 1
 	DefaultWriteRetryMaxIntSec     = 10
-	DefaultCpuCachePath            = "/var/run/milton/cpucache"
+	DefaultMetricsWALPath          = "/var/run/milton/metrics"
 	DefaultLogLevel                = "INFO"
 	DefaultLogPath                 = "" //Default to stderr, will be logged in journal.
 )
@@ -34,7 +34,7 @@ type Config struct {
 	WriteRetryAttempts      uint
 	WriteRetryMinIntSec     uint // in seconds
 	WriteRetryMaxIntSec     uint // in seconds
-	CpuCachePath            string
+	MetricsWALPath          string
 	LogLevel                string // one of "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
 	LogPath                 string
 }
@@ -50,7 +50,7 @@ func NewConfig() *Config {
 		WriteRetryAttempts:      DefaultWriteRetryAttempts,
 		WriteRetryMinIntSec:     DefaultWriteRetryMinIntSec,
 		WriteRetryMaxIntSec:     DefaultWriteRetryMaxIntSec,
-		CpuCachePath:            DefaultCpuCachePath,
+		MetricsWALPath:          DefaultMetricsWALPath,
 		LogLevel:                DefaultLogLevel,
 		LogPath:                 DefaultLogPath,
 	}
@@ -69,7 +69,7 @@ func (c *Config) String() string {
 			fmt.Sprintf("  WriteRetryAttempts: %d", c.WriteRetryAttempts),
 			fmt.Sprintf("  WriteRetryMinIntSec: %d", c.WriteRetryMinIntSec),
 			fmt.Sprintf("  WriteRetryMaxIntSec: %d", c.WriteRetryMaxIntSec),
-			fmt.Sprintf("  CpuCachePath: %s", c.CpuCachePath),
+			fmt.Sprintf("  MetricsWALPath: %s", c.MetricsWALPath),
 			fmt.Sprintf("  LogLevel: %s", c.LogLevel),
 			fmt.Sprintf("  LogPath: %s", c.LogPath),
 		}, "\n")
@@ -140,8 +140,8 @@ func (c *Config) UpdateFromEnvVars() string {
 		errors.WriteString(err.Error())
 	}
 
-	if v := os.Getenv("MILTON_CPU_CACHE_PATH"); v != "" {
-		c.CpuCachePath = v
+	if v := os.Getenv("MILTON_METRICS_WAL_PATH"); v != "" {
+		c.MetricsWALPath = v
 	}
 	if v := os.Getenv("MILTON_LOG_LEVEL"); v != "" {
 		c.LogLevel = v
@@ -252,8 +252,8 @@ func (c *Config) UpdateFromConfigFile(path string) string {
 			errors.WriteString(err.Error())
 		}
 	}
-	if v, ok := config["milton"]["cpu_cache_path"]; ok {
-		c.CpuCachePath = v
+	if v, ok := config["milton"]["metrics_wal_path"]; ok {
+		c.MetricsWALPath = v
 	}
 	if v, ok := config["milton"]["log_level"]; ok {
 		c.LogLevel = v

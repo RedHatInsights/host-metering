@@ -13,43 +13,43 @@ func TestMetricsLogBasics(t *testing.T) {
 	defer log.Close()
 
 	// Write some sample cpuCount data to the log
-	err = log.Write(4)
+	err = log.WriteSample(4)
 	checkError(t, err, "failed to write sample data to MetricsLog")
 
 	// Another sample
-	err = log.Write(6)
+	err = log.WriteSample(6)
 	checkError(t, err, "failed to write sample data to MetricsLog")
 
 	// Get all samples from the log
-	samples, lastIndex, err := log.GetAllSamples()
+	samples, checkpoint, err := log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")
 	checkSamples(t, samples, 4, 6)
-	checkIndex(t, lastIndex, 2)
+	checkIndex(t, checkpoint, 2)
 
 	// Truncate the log to the last item read
-	err = log.TruncateTo(lastIndex)
+	err = log.RemoveSamples(checkpoint)
 	checkError(t, err, "failed to truncate MetricsLog")
 
 	// Get all samples from the log again, to check that the truncation worked
-	samples, lastIndex, err = log.GetAllSamples()
+	samples, checkpoint, err = log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")
 	checkSamples(t, samples)
-	checkIndex(t, lastIndex, 2)
+	checkIndex(t, checkpoint, 2)
 
 	// Try again, but this time there is nothing to truncate
-	err = log.TruncateTo(lastIndex)
+	err = log.RemoveSamples(checkpoint)
 	checkError(t, err, "failed to truncate MetricsLog")
 
 	// Simulate next iteration: write sample, obtain it and truncate
-	err = log.Write(8)
+	err = log.WriteSample(8)
 	checkError(t, err, "failed to write sample data to MetricsLog")
 
-	samples, lastIndex, err = log.GetAllSamples()
+	samples, checkpoint, err = log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")
 	checkSamples(t, samples, 8)
-	checkIndex(t, lastIndex, 3)
+	checkIndex(t, checkpoint, 3)
 
-	err = log.TruncateTo(lastIndex)
+	err = log.RemoveSamples(checkpoint)
 	checkError(t, err, "failed to truncate MetricsLog")
 }
 
@@ -63,16 +63,16 @@ func TestRestart(t *testing.T) {
 	checkError(t, err, "failed to create MetricsLog")
 
 	// Write some sample cpuCount data to the log
-	log.Write(1) // index 1
-	log.Write(2) // index 2
-	log.Write(3) // index 3
-	log.Write(4) // index 4
-	log.Write(5) // index 5
+	log.WriteSample(1) // index 1
+	log.WriteSample(2) // index 2
+	log.WriteSample(3) // index 3
+	log.WriteSample(4) // index 4
+	log.WriteSample(5) // index 5
 
-	samples, lastIndex, err := log.GetAllSamples()
+	samples, checkpoint, err := log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")
 	checkSamples(t, samples, 1, 2, 3, 4, 5)
-	checkIndex(t, lastIndex, 5)
+	checkIndex(t, checkpoint, 5)
 
 	err = log.Close()
 	checkError(t, err, "failed to close MetricsLog")
@@ -86,12 +86,12 @@ func TestRestart(t *testing.T) {
 	// It could be solved by recording the last index in a separate file. But
 	// that migth be unnecessary added complexity and this behavior could be
 	// acceptable.
-	samples, lastIndex, err = log.GetAllSamples()
+	samples, checkpoint, err = log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")
 	checkSamples(t, samples, 2, 3, 4, 5)
-	checkIndex(t, lastIndex, 5)
+	checkIndex(t, checkpoint, 5)
 
-	err = log.TruncateTo(lastIndex)
+	err = log.RemoveSamples(checkpoint)
 	checkError(t, err, "failed to truncate MetricsLog")
 
 	err = log.Close()
@@ -102,10 +102,10 @@ func TestRestart(t *testing.T) {
 	checkError(t, err, "failed to create MetricsLog")
 	defer log.Close()
 
-	samples, lastIndex, err = log.GetAllSamples()
+	samples, checkpoint, err = log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")
 	checkSamples(t, samples)
-	checkIndex(t, lastIndex, 5)
+	checkIndex(t, checkpoint, 5)
 }
 
 func createMetricsPath(t *testing.T) string {

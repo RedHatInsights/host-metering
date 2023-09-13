@@ -39,7 +39,7 @@ func (log *MetricsLog) Close() error {
 	return log.wal.Close()
 }
 
-func (log *MetricsLog) Write(cpuCount uint) error {
+func (log *MetricsLog) WriteSample(cpuCount uint) error {
 	sample := prompb.Sample{
 		Value:     float64(cpuCount),
 		Timestamp: time.Now().UnixMilli(),
@@ -57,7 +57,7 @@ func (log *MetricsLog) Write(cpuCount uint) error {
 	return log.wal.Write(lastIndex+1, data)
 }
 
-func (log *MetricsLog) GetAllSamples() (samples []prompb.Sample, lastIndex uint64, err error) {
+func (log *MetricsLog) GetSamples() (samples []prompb.Sample, lastIndex uint64, err error) {
 
 	firstIndex, err := log.wal.FirstIndex()
 	if err != nil {
@@ -96,7 +96,7 @@ func (log *MetricsLog) GetAllSamples() (samples []prompb.Sample, lastIndex uint6
 	return samples, lastIndex, nil
 }
 
-func (log *MetricsLog) TruncateTo(index uint64) error {
+func (log *MetricsLog) RemoveSamples(index uint64) error {
 	err := log.wal.TruncateFront(index)
 	if err != nil {
 		return err

@@ -147,7 +147,7 @@ func (d *Daemon) collectMetrics() {
 		return
 	}
 
-	err = d.metricsLog.Write(d.hostInfo.CpuCount)
+	err = d.metricsLog.WriteSample(d.hostInfo.CpuCount)
 	if err != nil {
 		logger.Warnf("Error writing metrics log: %s\n", err.Error())
 		return
@@ -160,7 +160,7 @@ func (d *Daemon) doPrometheusRequest() error {
 		return fmt.Errorf("missing internal HostInfo")
 	}
 	logger.Debugln("Initiating Prometheus request...")
-	samples, lastIndex, err := d.metricsLog.GetAllSamples()
+	samples, checkpoint, err := d.metricsLog.GetSamples()
 	if err != nil {
 		logger.Warnf("Error getting samples: %s\n", err.Error())
 		return err
@@ -176,7 +176,7 @@ func (d *Daemon) doPrometheusRequest() error {
 		logger.Warnf("Error calling PrometheusRemoteWrite: %s\n", err.Error())
 		return err
 	}
-	err = d.metricsLog.TruncateTo(lastIndex)
+	err = d.metricsLog.RemoveSamples(checkpoint)
 	if err != nil {
 		logger.Warnf("Error truncating WAL: %s\n", err.Error())
 		return err

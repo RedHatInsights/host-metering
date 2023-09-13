@@ -2,8 +2,128 @@ package notify
 
 import (
 	"github.com/prometheus/prometheus/prompb"
+	"github.com/tidwall/wal"
+	"os"
 	"testing"
 )
+
+// Test invalid operations with the MetricsLog.
+func TestMetricsLogFailures(t *testing.T) {
+	// Test an invalid log path.
+	_, err := NewMetricsLog("")
+	checkExpectedError(t, err, "metrics log path cannot be empty")
+
+	// Test a corrupted log file.
+	path := createMetricsPath(t)
+	createCorruptedMetrics(t, path)
+
+	_, err = NewMetricsLog(path)
+	checkExpectedError(t, err, "log corrupt")
+
+	// Create a valid log.
+	path = createMetricsPath(t)
+	log, _ := NewMetricsLog(path)
+
+	// Test an invalid checkpoint.
+	err = log.RemoveSamples(0)
+	checkExpectedError(t, err, "out of range")
+
+	// Close the log.
+	_ = log.Close()
+
+	// Test an invalid write operation.
+	err = log.WriteSample(2)
+	checkExpectedError(t, err, "log closed")
+
+	// Test an invalid read operation.
+	_, _, err = log.GetSamples()
+	checkExpectedError(t, err, "log closed")
+
+	// Test an invalid delete operation.
+	err = log.RemoveSamples(2)
+	checkExpectedError(t, err, "log closed")
+
+	// Test an invalid close operation.
+	err = log.Close()
+	checkExpectedError(t, err, "log closed")
+}
+
+// Test checkpoint support of the MetricsLog.
+func TestMetricsLogCheckpoints(t *testing.T) {
+	// Create a new MetricsLog instance
+	log, err := NewMetricsLog(createMetricsPath(t))
+	checkError(t, err, "failed to create MetricsLog")
+	defer log.Close()
+
+	// Get samples from an empty log.
+	samples, checkpoint, err := log.GetSamples()
+	checkError(t, err, "failed to get samples from MetricsLog")
+	checkSamples(t, samples)
+	checkIndex(t, checkpoint, 1)
+
+	// Get samples from an empty log again.
+	samples, checkpoint, err = log.GetSamples()
+	checkError(t, err, "failed to get samples from MetricsLog")
+	checkSamples(t, samples)
+	checkIndex(t, checkpoint, 1)
+
+	// Truncate an empty log.
+	err = log.RemoveSamples(checkpoint)
+	checkError(t, err, "failed to truncate MetricsLog")
+
+	// Truncate an empty log again.
+	err = log.RemoveSamples(checkpoint)
+	checkError(t, err, "failed to truncate MetricsLog")
+
+	// Write something into the log.
+	_ = log.WriteSample(1)
+	_ = log.WriteSample(2)
+	_ = log.WriteSample(3)
+
+	// Get samples from the log.
+	samples, checkpoint, err = log.GetSamples()
+	checkError(t, err, "failed to get samples from MetricsLog")
+	checkSamples(t, samples, 1, 2, 3)
+	checkIndex(t, checkpoint, 5)
+
+	// Get samples from the log again.
+	samples, checkpoint, err = log.GetSamples()
+	checkError(t, err, "failed to get samples from MetricsLog")
+	checkSamples(t, samples, 1, 2, 3)
+	checkIndex(t, checkpoint, 5)
+
+	// Truncate the log.
+	err = log.RemoveSamples(checkpoint)
+	checkError(t, err, "failed to truncate MetricsLog")
+
+	// Truncate the empty log.
+	err = log.RemoveSamples(checkpoint)
+	checkError(t, err, "failed to truncate MetricsLog")
+
+	// Write something new into the log.
+	_ = log.WriteSample(4)
+	_ = log.WriteSample(5)
+
+	// Get samples from the log.
+	samples, checkpoint, err = log.GetSamples()
+	checkError(t, err, "failed to get samples from MetricsLog")
+	checkSamples(t, samples, 4, 5)
+	checkIndex(t, checkpoint, 8)
+
+	// Get samples from the log again.
+	samples, checkpoint, err = log.GetSamples()
+	checkError(t, err, "failed to get samples from MetricsLog")
+	checkSamples(t, samples, 4, 5)
+	checkIndex(t, checkpoint, 8)
+
+	// Truncate the log.
+	err = log.RemoveSamples(checkpoint)
+	checkError(t, err, "failed to truncate MetricsLog")
+
+	// Truncate the empty log.
+	err = log.RemoveSamples(checkpoint)
+	checkError(t, err, "failed to truncate MetricsLog")
+}
 
 // Test basic functionality of the MetricsLog - how it would be used by milton
 func TestMetricsLogBasics(t *testing.T) {
@@ -107,9 +227,30 @@ func createMetricsPath(t *testing.T) string {
 	return dir + "/metrics"
 }
 
+func createCorruptedMetrics(t *testing.T, path string) {
+	err := os.MkdirAll(path, wal.DefaultOptions.DirPerms)
+	if err != nil {
+		t.Fatalf("failed to create a directory at %s: %v", path, err)
+	}
+
+	err = os.WriteFile(path+"/00000000000000000001", []byte("\n"), wal.DefaultOptions.FilePerms)
+	if err != nil {
+		t.Fatalf("failed to create a corrupted file at %s: %v", path, err)
+	}
+}
+
 func checkError(t *testing.T, err error, message string) {
 	if err != nil {
 		t.Fatalf("%s: %v", message, err)
+	}
+}
+
+func checkExpectedError(t *testing.T, err error, message string) {
+	if err == nil {
+		t.Fatalf("expected error with message: %s", message)
+	}
+	if err.Error() != message {
+		t.Fatalf("unexpected error message: '%s' != '%s'", err.Error(), message)
 	}
 }
 

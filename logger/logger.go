@@ -71,7 +71,7 @@ type Logger interface {
 }
 
 func InitDefaultLogger() Logger {
-	return go_log.New(os.Stderr, "", defaultLogFormat, go_log.LevelInfo)
+	return go_log.New(os.Stderr, "", defaultLogFormat, go_log.LevelDebug)
 }
 
 func InitLogger(file string, level string, logStructure ...int) error {

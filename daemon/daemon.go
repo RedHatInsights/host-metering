@@ -147,7 +147,7 @@ func (d *Daemon) collectMetrics() {
 		return
 	}
 
-	err = d.metricsLog.WriteSample(d.hostInfo.CpuCount)
+	err = d.metricsLog.WriteSampleNow(d.hostInfo.CpuCount)
 	if err != nil {
 		logger.Warnf("Error writing metrics log: %s\n", err.Error())
 		return

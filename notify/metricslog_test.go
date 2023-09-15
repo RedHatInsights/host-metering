@@ -1,10 +1,11 @@
 package notify
 
 import (
-	"github.com/prometheus/prometheus/prompb"
-	"github.com/tidwall/wal"
 	"os"
 	"testing"
+
+	"github.com/prometheus/prometheus/prompb"
+	"github.com/tidwall/wal"
 )
 
 // Test invalid operations with the MetricsLog.
@@ -32,7 +33,7 @@ func TestMetricsLogFailures(t *testing.T) {
 	_ = log.Close()
 
 	// Test an invalid write operation.
-	err = log.WriteSample(2)
+	err = log.WriteSampleNow(2)
 	checkExpectedError(t, err, "log closed")
 
 	// Test an invalid read operation.
@@ -76,9 +77,9 @@ func TestMetricsLogCheckpoints(t *testing.T) {
 	checkError(t, err, "failed to truncate MetricsLog")
 
 	// Write something into the log.
-	_ = log.WriteSample(1)
-	_ = log.WriteSample(2)
-	_ = log.WriteSample(3)
+	_ = log.WriteSampleNow(1)
+	_ = log.WriteSampleNow(2)
+	_ = log.WriteSampleNow(3)
 
 	// Get samples from the log.
 	samples, checkpoint, err = log.GetSamples()
@@ -101,8 +102,8 @@ func TestMetricsLogCheckpoints(t *testing.T) {
 	checkError(t, err, "failed to truncate MetricsLog")
 
 	// Write something new into the log.
-	_ = log.WriteSample(4)
-	_ = log.WriteSample(5)
+	_ = log.WriteSampleNow(4)
+	_ = log.WriteSampleNow(5)
 
 	// Get samples from the log.
 	samples, checkpoint, err = log.GetSamples()
@@ -133,11 +134,11 @@ func TestMetricsLogBasics(t *testing.T) {
 	defer log.Close()
 
 	// Write some sample cpuCount data to the log
-	err = log.WriteSample(4)
+	err = log.WriteSampleNow(4)
 	checkError(t, err, "failed to write sample data to MetricsLog")
 
 	// Another sample
-	err = log.WriteSample(6)
+	err = log.WriteSampleNow(6)
 	checkError(t, err, "failed to write sample data to MetricsLog")
 
 	// Get all samples from the log
@@ -161,7 +162,7 @@ func TestMetricsLogBasics(t *testing.T) {
 	checkError(t, err, "failed to truncate MetricsLog")
 
 	// Simulate next iteration: write sample, obtain it and truncate
-	err = log.WriteSample(8)
+	err = log.WriteSampleNow(8)
 	checkError(t, err, "failed to write sample data to MetricsLog")
 
 	samples, checkpoint, err = log.GetSamples()
@@ -183,11 +184,11 @@ func TestRestart(t *testing.T) {
 	checkError(t, err, "failed to create MetricsLog")
 
 	// Write some sample cpuCount data to the log
-	log.WriteSample(1) // index 1
-	log.WriteSample(2) // index 2
-	log.WriteSample(3) // index 3
-	log.WriteSample(4) // index 4
-	log.WriteSample(5) // index 5
+	log.WriteSampleNow(1) // index 1
+	log.WriteSampleNow(2) // index 2
+	log.WriteSampleNow(3) // index 3
+	log.WriteSampleNow(4) // index 4
+	log.WriteSampleNow(5) // index 5
 
 	samples, checkpoint, err := log.GetSamples()
 	checkError(t, err, "failed to get samples from MetricsLog")

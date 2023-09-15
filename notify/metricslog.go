@@ -31,13 +31,17 @@ func NewMetricsLog(path string) (*MetricsLog, error) {
 	}, nil
 }
 
-func (log *MetricsLog) WriteSample(cpuCount uint) error {
+func (log *MetricsLog) WriteSampleNow(cpuCount uint) error {
+	return log.WriteSample(cpuCount, time.Now().UnixMilli())
+}
+
+func (log *MetricsLog) WriteSample(cpuCount uint, timestamp int64) error {
 	log.mu.Lock()
 	defer log.mu.Unlock()
 
 	sample := &prompb.Sample{
 		Value:     float64(cpuCount),
-		Timestamp: time.Now().UnixMilli(),
+		Timestamp: timestamp,
 	}
 
 	return log.writeSample(sample)

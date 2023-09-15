@@ -169,6 +169,10 @@ func (d *Daemon) notify() error {
 		logger.Warnf("Error getting samples: %s\n", err.Error())
 		return err
 	}
+	origCount := len(samples)
+	if d.config.MetricsMaxAgeSec > 0 {
+		samples = notify.FilterSamplesByAge(samples, d.config.MetricsMaxAgeSec)
+	}
 	count := len(samples)
 	if count == 0 {
 		logger.Debugln("No samples to send")
@@ -178,6 +182,13 @@ func (d *Daemon) notify() error {
 	err = d.notifier.Notify(samples, d.hostInfo)
 	if err != nil {
 		logger.Warnf("Error calling PrometheusRemoteWrite: %s\n", err.Error())
+		// clear old samples even on error so that WAL does not grow indefinitely
+		if origCount != count {
+			err2 := d.metricsLog.RemoveSamples(checkpoint - uint64(count))
+			if err2 != nil {
+				logger.Warnf("Error truncating WAL: %s\n", err2.Error())
+			}
+		}
 		return err
 	}
 	err = d.metricsLog.RemoveSamples(checkpoint)

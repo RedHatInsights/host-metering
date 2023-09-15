@@ -19,6 +19,7 @@ const (
 	DefaultWriteRetryAttempts      = 8
 	DefaultWriteRetryMinIntSec     = 1
 	DefaultWriteRetryMaxIntSec     = 10
+	DefaultMetricsMaxAgeSec        = 5400
 	DefaultMetricsWALPath          = "/var/run/milton/metrics"
 	DefaultLogLevel                = "INFO"
 	DefaultLogPath                 = "" //Default to stderr, will be logged in journal.
@@ -34,6 +35,7 @@ type Config struct {
 	WriteRetryAttempts      uint
 	WriteRetryMinIntSec     uint // in seconds
 	WriteRetryMaxIntSec     uint // in seconds
+	MetricsMaxAgeSec        uint // in seconds
 	MetricsWALPath          string
 	LogLevel                string // one of "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
 	LogPath                 string
@@ -50,6 +52,7 @@ func NewConfig() *Config {
 		WriteRetryAttempts:      DefaultWriteRetryAttempts,
 		WriteRetryMinIntSec:     DefaultWriteRetryMinIntSec,
 		WriteRetryMaxIntSec:     DefaultWriteRetryMaxIntSec,
+		MetricsMaxAgeSec:        DefaultMetricsMaxAgeSec,
 		MetricsWALPath:          DefaultMetricsWALPath,
 		LogLevel:                DefaultLogLevel,
 		LogPath:                 DefaultLogPath,
@@ -69,6 +72,7 @@ func (c *Config) String() string {
 			fmt.Sprintf("  WriteRetryAttempts: %d", c.WriteRetryAttempts),
 			fmt.Sprintf("  WriteRetryMinIntSec: %d", c.WriteRetryMinIntSec),
 			fmt.Sprintf("  WriteRetryMaxIntSec: %d", c.WriteRetryMaxIntSec),
+			fmt.Sprintf("  MetricsMaxAgeSec: %d", c.MetricsMaxAgeSec),
 			fmt.Sprintf("  MetricsWALPath: %s", c.MetricsWALPath),
 			fmt.Sprintf("  LogLevel: %s", c.LogLevel),
 			fmt.Sprintf("  LogPath: %s", c.LogPath),
@@ -124,7 +128,10 @@ func (c *Config) UpdateFromEnvVars() string {
 	if err != nil {
 		errors.WriteString(err.Error())
 	}
-
+	c.MetricsMaxAgeSec, err = parseEnvVarUint("MILTON_METRICS_MAX_AGE_SEC", c.MetricsMaxAgeSec)
+	if err != nil {
+		errors.WriteString(err.Error())
+	}
 	if v := os.Getenv("MILTON_METRICS_WAL_PATH"); v != "" {
 		c.MetricsWALPath = v
 	}
@@ -233,6 +240,12 @@ func (c *Config) UpdateFromConfigFile(path string) string {
 	}
 	if v, ok := config["milton"]["write_retry_max_int_sec"]; ok {
 		c.WriteRetryMaxIntSec, err = parseConfigUint("write_retry_max_int_sec", v, c.WriteRetryMaxIntSec)
+		if err != nil {
+			errors.WriteString(err.Error())
+		}
+	}
+	if v, ok := config["milton"]["metrics_max_age_sec"]; ok {
+		c.MetricsMaxAgeSec, err = parseConfigUint("metrics_max_age_sec", v, c.MetricsMaxAgeSec)
 		if err != nil {
 			errors.WriteString(err.Error())
 		}

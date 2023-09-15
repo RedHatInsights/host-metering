@@ -75,21 +75,6 @@ func (c *Config) String() string {
 		}, "\n")
 }
 
-func (c *Config) UpdateFromCliOptions(writeUrl string, writeIntervalSec uint, certPath string, keyPath string) {
-	if writeUrl != "" {
-		c.WriteUrl = writeUrl
-	}
-	if writeIntervalSec != 0 {
-		c.WriteIntervalSec = writeIntervalSec
-	}
-	if certPath != "" {
-		c.HostCertPath = certPath
-	}
-	if keyPath != "" {
-		c.HostCertKeyPath = keyPath
-	}
-}
-
 func parseEnvVarUint(name string, currentValue uint) (uint, error) {
 	if v := os.Getenv(name); v != "" {
 		val, err := strconv.ParseUint(v, 10, 32)

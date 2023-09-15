@@ -11,10 +11,6 @@ import (
 )
 
 func main() {
-	writeUrl := flag.String("write-url", "", "Prometheus remote write endpoint")
-	tick := flag.Uint("tick", 0, "Report every tick seconds")
-	certPath := flag.String("cert", "", "Host certificate path")
-	keyPath := flag.String("key", "", "Host certificate key path")
 	configPath := flag.String("config", config.DefaultConfigPath, "Configuration file path")
 
 	flag.NewFlagSet("help", flag.ExitOnError)
@@ -49,8 +45,6 @@ func main() {
 		if errors != "" {
 			configurationErrors.WriteString(errors)
 		}
-
-		cfg.UpdateFromCliOptions(*writeUrl, *tick, *certPath, *keyPath)
 
 		// initialize the logger according to the given configuration
 		err := logger.InitLogger(cfg.LogPath, cfg.LogLevel)

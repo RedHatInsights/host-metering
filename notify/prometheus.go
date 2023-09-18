@@ -15,13 +15,21 @@ import (
 	"redhat.com/milton/logger"
 )
 
-// alternative to prombp could be:
-// go get buf.build/gen/go/prometheus/prometheus/protocolbuffers/go@latest
+// See https://prometheus.io/docs/concepts/remote_write_spec/ for specifiction of Prometheus remote write
 
-// See https://prometheus.io/docs/concepts/remote_write_spec/
-// TODO:
-// - Persistence It is recommended that Prometheus Remote Write compatible senders should persistently buffer sample data in the event of outages in the receiver.
-//
+type PrometheusNotifier struct {
+	cfg *config.Config
+}
+
+func NewPrometheusNotifier(cfg *config.Config) *PrometheusNotifier {
+	return &PrometheusNotifier{
+		cfg: cfg,
+	}
+}
+
+func (n *PrometheusNotifier) Notify(samples []prompb.Sample, hostinfo *hostinfo.HostInfo) error {
+	return PrometheusRemoteWrite(hostinfo, n.cfg, samples)
+}
 
 func PrometheusRemoteWrite(hostinfo *hostinfo.HostInfo, cfg *config.Config, samples []prompb.Sample) error {
 	req, err := NewPrometheusRequest(hostinfo, cfg, samples)

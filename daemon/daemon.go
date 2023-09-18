@@ -17,10 +17,14 @@ type Daemon struct {
 	config     *config.Config
 	hostInfo   *hostinfo.HostInfo
 	metricsLog *notify.MetricsLog
+	notifier   notify.Notifier
 }
 
 func NewDaemon(config *config.Config) *Daemon {
-	return &Daemon{config: config}
+	return &Daemon{
+		config:   config,
+		notifier: notify.NewPrometheusNotifier(config),
+	}
 }
 
 func (d *Daemon) Run() error {
@@ -67,7 +71,7 @@ func (d *Daemon) Run() error {
 				if d.config.CollectIntervalSec == 0 {
 					d.collectMetrics()
 				}
-				d.doPrometheusRequest()
+				d.notify()
 			case <-reloadCh:
 				logger.Infoln("Reloading HostInfo...")
 				if err := d.loadHostInfo(); err != nil {
@@ -110,7 +114,7 @@ func (d *Daemon) RunOnce() error {
 	}
 	logger.Infoln("Executing once...")
 	d.collectMetrics()
-	err := d.doPrometheusRequest()
+	err := d.notify()
 	return err
 }
 
@@ -155,11 +159,11 @@ func (d *Daemon) collectMetrics() {
 	logger.Debugln("Metrics collected")
 }
 
-func (d *Daemon) doPrometheusRequest() error {
+func (d *Daemon) notify() error {
 	if d.hostInfo == nil {
 		return fmt.Errorf("missing internal HostInfo")
 	}
-	logger.Debugln("Initiating Prometheus request...")
+	logger.Debugln("Initiating notification request...")
 	samples, checkpoint, err := d.metricsLog.GetSamples()
 	if err != nil {
 		logger.Warnf("Error getting samples: %s\n", err.Error())
@@ -171,7 +175,7 @@ func (d *Daemon) doPrometheusRequest() error {
 		return nil
 	}
 	logger.Debugf("Sending %d sample(s)...\n", count)
-	err = notify.PrometheusRemoteWrite(d.hostInfo, d.config, samples)
+	err = d.notifier.Notify(samples, d.hostInfo)
 	if err != nil {
 		logger.Warnf("Error calling PrometheusRemoteWrite: %s\n", err.Error())
 		return err
@@ -181,6 +185,6 @@ func (d *Daemon) doPrometheusRequest() error {
 		logger.Warnf("Error truncating WAL: %s\n", err.Error())
 		return err
 	}
-	logger.Debugln("Prometheus remote write successful")
+	logger.Debugln("Notification successful")
 	return nil
 }

@@ -1,12 +1,23 @@
 package logger
 
 import (
+	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	go_log "git.sr.ht/~spc/go-log"
 )
 
 const defaultLogFormat = 0
+
+const (
+	DebugLevel = "DEBUG"
+	InfoLevel  = "INFO"
+	WarnLevel  = "WARN"
+	ErrorLevel = "ERROR"
+	TraceLevel = "TRACE"
+)
 
 type Logger interface {
 	// Error prints to the logger if level is at least LevelError. Arguments are
@@ -100,8 +111,8 @@ func InitLogger(file string, level string, logStructure ...int) error {
 }
 
 // Inject a predefined logger instance, will be used for testing.
-func OverrideLogger(newInstance *Logger) {
-	log = *newInstance
+func OverrideLogger(newInstance Logger) {
+	log = newInstance
 }
 
 var log Logger = nil
@@ -201,4 +212,125 @@ func Tracef(format string, v ...interface{}) {
 // handled in the manner of fmt.Println.
 func Traceln(v ...interface{}) {
 	getLogger().Traceln(v...)
+}
+
+type LogEntry struct {
+	Time    time.Time
+	Level   string
+	Message string
+	Method  string
+}
+
+// Custom logger for testing if other modules logged as expected.
+type TestLogger struct {
+	entries []LogEntry
+}
+
+func NewTestLogger() *TestLogger {
+	return &TestLogger{
+		entries: []LogEntry{},
+	}
+}
+
+func (l *TestLogger) formatMessage(v ...interface{}) string {
+	return fmt.Sprint(v...)
+}
+
+func (l *TestLogger) formatMessagef(format string, v ...interface{}) string {
+	return fmt.Sprintf(format, v...)
+}
+
+func (l *TestLogger) formatMessageln(v ...interface{}) string {
+	return fmt.Sprintln(v...)
+}
+
+func (l *TestLogger) addLogEntry(level string, message string, method string) {
+	l.entries = append(l.entries, LogEntry{time.Now(), level, message, method})
+}
+
+func (l *TestLogger) Error(v ...interface{}) {
+	l.addLogEntry(ErrorLevel, l.formatMessage(v...), "Error")
+}
+
+func (l *TestLogger) Errorf(format string, v ...interface{}) {
+	l.addLogEntry(ErrorLevel, l.formatMessagef(format, v...), "Errorf")
+}
+
+func (l *TestLogger) Errorln(v ...interface{}) {
+	l.addLogEntry(ErrorLevel, l.formatMessageln(v...), "Errorln")
+}
+
+func (l *TestLogger) Warn(v ...interface{}) {
+	l.addLogEntry(WarnLevel, l.formatMessage(v...), "Warn")
+}
+
+func (l *TestLogger) Warnf(format string, v ...interface{}) {
+	l.addLogEntry(WarnLevel, l.formatMessagef(format, v...), "Warnf")
+}
+
+func (l *TestLogger) Warnln(v ...interface{}) {
+	l.addLogEntry(WarnLevel, l.formatMessageln(v...), "Warnln")
+}
+
+func (l *TestLogger) Info(v ...interface{}) {
+	l.addLogEntry(InfoLevel, l.formatMessage(v...), "Info")
+}
+
+func (l *TestLogger) Infof(format string, v ...interface{}) {
+	l.addLogEntry(InfoLevel, l.formatMessagef(format, v...), "Infof")
+}
+
+func (l *TestLogger) Infoln(v ...interface{}) {
+	l.addLogEntry(InfoLevel, l.formatMessageln(v...), "Infoln")
+}
+
+func (l *TestLogger) Debug(v ...interface{}) {
+	l.addLogEntry(DebugLevel, l.formatMessage(v...), "Debug")
+}
+
+func (l *TestLogger) Debugf(format string, v ...interface{}) {
+	l.addLogEntry(DebugLevel, l.formatMessagef(format, v...), "Debugf")
+}
+
+func (l *TestLogger) Debugln(v ...interface{}) {
+	l.addLogEntry(DebugLevel, l.formatMessageln(v...), "Debugln")
+}
+
+func (l *TestLogger) Trace(v ...interface{}) {
+	l.addLogEntry(TraceLevel, l.formatMessage(v...), "Trace")
+}
+
+func (l *TestLogger) Tracef(format string, v ...interface{}) {
+	l.addLogEntry(TraceLevel, l.formatMessagef(format, v...), "Tracef")
+}
+
+func (l *TestLogger) Traceln(v ...interface{}) {
+	l.addLogEntry(TraceLevel, l.formatMessageln(v...), "Traceln")
+}
+
+func (l *TestLogger) GetEntries() []LogEntry {
+	return l.entries
+}
+
+func (l *TestLogger) Clear() {
+	l.entries = []LogEntry{}
+}
+
+func (l *TestLogger) GetLastEntry() *LogEntry {
+	if len(l.entries) == 0 {
+		return nil
+	}
+	return &l.entries[len(l.entries)-1]
+}
+
+// Check if the last log entry is the expected one.
+// Message is checked if it is contained in the log entry (not exact match).
+func (l *TestLogger) IsLastEntry(level string, message string, method string) bool {
+	entry := l.GetLastEntry()
+	if entry == nil {
+		return false
+	}
+	return (entry.Level == level &&
+		entry.Method == method &&
+		strings.Contains(entry.Message, message))
 }

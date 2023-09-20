@@ -109,7 +109,7 @@ func prometheusRemoteWrite(httpClient *http.Client, cfg *config.Config, httpRequ
 		return fmt.Errorf("PrometheusRemoteWrite: Unexpected Http Status: %d", resp.StatusCode)
 	}
 
-	return nil
+	return fmt.Errorf("PrometheusRemoteWrite: Failed after %d attempts", attempt)
 }
 
 func newPrometheusRequest(hostinfo *hostinfo.HostInfo, cfg *config.Config, samples []prompb.Sample) (

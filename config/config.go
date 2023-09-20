@@ -236,7 +236,7 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 		c.LogLevel = v
 	}
 	if v, ok := config["milton"]["log_path"]; ok {
-		c.LogLevel = v
+		c.LogPath = v
 	}
 
 	return multiError.ErrorOrNil()

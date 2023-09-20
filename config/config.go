@@ -90,10 +90,10 @@ func (c *Config) UpdateFromEnvVars() error {
 		c.WriteIntervalSec, err = parseUint("MILTON_WRITE_INTERVAL_SEC", v, c.WriteIntervalSec)
 		multiError.Add(err)
 	}
-	if v := os.Getenv("MILTON_HOST_CERT"); v != "" {
+	if v := os.Getenv("MILTON_HOST_CERT_PATH"); v != "" {
 		c.HostCertPath = v
 	}
-	if v := os.Getenv("MILTON_HOST_KEY"); v != "" {
+	if v := os.Getenv("MILTON_HOST_CERT_KEY_PATH"); v != "" {
 		c.HostCertKeyPath = v
 	}
 	if v := os.Getenv("MILTON_COLLECT_INTERVAL_SEC"); v != "" {
@@ -199,10 +199,10 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 		c.WriteIntervalSec, err = parseUint("write_interval_sec", v, c.WriteIntervalSec)
 		multiError.Add(err)
 	}
-	if v, ok := config["milton"]["cert_path"]; ok {
+	if v, ok := config["milton"]["host_cert_path"]; ok {
 		c.HostCertPath = v
 	}
-	if v, ok := config["milton"]["key_path"]; ok {
+	if v, ok := config["milton"]["host_cert_key_path"]; ok {
 		c.HostCertKeyPath = v
 	}
 	if v, ok := config["milton"]["collect_interval_sec"]; ok {

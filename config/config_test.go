@@ -7,6 +7,9 @@ import (
 )
 
 func TestDefaultConfig(t *testing.T) {
+	// Unset relevant environment variables.
+	clearEnvironment()
+
 	// Define the expected defaults.
 	expectedCfg := "Config:\n" +
 		"  WriteUrl: http://localhost:9090/api/v1/write\n" +
@@ -48,6 +51,9 @@ func TestDefaultConfig(t *testing.T) {
 func TestConfigFile(t *testing.T) {
 	dir := t.TempDir()
 	path := dir + "/empty"
+
+	// Unset relevant environment variables.
+	clearEnvironment()
 
 	// Define the expected configuration.
 	expectedCfg := "Config:\n" +
@@ -119,6 +125,9 @@ func TestConfigFile(t *testing.T) {
 }
 
 func TestEnvVariables(t *testing.T) {
+	// Unset relevant environment variables.
+	clearEnvironment()
+
 	// Define the expected configuration.
 	expectedCfg := "Config:\n" +
 		"  WriteUrl: http://test/url\n" +
@@ -181,6 +190,24 @@ func TestEnvVariables(t *testing.T) {
 	checkString(t, c.String(), expectedCfg)
 	checkString(t, err.Error(), expectedMsg)
 
+}
+
+func clearEnvironment() {
+	// Make sure that these environment variables are unset.
+	// WARNING: They won't be restored after the test.
+	_ = os.Unsetenv("MILTON_WRITE_URL")
+	_ = os.Unsetenv("MILTON_WRITE_INTERVAL_SEC")
+	_ = os.Unsetenv("MILTON_HOST_CERT_PATH")
+	_ = os.Unsetenv("MILTON_HOST_CERT_KEY_PATH")
+	_ = os.Unsetenv("MILTON_COLLECT_INTERVAL_SEC")
+	_ = os.Unsetenv("MILTON_LABEL_REFRESH_INTERVAL_SEC")
+	_ = os.Unsetenv("MILTON_WRITE_RETRY_ATTEMPTS")
+	_ = os.Unsetenv("MILTON_WRITE_RETRY_MIN_INT_SEC")
+	_ = os.Unsetenv("MILTON_WRITE_RETRY_MAX_INT_SEC")
+	_ = os.Unsetenv("MILTON_METRICS_MAX_AGE_SEC")
+	_ = os.Unsetenv("MILTON_METRICS_WAL_PATH")
+	_ = os.Unsetenv("MILTON_LOG_LEVEL")
+	_ = os.Unsetenv("MILTON_LOG_PATH")
 }
 
 func checkError(t *testing.T, err error, message string) {

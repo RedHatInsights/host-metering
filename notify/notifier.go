@@ -11,8 +11,8 @@ type Notifier interface {
 	Notify(samples []prompb.Sample, hostinfo *hostinfo.HostInfo) error
 }
 
-func FilterSamplesByAge(samples []prompb.Sample, maxAgeSec uint) []prompb.Sample {
-	treshold := time.Now().UnixMilli() - int64(maxAgeSec*1000)
+func FilterSamplesByAge(samples []prompb.Sample, maxAge time.Duration) []prompb.Sample {
+	treshold := time.Now().UnixMilli() - int64(maxAge.Milliseconds())
 	for idx, sample := range samples {
 		if sample.Timestamp >= treshold {
 			return samples[idx:]

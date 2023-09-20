@@ -39,15 +39,15 @@ func (d *Daemon) Run() error {
 	signal.Notify(reloadCh, syscall.SIGHUP)
 
 	var collectTicker *time.Ticker
-	if d.config.CollectIntervalSec > 0 {
-		collectTicker = time.NewTicker(time.Duration(d.config.CollectIntervalSec) * time.Second)
+	if d.config.CollectInterval > 0 {
+		collectTicker = time.NewTicker(d.config.CollectInterval)
 	} else {
 		// Create dummy stopped ticker if collect interval is not configured
 		collectTicker = time.NewTicker(time.Duration(1) * time.Hour)
 		collectTicker.Stop()
 	}
 
-	writeTicker := time.NewTicker(time.Duration(d.config.WriteIntervalSec) * time.Second)
+	writeTicker := time.NewTicker(d.config.WriteInterval)
 
 	if err := d.loadHostInfo(); err != nil {
 		return err
@@ -68,7 +68,7 @@ func (d *Daemon) Run() error {
 			case <-collectTicker.C:
 				d.collectMetrics()
 			case <-writeTicker.C:
-				if d.config.CollectIntervalSec == 0 {
+				if d.config.CollectInterval == 0 {
 					d.collectMetrics()
 				}
 				d.notify()
@@ -170,8 +170,8 @@ func (d *Daemon) notify() error {
 		return err
 	}
 	origCount := len(samples)
-	if d.config.MetricsMaxAgeSec > 0 {
-		samples = notify.FilterSamplesByAge(samples, d.config.MetricsMaxAgeSec)
+	if d.config.MetricsMaxAge > 0 {
+		samples = notify.FilterSamplesByAge(samples, d.config.MetricsMaxAge)
 	}
 	count := len(samples)
 	if count == 0 {

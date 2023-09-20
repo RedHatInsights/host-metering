@@ -18,7 +18,7 @@ func TestFilterSamplesByAge(t *testing.T) {
 		{Value: 6, Timestamp: now - 1},
 	}
 	// set maxAge to 5s, thus expect 3 samples
-	filtered := FilterSamplesByAge(samples, 5)
+	filtered := FilterSamplesByAge(samples, 5*time.Second)
 	if len(filtered) != 3 {
 		t.Errorf("Expected 3 samples, got %d", len(filtered))
 	}
@@ -27,7 +27,7 @@ func TestFilterSamplesByAge(t *testing.T) {
 	}
 
 	// set maxAge to 11s, thus expect all samples
-	filtered = FilterSamplesByAge(samples, 11)
+	filtered = FilterSamplesByAge(samples, 11*time.Second)
 	if len(filtered) != len(samples) {
 		t.Errorf("Expected %d samples, got %d", len(samples), len(filtered))
 	}

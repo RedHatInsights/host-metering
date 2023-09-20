@@ -6,56 +6,57 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
-	DefaultConfigPath              = "/etc/milton.conf"
-	DefaultWriteUrl                = "http://localhost:9090/api/v1/write"
-	DefaultWriteIntervalSec        = 600
-	DefaultCertPath                = "/etc/pki/consumer/cert.pem"
-	DefaultKeyPath                 = "/etc/pki/consumer/key.pem"
-	DefaultCollectIntervalSec      = 0
-	DefaultLabelRefreshIntervalSec = 86400
-	DefaultWriteRetryAttempts      = 8
-	DefaultWriteRetryMinIntSec     = 1
-	DefaultWriteRetryMaxIntSec     = 10
-	DefaultMetricsMaxAgeSec        = 5400
-	DefaultMetricsWALPath          = "/var/run/milton/metrics"
-	DefaultLogLevel                = "INFO"
-	DefaultLogPath                 = "" //Default to stderr, will be logged in journal.
+	DefaultConfigPath           = "/etc/milton.conf"
+	DefaultWriteUrl             = "http://localhost:9090/api/v1/write"
+	DefaultWriteInterval        = 600 * time.Second
+	DefaultCertPath             = "/etc/pki/consumer/cert.pem"
+	DefaultKeyPath              = "/etc/pki/consumer/key.pem"
+	DefaultCollectInterval      = 0 * time.Second
+	DefaultLabelRefreshInterval = 86400 * time.Second
+	DefaultWriteRetryAttempts   = 8
+	DefaultWriteRetryMinInt     = 1 * time.Second
+	DefaultWriteRetryMaxInt     = 10 * time.Second
+	DefaultMetricsMaxAge        = 5400 * time.Second
+	DefaultMetricsWALPath       = "/var/run/milton/metrics"
+	DefaultLogLevel             = "INFO"
+	DefaultLogPath              = "" //Default to stderr, will be logged in journal.
 )
 
 type Config struct {
-	WriteUrl                string
-	WriteIntervalSec        uint // in seconds
-	CollectIntervalSec      uint // in seconds
-	LabelRefreshIntervalSec uint // in seconds
-	HostCertPath            string
-	HostCertKeyPath         string
-	WriteRetryAttempts      uint
-	WriteRetryMinIntSec     uint // in seconds
-	WriteRetryMaxIntSec     uint // in seconds
-	MetricsMaxAgeSec        uint // in seconds
-	MetricsWALPath          string
-	LogLevel                string // one of "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
-	LogPath                 string
+	WriteUrl             string
+	WriteInterval        time.Duration
+	CollectInterval      time.Duration
+	LabelRefreshInterval time.Duration
+	HostCertPath         string
+	HostCertKeyPath      string
+	WriteRetryAttempts   uint
+	WriteRetryMinInt     time.Duration
+	WriteRetryMaxInt     time.Duration
+	MetricsMaxAge        time.Duration
+	MetricsWALPath       string
+	LogLevel             string // one of "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
+	LogPath              string
 }
 
 func NewConfig() *Config {
 	return &Config{
-		WriteUrl:                DefaultWriteUrl,
-		WriteIntervalSec:        DefaultWriteIntervalSec,
-		HostCertPath:            DefaultCertPath,
-		HostCertKeyPath:         DefaultKeyPath,
-		CollectIntervalSec:      DefaultCollectIntervalSec,
-		LabelRefreshIntervalSec: DefaultLabelRefreshIntervalSec,
-		WriteRetryAttempts:      DefaultWriteRetryAttempts,
-		WriteRetryMinIntSec:     DefaultWriteRetryMinIntSec,
-		WriteRetryMaxIntSec:     DefaultWriteRetryMaxIntSec,
-		MetricsMaxAgeSec:        DefaultMetricsMaxAgeSec,
-		MetricsWALPath:          DefaultMetricsWALPath,
-		LogLevel:                DefaultLogLevel,
-		LogPath:                 DefaultLogPath,
+		WriteUrl:             DefaultWriteUrl,
+		WriteInterval:        DefaultWriteInterval,
+		HostCertPath:         DefaultCertPath,
+		HostCertKeyPath:      DefaultKeyPath,
+		CollectInterval:      DefaultCollectInterval,
+		LabelRefreshInterval: DefaultLabelRefreshInterval,
+		WriteRetryAttempts:   DefaultWriteRetryAttempts,
+		WriteRetryMinInt:     DefaultWriteRetryMinInt,
+		WriteRetryMaxInt:     DefaultWriteRetryMaxInt,
+		MetricsMaxAge:        DefaultMetricsMaxAge,
+		MetricsWALPath:       DefaultMetricsWALPath,
+		LogLevel:             DefaultLogLevel,
+		LogPath:              DefaultLogPath,
 	}
 }
 
@@ -64,15 +65,15 @@ func (c *Config) String() string {
 		[]string{
 			"Config:",
 			fmt.Sprintf("  WriteUrl: %s", c.WriteUrl),
-			fmt.Sprintf("  WriteIntervalSec: %d", c.WriteIntervalSec),
+			fmt.Sprintf("  WriteIntervalSec: %.0f", c.WriteInterval.Seconds()),
 			fmt.Sprintf("  HostCertPath: %s", c.HostCertPath),
 			fmt.Sprintf("  HostCertKeyPath: %s", c.HostCertKeyPath),
-			fmt.Sprintf("  CollectIntervalSec: %d", c.CollectIntervalSec),
-			fmt.Sprintf("  LabelRefreshIntervalSec: %d", c.LabelRefreshIntervalSec),
+			fmt.Sprintf("  CollectIntervalSec: %.0f", c.CollectInterval.Seconds()),
+			fmt.Sprintf("  LabelRefreshIntervalSec: %.0f", c.LabelRefreshInterval.Seconds()),
 			fmt.Sprintf("  WriteRetryAttempts: %d", c.WriteRetryAttempts),
-			fmt.Sprintf("  WriteRetryMinIntSec: %d", c.WriteRetryMinIntSec),
-			fmt.Sprintf("  WriteRetryMaxIntSec: %d", c.WriteRetryMaxIntSec),
-			fmt.Sprintf("  MetricsMaxAgeSec: %d", c.MetricsMaxAgeSec),
+			fmt.Sprintf("  WriteRetryMinIntSec: %.0f", c.WriteRetryMinInt.Seconds()),
+			fmt.Sprintf("  WriteRetryMaxIntSec: %.0f", c.WriteRetryMaxInt.Seconds()),
+			fmt.Sprintf("  MetricsMaxAgeSec: %.0f", c.MetricsMaxAge.Seconds()),
 			fmt.Sprintf("  MetricsWALPath: %s", c.MetricsWALPath),
 			fmt.Sprintf("  LogLevel: %s", c.LogLevel),
 			fmt.Sprintf("  LogPath: %s", c.LogPath),
@@ -87,7 +88,7 @@ func (c *Config) UpdateFromEnvVars() error {
 		c.WriteUrl = v
 	}
 	if v := os.Getenv("MILTON_WRITE_INTERVAL_SEC"); v != "" {
-		c.WriteIntervalSec, err = parseUint("MILTON_WRITE_INTERVAL_SEC", v, c.WriteIntervalSec)
+		c.WriteInterval, err = parseSeconds("MILTON_WRITE_INTERVAL_SEC", v, c.WriteInterval)
 		multiError.Add(err)
 	}
 	if v := os.Getenv("MILTON_HOST_CERT_PATH"); v != "" {
@@ -97,11 +98,11 @@ func (c *Config) UpdateFromEnvVars() error {
 		c.HostCertKeyPath = v
 	}
 	if v := os.Getenv("MILTON_COLLECT_INTERVAL_SEC"); v != "" {
-		c.CollectIntervalSec, err = parseUint("MILTON_COLLECT_INTERVAL_SEC", v, c.CollectIntervalSec)
+		c.CollectInterval, err = parseSeconds("MILTON_COLLECT_INTERVAL_SEC", v, c.CollectInterval)
 		multiError.Add(err)
 	}
 	if v := os.Getenv("MILTON_LABEL_REFRESH_INTERVAL_SEC"); v != "" {
-		c.LabelRefreshIntervalSec, err = parseUint("MILTON_LABEL_REFRESH_INTERVAL_SEC", v, c.LabelRefreshIntervalSec)
+		c.LabelRefreshInterval, err = parseSeconds("MILTON_LABEL_REFRESH_INTERVAL_SEC", v, c.LabelRefreshInterval)
 		multiError.Add(err)
 	}
 	if v := os.Getenv("MILTON_WRITE_RETRY_ATTEMPTS"); v != "" {
@@ -109,15 +110,15 @@ func (c *Config) UpdateFromEnvVars() error {
 		multiError.Add(err)
 	}
 	if v := os.Getenv("MILTON_WRITE_RETRY_MIN_INT_SEC"); v != "" {
-		c.WriteRetryMinIntSec, err = parseUint("MILTON_WRITE_RETRY_MIN_INT_SEC", v, c.WriteRetryMinIntSec)
+		c.WriteRetryMinInt, err = parseSeconds("MILTON_WRITE_RETRY_MIN_INT_SEC", v, c.WriteRetryMinInt)
 		multiError.Add(err)
 	}
 	if v := os.Getenv("MILTON_WRITE_RETRY_MAX_INT_SEC"); v != "" {
-		c.WriteRetryMaxIntSec, err = parseUint("MILTON_WRITE_RETRY_MAX_INT_SEC", v, c.WriteRetryMaxIntSec)
+		c.WriteRetryMaxInt, err = parseSeconds("MILTON_WRITE_RETRY_MAX_INT_SEC", v, c.WriteRetryMaxInt)
 		multiError.Add(err)
 	}
 	if v := os.Getenv("MILTON_METRICS_MAX_AGE_SEC"); v != "" {
-		c.MetricsMaxAgeSec, err = parseUint("MILTON_METRICS_MAX_AGE_SEC", v, c.MetricsMaxAgeSec)
+		c.MetricsMaxAge, err = parseSeconds("MILTON_METRICS_MAX_AGE_SEC", v, c.MetricsMaxAge)
 		multiError.Add(err)
 	}
 	if v := os.Getenv("MILTON_METRICS_WAL_PATH"); v != "" {
@@ -196,7 +197,7 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 		c.WriteUrl = v
 	}
 	if v, ok := config["milton"]["write_interval_sec"]; ok {
-		c.WriteIntervalSec, err = parseUint("write_interval_sec", v, c.WriteIntervalSec)
+		c.WriteInterval, err = parseSeconds("write_interval_sec", v, c.WriteInterval)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["host_cert_path"]; ok {
@@ -206,11 +207,11 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 		c.HostCertKeyPath = v
 	}
 	if v, ok := config["milton"]["collect_interval_sec"]; ok {
-		c.CollectIntervalSec, err = parseUint("collect_interval_sec", v, c.CollectIntervalSec)
+		c.CollectInterval, err = parseSeconds("collect_interval_sec", v, c.CollectInterval)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["label_refresh_interval_sec"]; ok {
-		c.LabelRefreshIntervalSec, err = parseUint("label_refresh_interval_sec", v, c.LabelRefreshIntervalSec)
+		c.LabelRefreshInterval, err = parseSeconds("label_refresh_interval_sec", v, c.LabelRefreshInterval)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["write_retry_attempts"]; ok {
@@ -218,15 +219,15 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["write_retry_min_int_sec"]; ok {
-		c.WriteRetryMinIntSec, err = parseUint("write_retry_min_int_sec", v, c.WriteRetryMinIntSec)
+		c.WriteRetryMinInt, err = parseSeconds("write_retry_min_int_sec", v, c.WriteRetryMinInt)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["write_retry_max_int_sec"]; ok {
-		c.WriteRetryMaxIntSec, err = parseUint("write_retry_max_int_sec", v, c.WriteRetryMaxIntSec)
+		c.WriteRetryMaxInt, err = parseSeconds("write_retry_max_int_sec", v, c.WriteRetryMaxInt)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["metrics_max_age_sec"]; ok {
-		c.MetricsMaxAgeSec, err = parseUint("metrics_max_age_sec", v, c.MetricsMaxAgeSec)
+		c.MetricsMaxAge, err = parseSeconds("metrics_max_age_sec", v, c.MetricsMaxAge)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["metrics_wal_path"]; ok {
@@ -250,6 +251,16 @@ func parseUint(name string, value string, defaultValue uint) (uint, error) {
 	}
 
 	return uint(parsedValue), nil
+}
+
+func parseSeconds(name string, value string, defaultValue time.Duration) (time.Duration, error) {
+	parsedValue, err := strconv.ParseUint(value, 10, 32)
+
+	if err != nil {
+		return defaultValue, fmt.Errorf("invalid value of '%s': %v", name, err.Error())
+	}
+
+	return time.Duration(parsedValue) * time.Second, nil
 }
 
 type MultiError struct {

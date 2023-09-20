@@ -14,7 +14,7 @@ import (
 func TestNotify(t *testing.T) {
 
 	daemon := NewDaemon(&config.Config{
-		MetricsMaxAgeSec: 10,
+		MetricsMaxAge: 10 * time.Second,
 	})
 	notifier := &mockNotifier{}
 	daemon.notifier = notifier

@@ -74,8 +74,8 @@ func newMTLSHttpClient(keypair tls.Certificate) (*http.Client, error) {
 
 func prometheusRemoteWrite(httpClient *http.Client, cfg *config.Config, httpRequest *http.Request) error {
 	var attempt uint = 0
-	var maxRetryWait = time.Duration(cfg.WriteRetryMaxIntSec) * time.Second
-	retryWait := time.Duration(cfg.WriteRetryMinIntSec) * time.Second
+	maxRetryWait := cfg.WriteRetryMaxInt
+	retryWait := cfg.WriteRetryMinInt
 
 	for attempt < cfg.WriteRetryAttempts {
 		resp, err := httpClient.Do(httpRequest)

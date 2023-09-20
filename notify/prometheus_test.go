@@ -162,10 +162,10 @@ func TestRetriesAndBackoff(t *testing.T) {
 	}))
 	defer server.Close()
 	cfg := &config.Config{
-		WriteUrl:            server.URL + writeUrlPath,
-		WriteRetryAttempts:  2,
-		WriteRetryMinIntSec: 1,
-		WriteRetryMaxIntSec: 2,
+		WriteUrl:           server.URL + writeUrlPath,
+		WriteRetryAttempts: 2,
+		WriteRetryMinInt:   1 * time.Millisecond,
+		WriteRetryMaxInt:   2 * time.Millisecond,
 	}
 	client := server.Client()
 	request, _ := http.NewRequest("POST", cfg.WriteUrl, nil)
@@ -210,10 +210,10 @@ func TestNoRetriesOn4xx(t *testing.T) {
 	}))
 	defer server.Close()
 	cfg := &config.Config{
-		WriteUrl:            server.URL + writeUrlPath,
-		WriteRetryAttempts:  3,
-		WriteRetryMinIntSec: 1,
-		WriteRetryMaxIntSec: 2,
+		WriteUrl:           server.URL + writeUrlPath,
+		WriteRetryAttempts: 3,
+		WriteRetryMinInt:   1 * time.Millisecond,
+		WriteRetryMaxInt:   2 * time.Millisecond,
 	}
 	client := server.Client()
 	request, _ := http.NewRequest("POST", cfg.WriteUrl, nil)

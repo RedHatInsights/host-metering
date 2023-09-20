@@ -147,7 +147,9 @@ func parseConfigUint(name string, value string, currentValue uint) (uint, error)
 	}
 }
 
-func (c *Config) UpdateFromConfigFile(path string) error {
+type INIConfig map[string]map[string]string
+
+func (config INIConfig) parseFile(path string) error {
 	if _, err := os.Stat(path); err != nil {
 		return fmt.Errorf("no config file at %s", path)
 	}
@@ -159,7 +161,6 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 	defer file.Close()
 
 	// Parse INI file
-	config := make(map[string]map[string]string)
 	currentSection := ""
 
 	scanner := bufio.NewScanner(file)
@@ -189,6 +190,18 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("error reading config file: %s", err.Error())
+	}
+
+	return nil
+}
+
+func (c *Config) UpdateFromConfigFile(path string) error {
+	// Parse the INI file.
+	config := INIConfig{}
+
+	err := config.parseFile(path)
+	if err != nil {
+		return err
 	}
 
 	// Update config from parsed INI file

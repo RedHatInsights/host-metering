@@ -53,7 +53,7 @@ func main() {
 		}
 
 		//Now that the logger is configured, we can report configuration state.
-		logger.Debugln(logMessages.String())
+		logger.Infoln(logMessages.String())
 
 		//print out the configuration
 		logger.Infoln(cfg.String())

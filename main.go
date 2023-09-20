@@ -31,30 +31,29 @@ func main() {
 		printUsage()
 	case "daemon", "once":
 		cfg := config.NewConfig()
+		var logMessages strings.Builder
 
-		var configurationErrors strings.Builder
-
-		configurationErrors.WriteString("Updating config from config file...\n")
-		errors := cfg.UpdateFromConfigFile(*configPath)
-		if errors != "" {
-			configurationErrors.WriteString(errors)
+		logMessages.WriteString("Updating config from config file...\n")
+		err := cfg.UpdateFromConfigFile(*configPath)
+		if err != nil {
+			logMessages.WriteString(fmt.Sprintf("Failed to process file: %v\n", err.Error()))
 		}
 
-		configurationErrors.WriteString("Updating config from environment variables...\n")
-		errors = cfg.UpdateFromEnvVars()
-		if errors != "" {
-			configurationErrors.WriteString(errors)
+		logMessages.WriteString("Updating config from environment variables...\n")
+		err = cfg.UpdateFromEnvVars()
+		if err != nil {
+			logMessages.WriteString(fmt.Sprintf("Failed to process variables: %v\n", err.Error()))
 		}
 
 		// initialize the logger according to the given configuration
-		err := logger.InitLogger(cfg.LogPath, cfg.LogLevel)
+		err = logger.InitLogger(cfg.LogPath, cfg.LogLevel)
 
 		if err != nil {
 			logger.Debugf("Error initializing logger: %s\n", err.Error())
 		}
 
 		//Now that the logger is configured, we can report configuration state.
-		logger.Debugln(configurationErrors.String())
+		logger.Debugln(logMessages.String())
 
 		//print out the configuration
 		logger.Infoln(cfg.String())

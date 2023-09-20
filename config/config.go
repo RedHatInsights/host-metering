@@ -91,16 +91,16 @@ func parseEnvVarUint(name string, currentValue uint) (uint, error) {
 	return currentValue, nil
 }
 
-func (c *Config) UpdateFromEnvVars() string {
-	var errors strings.Builder
+func (c *Config) UpdateFromEnvVars() error {
+	var err error
+	var multiError MultiError
+
 	if v := os.Getenv("MILTON_WRITE_URL"); v != "" {
 		c.WriteUrl = v
 	}
-	var err error
+
 	c.WriteIntervalSec, err = parseEnvVarUint("MILTON_WRITE_INTERVAL_SEC", c.WriteIntervalSec)
-	if err != nil {
-		errors.WriteString(err.Error())
-	}
+	multiError.Add(err)
 
 	if v := os.Getenv("MILTON_HOST_CERT"); v != "" {
 		c.HostCertPath = v
@@ -109,29 +109,23 @@ func (c *Config) UpdateFromEnvVars() string {
 		c.HostCertKeyPath = v
 	}
 	c.CollectIntervalSec, err = parseEnvVarUint("MILTON_COLLECT_INTERVAL_SEC", c.CollectIntervalSec)
-	if err != nil {
-		errors.WriteString(err.Error())
-	}
+	multiError.Add(err)
+
 	c.LabelRefreshIntervalSec, err = parseEnvVarUint("MILTON_LABEL_REFRESH_INTERVAL_SEC", c.LabelRefreshIntervalSec)
-	if err != nil {
-		errors.WriteString(err.Error())
-	}
+	multiError.Add(err)
+
 	c.WriteRetryAttempts, err = parseEnvVarUint("MILTON_WRITE_RETRY_ATTEMPTS", c.WriteRetryAttempts)
-	if err != nil {
-		errors.WriteString(err.Error())
-	}
+	multiError.Add(err)
+
 	c.WriteRetryMinIntSec, err = parseEnvVarUint("MILTON_WRITE_RETRY_MIN_INT_SEC", c.WriteRetryMinIntSec)
-	if err != nil {
-		errors.WriteString(err.Error())
-	}
+	multiError.Add(err)
+
 	c.WriteRetryMaxIntSec, err = parseEnvVarUint("MILTON_WRITE_RETRY_MAX_INT_SEC", c.WriteRetryMaxIntSec)
-	if err != nil {
-		errors.WriteString(err.Error())
-	}
+	multiError.Add(err)
+
 	c.MetricsMaxAgeSec, err = parseEnvVarUint("MILTON_METRICS_MAX_AGE_SEC", c.MetricsMaxAgeSec)
-	if err != nil {
-		errors.WriteString(err.Error())
-	}
+	multiError.Add(err)
+
 	if v := os.Getenv("MILTON_METRICS_WAL_PATH"); v != "" {
 		c.MetricsWALPath = v
 	}
@@ -141,7 +135,7 @@ func (c *Config) UpdateFromEnvVars() string {
 	if v := os.Getenv("MILTON_LOG_PATH"); v != "" {
 		c.LogPath = v
 	}
-	return errors.String()
+	return multiError.ErrorOrNil()
 }
 
 func parseConfigUint(name string, value string, currentValue uint) (uint, error) {
@@ -153,14 +147,14 @@ func parseConfigUint(name string, value string, currentValue uint) (uint, error)
 	}
 }
 
-func (c *Config) UpdateFromConfigFile(path string) string {
+func (c *Config) UpdateFromConfigFile(path string) error {
 	if _, err := os.Stat(path); err != nil {
-		return fmt.Sprintf("Config file %s doesn't exist, skipping...\n", path)
+		return fmt.Errorf("no config file at %s", path)
 	}
 
 	file, err := os.Open(path)
 	if err != nil {
-		return fmt.Sprintf("Error opening config file: %s\n", err.Error())
+		return fmt.Errorf("error opening config file: %s", err.Error())
 	}
 	defer file.Close()
 
@@ -194,19 +188,18 @@ func (c *Config) UpdateFromConfigFile(path string) string {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return fmt.Sprintf("Error reading config file: %s", err.Error())
+		return fmt.Errorf("error reading config file: %s", err.Error())
 	}
 
-	var errors strings.Builder
 	// Update config from parsed INI file
+	var multiError MultiError
+
 	if v, ok := config["milton"]["write_url"]; ok {
 		c.WriteUrl = v
 	}
 	if v, ok := config["milton"]["write_interval_sec"]; ok {
 		c.WriteIntervalSec, err = parseConfigUint("write_interval_sec", v, c.WriteIntervalSec)
-		if err != nil {
-			errors.WriteString(err.Error())
-		}
+		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["cert_path"]; ok {
 		c.HostCertPath = v
@@ -216,39 +209,27 @@ func (c *Config) UpdateFromConfigFile(path string) string {
 	}
 	if v, ok := config["milton"]["collect_interval_sec"]; ok {
 		c.CollectIntervalSec, err = parseConfigUint("collect_interval_sec", v, c.CollectIntervalSec)
-		if err != nil {
-			errors.WriteString(err.Error())
-		}
+		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["label_refresh_interval_sec"]; ok {
 		c.LabelRefreshIntervalSec, err = parseConfigUint("label_refresh_interval_sec", v, c.LabelRefreshIntervalSec)
-		if err != nil {
-			errors.WriteString(err.Error())
-		}
+		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["write_retry_attempts"]; ok {
 		c.WriteRetryAttempts, err = parseConfigUint("write_retry_attempts", v, c.WriteRetryAttempts)
-		if err != nil {
-			errors.WriteString(err.Error())
-		}
+		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["write_retry_min_int_sec"]; ok {
 		c.WriteRetryMinIntSec, err = parseConfigUint("write_retry_min_int_sec", v, c.WriteRetryMinIntSec)
-		if err != nil {
-			errors.WriteString(err.Error())
-		}
+		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["write_retry_max_int_sec"]; ok {
 		c.WriteRetryMaxIntSec, err = parseConfigUint("write_retry_max_int_sec", v, c.WriteRetryMaxIntSec)
-		if err != nil {
-			errors.WriteString(err.Error())
-		}
+		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["metrics_max_age_sec"]; ok {
 		c.MetricsMaxAgeSec, err = parseConfigUint("metrics_max_age_sec", v, c.MetricsMaxAgeSec)
-		if err != nil {
-			errors.WriteString(err.Error())
-		}
+		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["metrics_wal_path"]; ok {
 		c.MetricsWALPath = v
@@ -260,5 +241,35 @@ func (c *Config) UpdateFromConfigFile(path string) string {
 		c.LogLevel = v
 	}
 
-	return errors.String()
+	return multiError.ErrorOrNil()
+}
+
+type MultiError struct {
+	errors []error
+}
+
+func (e *MultiError) Add(err error) {
+	if err != nil {
+		e.errors = append(e.errors, err)
+	}
+}
+
+func (e *MultiError) Error() string {
+	var msg strings.Builder
+	msg.WriteString("multiple errors occurred:")
+
+	for _, err := range e.errors {
+		msg.WriteString("\n")
+		msg.WriteString(err.Error())
+	}
+
+	return msg.String()
+}
+
+func (e *MultiError) ErrorOrNil() error {
+	if len(e.errors) == 0 {
+		return nil
+	} else {
+		return e
+	}
 }

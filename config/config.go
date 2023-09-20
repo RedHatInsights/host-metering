@@ -79,18 +79,6 @@ func (c *Config) String() string {
 		}, "\n")
 }
 
-func parseEnvVarUint(name string, currentValue uint) (uint, error) {
-	if v := os.Getenv(name); v != "" {
-		val, err := strconv.ParseUint(v, 10, 32)
-		if err == nil {
-			return uint(val), nil
-		} else {
-			return currentValue, fmt.Errorf("error parsing var: %s %v %w", name, v, err)
-		}
-	}
-	return currentValue, nil
-}
-
 func (c *Config) UpdateFromEnvVars() error {
 	var err error
 	var multiError MultiError
@@ -98,34 +86,40 @@ func (c *Config) UpdateFromEnvVars() error {
 	if v := os.Getenv("MILTON_WRITE_URL"); v != "" {
 		c.WriteUrl = v
 	}
-
-	c.WriteIntervalSec, err = parseEnvVarUint("MILTON_WRITE_INTERVAL_SEC", c.WriteIntervalSec)
-	multiError.Add(err)
-
+	if v := os.Getenv("MILTON_WRITE_INTERVAL_SEC"); v != "" {
+		c.WriteIntervalSec, err = parseUint("MILTON_WRITE_INTERVAL_SEC", v, c.WriteIntervalSec)
+		multiError.Add(err)
+	}
 	if v := os.Getenv("MILTON_HOST_CERT"); v != "" {
 		c.HostCertPath = v
 	}
 	if v := os.Getenv("MILTON_HOST_KEY"); v != "" {
 		c.HostCertKeyPath = v
 	}
-	c.CollectIntervalSec, err = parseEnvVarUint("MILTON_COLLECT_INTERVAL_SEC", c.CollectIntervalSec)
-	multiError.Add(err)
-
-	c.LabelRefreshIntervalSec, err = parseEnvVarUint("MILTON_LABEL_REFRESH_INTERVAL_SEC", c.LabelRefreshIntervalSec)
-	multiError.Add(err)
-
-	c.WriteRetryAttempts, err = parseEnvVarUint("MILTON_WRITE_RETRY_ATTEMPTS", c.WriteRetryAttempts)
-	multiError.Add(err)
-
-	c.WriteRetryMinIntSec, err = parseEnvVarUint("MILTON_WRITE_RETRY_MIN_INT_SEC", c.WriteRetryMinIntSec)
-	multiError.Add(err)
-
-	c.WriteRetryMaxIntSec, err = parseEnvVarUint("MILTON_WRITE_RETRY_MAX_INT_SEC", c.WriteRetryMaxIntSec)
-	multiError.Add(err)
-
-	c.MetricsMaxAgeSec, err = parseEnvVarUint("MILTON_METRICS_MAX_AGE_SEC", c.MetricsMaxAgeSec)
-	multiError.Add(err)
-
+	if v := os.Getenv("MILTON_COLLECT_INTERVAL_SEC"); v != "" {
+		c.CollectIntervalSec, err = parseUint("MILTON_COLLECT_INTERVAL_SEC", v, c.CollectIntervalSec)
+		multiError.Add(err)
+	}
+	if v := os.Getenv("MILTON_LABEL_REFRESH_INTERVAL_SEC"); v != "" {
+		c.LabelRefreshIntervalSec, err = parseUint("MILTON_LABEL_REFRESH_INTERVAL_SEC", v, c.LabelRefreshIntervalSec)
+		multiError.Add(err)
+	}
+	if v := os.Getenv("MILTON_WRITE_RETRY_ATTEMPTS"); v != "" {
+		c.WriteRetryAttempts, err = parseUint("MILTON_WRITE_RETRY_ATTEMPTS", v, c.WriteRetryAttempts)
+		multiError.Add(err)
+	}
+	if v := os.Getenv("MILTON_WRITE_RETRY_MIN_INT_SEC"); v != "" {
+		c.WriteRetryMinIntSec, err = parseUint("MILTON_WRITE_RETRY_MIN_INT_SEC", v, c.WriteRetryMinIntSec)
+		multiError.Add(err)
+	}
+	if v := os.Getenv("MILTON_WRITE_RETRY_MAX_INT_SEC"); v != "" {
+		c.WriteRetryMaxIntSec, err = parseUint("MILTON_WRITE_RETRY_MAX_INT_SEC", v, c.WriteRetryMaxIntSec)
+		multiError.Add(err)
+	}
+	if v := os.Getenv("MILTON_METRICS_MAX_AGE_SEC"); v != "" {
+		c.MetricsMaxAgeSec, err = parseUint("MILTON_METRICS_MAX_AGE_SEC", v, c.MetricsMaxAgeSec)
+		multiError.Add(err)
+	}
 	if v := os.Getenv("MILTON_METRICS_WAL_PATH"); v != "" {
 		c.MetricsWALPath = v
 	}
@@ -136,15 +130,6 @@ func (c *Config) UpdateFromEnvVars() error {
 		c.LogPath = v
 	}
 	return multiError.ErrorOrNil()
-}
-
-func parseConfigUint(name string, value string, currentValue uint) (uint, error) {
-	val, err := strconv.ParseUint(value, 10, 32)
-	if err == nil {
-		return uint(val), nil
-	} else {
-		return currentValue, fmt.Errorf("error parsing var: %s %v %w", name, value, err)
-	}
 }
 
 type INIConfig map[string]map[string]string
@@ -211,7 +196,7 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 		c.WriteUrl = v
 	}
 	if v, ok := config["milton"]["write_interval_sec"]; ok {
-		c.WriteIntervalSec, err = parseConfigUint("write_interval_sec", v, c.WriteIntervalSec)
+		c.WriteIntervalSec, err = parseUint("write_interval_sec", v, c.WriteIntervalSec)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["cert_path"]; ok {
@@ -221,27 +206,27 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 		c.HostCertKeyPath = v
 	}
 	if v, ok := config["milton"]["collect_interval_sec"]; ok {
-		c.CollectIntervalSec, err = parseConfigUint("collect_interval_sec", v, c.CollectIntervalSec)
+		c.CollectIntervalSec, err = parseUint("collect_interval_sec", v, c.CollectIntervalSec)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["label_refresh_interval_sec"]; ok {
-		c.LabelRefreshIntervalSec, err = parseConfigUint("label_refresh_interval_sec", v, c.LabelRefreshIntervalSec)
+		c.LabelRefreshIntervalSec, err = parseUint("label_refresh_interval_sec", v, c.LabelRefreshIntervalSec)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["write_retry_attempts"]; ok {
-		c.WriteRetryAttempts, err = parseConfigUint("write_retry_attempts", v, c.WriteRetryAttempts)
+		c.WriteRetryAttempts, err = parseUint("write_retry_attempts", v, c.WriteRetryAttempts)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["write_retry_min_int_sec"]; ok {
-		c.WriteRetryMinIntSec, err = parseConfigUint("write_retry_min_int_sec", v, c.WriteRetryMinIntSec)
+		c.WriteRetryMinIntSec, err = parseUint("write_retry_min_int_sec", v, c.WriteRetryMinIntSec)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["write_retry_max_int_sec"]; ok {
-		c.WriteRetryMaxIntSec, err = parseConfigUint("write_retry_max_int_sec", v, c.WriteRetryMaxIntSec)
+		c.WriteRetryMaxIntSec, err = parseUint("write_retry_max_int_sec", v, c.WriteRetryMaxIntSec)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["metrics_max_age_sec"]; ok {
-		c.MetricsMaxAgeSec, err = parseConfigUint("metrics_max_age_sec", v, c.MetricsMaxAgeSec)
+		c.MetricsMaxAgeSec, err = parseUint("metrics_max_age_sec", v, c.MetricsMaxAgeSec)
 		multiError.Add(err)
 	}
 	if v, ok := config["milton"]["metrics_wal_path"]; ok {
@@ -255,6 +240,16 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 	}
 
 	return multiError.ErrorOrNil()
+}
+
+func parseUint(name string, value string, defaultValue uint) (uint, error) {
+	parsedValue, err := strconv.ParseUint(value, 10, 32)
+
+	if err != nil {
+		return defaultValue, fmt.Errorf("invalid value of '%s': %v", name, err.Error())
+	}
+
+	return uint(parsedValue), nil
 }
 
 type MultiError struct {

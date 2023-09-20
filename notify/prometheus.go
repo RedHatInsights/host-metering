@@ -89,7 +89,6 @@ func prometheusRemoteWrite(httpClient *http.Client, cfg *config.Config, httpRequ
 		}
 		body, err := io.ReadAll(resp.Body)
 		if err == nil {
-			logger.Infoln("PrometheusRemoteWrite: Success")
 			logger.Debugf("PrometheusRemoteWrite: Response body: %s\n", string(body))
 		}
 

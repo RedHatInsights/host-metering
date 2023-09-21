@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 
 	"redhat.com/milton/config"
@@ -58,7 +59,11 @@ func main() {
 		//print out the configuration
 		logger.Infoln(cfg.String())
 
-		d := daemon.NewDaemon(cfg)
+		d, err := daemon.NewDaemon(cfg)
+		if err != nil {
+			logger.Errorf("Failed to create daemon: %v\n", err.Error())
+			os.Exit(1)
+		}
 
 		if command == "once" {
 			d.RunOnce()

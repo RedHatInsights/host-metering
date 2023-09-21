@@ -8,22 +8,19 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 	"redhat.com/milton/config"
 	"redhat.com/milton/hostinfo"
-	"redhat.com/milton/notify"
 )
 
 func TestNotify(t *testing.T) {
-
-	daemon := NewDaemon(&config.Config{
-		MetricsMaxAge: 10 * time.Second,
+	mlPath := createMetricsPath(t)
+	daemon, err := NewDaemon(&config.Config{
+		MetricsMaxAge:  10 * time.Second,
+		MetricsWALPath: mlPath,
 	})
+	checkError(t, err, "failed to create daemon")
+	metricsLog := daemon.metricsLog
 	notifier := &mockNotifier{}
 	daemon.notifier = notifier
 	daemon.hostInfo = &hostinfo.HostInfo{}
-
-	mlPath := createMetricsPath(t)
-	metricsLog, err := notify.NewMetricsLog(mlPath)
-	checkError(t, err, "failed to create MetricsLog")
-	daemon.metricsLog = metricsLog
 
 	// Test that notifier is called when there are some samples
 	metricsLog.WriteSampleNow(1)

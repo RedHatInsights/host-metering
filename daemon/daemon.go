@@ -14,17 +14,28 @@ import (
 )
 
 type Daemon struct {
-	config     *config.Config
-	hostInfo   *hostinfo.HostInfo
-	metricsLog *notify.MetricsLog
-	notifier   notify.Notifier
+	config      *config.Config
+	hostInfo    *hostinfo.HostInfo
+	metricsLog  *notify.MetricsLog
+	certWatcher *hostinfo.CertWatcher
+	notifier    notify.Notifier
 }
 
-func NewDaemon(config *config.Config) *Daemon {
-	return &Daemon{
+func NewDaemon(config *config.Config) (*Daemon, error) {
+	var err error
+	d := &Daemon{
 		config:   config,
 		notifier: notify.NewPrometheusNotifier(config),
 	}
+	d.certWatcher, err = hostinfo.NewCertWatcher(d.config.HostCertPath)
+	if err != nil {
+		// CertWatch failure should not be fatal
+		logger.Errorf("Cert Watcher initialization failed: %v\n", err.Error())
+	}
+	if err := d.initMetricsLog(); err != nil {
+		return nil, err
+	}
+	return d, nil
 }
 
 func (d *Daemon) Run() error {
@@ -52,15 +63,6 @@ func (d *Daemon) Run() error {
 	if err := d.loadHostInfo(); err != nil {
 		return err
 	}
-	if err := d.initMetricsLog(); err != nil {
-		return err
-	}
-
-	certWatcher, err := hostinfo.NewCertWatcher(d.config.HostCertPath)
-	if err != nil {
-		// CertWatch failure should not be fatal
-		fmt.Println(err)
-	}
 
 	go func() {
 		for {
@@ -79,7 +81,7 @@ func (d *Daemon) Run() error {
 					continue
 				}
 				logger.Infoln("HostInfo reloaded")
-			case event, ok := <-certWatcher.Event:
+			case event, ok := <-d.certWatcher.Event:
 				if !ok {
 					continue
 				}
@@ -107,9 +109,6 @@ func (d *Daemon) Run() error {
 
 func (d *Daemon) RunOnce() error {
 	if err := d.loadHostInfo(); err != nil {
-		return err
-	}
-	if err := d.initMetricsLog(); err != nil {
 		return err
 	}
 	logger.Infoln("Executing once...")

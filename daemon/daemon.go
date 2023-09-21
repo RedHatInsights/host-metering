@@ -60,8 +60,9 @@ func (d *Daemon) Run() error {
 
 	writeTicker := time.NewTicker(d.config.WriteInterval)
 
-	if err := d.loadHostInfo(); err != nil {
-		return err
+	err := d.initialNotify()
+	if err != nil {
+		logger.Errorln(err.Error())
 	}
 
 	go func() {
@@ -108,10 +109,15 @@ func (d *Daemon) Run() error {
 }
 
 func (d *Daemon) RunOnce() error {
+	logger.Infoln("Executing once...")
+	return d.initialNotify()
+}
+
+// initialNotify collects data and does an initial notification
+func (d *Daemon) initialNotify() error {
 	if err := d.loadHostInfo(); err != nil {
 		return err
 	}
-	logger.Infoln("Executing once...")
 	d.collectMetrics()
 	err := d.notify()
 	return err

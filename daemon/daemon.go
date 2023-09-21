@@ -65,6 +65,11 @@ func (d *Daemon) Run() error {
 		logger.Errorln(err.Error())
 	}
 
+	var certWatchEvent chan hostinfo.CertEvent
+	if d.certWatcher != nil {
+		certWatchEvent = d.certWatcher.Event
+	}
+
 	go func() {
 		for {
 			select {
@@ -82,7 +87,7 @@ func (d *Daemon) Run() error {
 					continue
 				}
 				logger.Infoln("HostInfo reloaded")
-			case event, ok := <-d.certWatcher.Event:
+			case event, ok := <-certWatchEvent:
 				if !ok {
 					continue
 				}

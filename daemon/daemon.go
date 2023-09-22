@@ -53,6 +53,16 @@ func (d *Daemon) Run() error {
 	reloadCh := make(chan os.Signal, 1)
 	signal.Notify(reloadCh, syscall.SIGHUP)
 
+	err := d.initialNotify()
+	if err != nil {
+		logger.Errorln(err.Error())
+	}
+
+	var certWatchEvent chan hostinfo.CertEvent
+	if d.certWatcher != nil {
+		certWatchEvent = d.certWatcher.Event
+	}
+
 	var collectTicker *time.Ticker
 	if d.config.CollectInterval > 0 {
 		collectTicker = time.NewTicker(d.config.CollectInterval)
@@ -65,16 +75,6 @@ func (d *Daemon) Run() error {
 
 	writeTicker := time.NewTicker(d.config.WriteInterval)
 	defer writeTicker.Stop()
-
-	err := d.initialNotify()
-	if err != nil {
-		logger.Errorln(err.Error())
-	}
-
-	var certWatchEvent chan hostinfo.CertEvent
-	if d.certWatcher != nil {
-		certWatchEvent = d.certWatcher.Event
-	}
 
 	go func() {
 		for {

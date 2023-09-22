@@ -37,7 +37,7 @@ func TestHostInfo(t *testing.T) {
 	}
 
 	// Refresh the CPU count.
-	err = hi.RefreshCpuCount()
+	err = RefreshCpuCount(hi)
 	checkError(t, err, "failed to refresh CPU count")
 
 	if hi.CpuCount != cpuCount {

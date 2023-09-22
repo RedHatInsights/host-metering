@@ -14,20 +14,22 @@ import (
 )
 
 type Daemon struct {
-	config      *config.Config
-	hostInfo    *hostinfo.HostInfo
-	metricsLog  *notify.MetricsLog
-	certWatcher *hostinfo.CertWatcher
-	notifier    notify.Notifier
-	stopCh      chan os.Signal
-	started     bool
+	config           *config.Config
+	hostInfo         *hostinfo.HostInfo
+	hostInfoProvider hostinfo.HostInfoProvider
+	metricsLog       *notify.MetricsLog
+	certWatcher      *hostinfo.CertWatcher
+	notifier         notify.Notifier
+	stopCh           chan os.Signal
+	started          bool
 }
 
 func NewDaemon(config *config.Config) (*Daemon, error) {
 	var err error
 	d := &Daemon{
-		config:   config,
-		notifier: notify.NewPrometheusNotifier(config),
+		config:           config,
+		notifier:         notify.NewPrometheusNotifier(config),
+		hostInfoProvider: &hostinfo.SubManInfoProvider{},
 	}
 	d.certWatcher, err = hostinfo.NewCertWatcher(d.config.HostCertPath)
 	if err != nil {
@@ -152,7 +154,7 @@ func (d *Daemon) initialNotify() error {
 
 func (d *Daemon) loadHostInfo() error {
 	logger.Debugln("Load HostInfo...")
-	hostInfo, err := hostinfo.LoadHostInfo()
+	hostInfo, err := d.hostInfoProvider.Load()
 	if err != nil {
 		return err
 	}
@@ -177,7 +179,7 @@ func (d *Daemon) initMetricsLog() error {
 func (d *Daemon) collectMetrics() {
 	logger.Debugln("Collecting metrics...")
 
-	err := d.hostInfo.RefreshCpuCount()
+	err := d.hostInfoProvider.RefreshCpuCount(d.hostInfo)
 	if err != nil {
 		logger.Warnf("Error refreshing CPU count: %s\n", err.Error())
 		return

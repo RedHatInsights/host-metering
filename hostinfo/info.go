@@ -22,6 +22,21 @@ type BillingInfo struct {
 	MarketplaceInstanceId string
 }
 
+type HostInfoProvider interface {
+	Load() (*HostInfo, error)
+	RefreshCpuCount(*HostInfo) error
+}
+
+type SubManInfoProvider struct{}
+
+func (smip *SubManInfoProvider) Load() (*HostInfo, error) {
+	return LoadHostInfo()
+}
+
+func (smip *SubManInfoProvider) RefreshCpuCount(hi *HostInfo) error {
+	return RefreshCpuCount(hi)
+}
+
 func LoadHostInfo() (*HostInfo, error) {
 	cpuCount, err := GetCPUCount()
 	if err != nil {
@@ -53,7 +68,7 @@ func (hi *HostInfo) String() string {
 		}, "\n")
 }
 
-func (hi *HostInfo) RefreshCpuCount() error {
+func RefreshCpuCount(hi *HostInfo) error {
 	cpuCount, err := GetCPUCount()
 	if err != nil {
 		return err

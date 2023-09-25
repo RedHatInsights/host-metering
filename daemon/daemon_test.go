@@ -109,6 +109,40 @@ func TestRunWithoutCollect(t *testing.T) {
 	waitForStopped(t, daemon)
 }
 
+// Test that HostInfo is reloaded on certificate change
+func TestReloadOnCertChange(t *testing.T) {
+	daemon, _, _, hostInfoProvider := createDaemon(t)
+	certWatcher := daemon.certWatcher.(*mockCertWatcher)
+
+	// Init
+	go daemon.Run()
+	waitForStarted(t, daemon)
+	hostInfoProvider.ResetCalled()
+	hostInfoProvider.WaitForCalled(t, 0)
+
+	// Test that hostinfo is not reloaded on cert write
+	certWatcher.ReportWriteEvent()
+	hostInfoProvider.WaitForCalled(t, 1)
+
+	// Test that hostinfo is reloaded on cert removal
+	certWatcher.ReportRemoveEvent()
+	hostInfoProvider.WaitForCalled(t, 2)
+
+	// Test that it works on multiple events
+	certWatcher.ReportWriteEvent()
+	hostInfoProvider.WaitForCalled(t, 3)
+	certWatcher.ReportWriteEvent()
+	hostInfoProvider.WaitForCalled(t, 4)
+	certWatcher.ReportRemoveEvent()
+	hostInfoProvider.WaitForCalled(t, 5)
+	certWatcher.ReportRemoveEvent()
+	hostInfoProvider.WaitForCalled(t, 6)
+
+	// Cleanup
+	daemon.Stop()
+	waitForStopped(t, daemon)
+}
+
 func TestNotify(t *testing.T) {
 	daemon, notifier, metricsLog, hiProvider := createDaemon(t)
 	daemon.config.MetricsMaxAge = 10 * time.Second
@@ -287,7 +321,9 @@ func createDaemon(t *testing.T) (*Daemon, *mockNotifier, *notify.MetricsLog, *mo
 	config.MetricsWALPath = mlPath
 	daemon, err := NewDaemon(config)
 	notifier := &mockNotifier{}
+	notifier.ExpectSuccess()
 	daemon.notifier = notifier
+	daemon.certWatcher = &mockCertWatcher{make(chan hostinfo.CertEvent)}
 	hiProvider := newMockHostInfoProvider(&hostinfo.HostInfo{
 		CpuCount:    2,
 		HostId:      "testhost-id",
@@ -395,4 +431,43 @@ func (m *mockHostInfoProvider) RefreshCpuCount(hi *hostinfo.HostInfo) error {
 
 func (m *mockHostInfoProvider) ProviderCalled() uint {
 	return m.called
+}
+
+func (m *mockHostInfoProvider) ResetCalled() {
+	m.called = 0
+}
+
+func (m *mockHostInfoProvider) WaitForCalled(t *testing.T, n uint) {
+	t.Helper()
+	start := time.Now()
+	for {
+		if m.called == n {
+			return
+		}
+		if time.Since(start) > 10*time.Millisecond {
+			t.Fatalf("expected hostinfo provider to be called %d times, got %d", n, m.called)
+		}
+		time.Sleep(1 * time.Millisecond)
+	}
+}
+
+// Mock CertWatcher
+
+type mockCertWatcher struct {
+	event chan hostinfo.CertEvent
+}
+
+func (m *mockCertWatcher) Event() chan hostinfo.CertEvent {
+	return m.event
+}
+
+func (m *mockCertWatcher) Close() {
+}
+
+func (m *mockCertWatcher) ReportWriteEvent() {
+	m.event <- hostinfo.WriteEvent
+}
+
+func (m *mockCertWatcher) ReportRemoveEvent() {
+	m.event <- hostinfo.RemoveEvent
 }

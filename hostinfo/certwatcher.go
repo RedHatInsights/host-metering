@@ -21,15 +21,20 @@ const (
 	CertWatcherDelay = 20 * time.Millisecond
 )
 
-type CertWatcher struct {
+type CertWatcher interface {
+	Close()
+	Event() chan CertEvent
+}
+
+type INotifyCertWatcher struct {
 	certPath   string
-	Event      chan CertEvent
+	event      chan CertEvent
 	lastRemove time.Time
 	lastWrite  time.Time
 	watcher    *fsnotify.Watcher
 }
 
-func NewCertWatcher(certPath string) (*CertWatcher, error) {
+func NewINotifyCertWatcher(certPath string) (*INotifyCertWatcher, error) {
 	dirPath := filepath.Dir(certPath)
 
 	watcher, err := fsnotify.NewWatcher()
@@ -43,39 +48,43 @@ func NewCertWatcher(certPath string) (*CertWatcher, error) {
 		return nil, err
 	}
 
-	certWatcher := &CertWatcher{certPath: certPath, watcher: watcher}
+	certWatcher := &INotifyCertWatcher{certPath: certPath, watcher: watcher}
 	certWatcher.watch()
 	logger.Infof("Watching cert directory %s for changes\n", dirPath)
 	return certWatcher, nil
 }
 
-func (cw *CertWatcher) Close() {
+func (cw *INotifyCertWatcher) Event() chan CertEvent {
+	return cw.event
+}
+
+func (cw *INotifyCertWatcher) Close() {
 	cw.watcher.Close()
 }
 
-func (cw *CertWatcher) reportWriteEvent() {
+func (cw *INotifyCertWatcher) reportWriteEvent() {
 	now := time.Now()
 	if now.Sub(cw.lastWrite) < CertWatcherDelay {
 		return
 	}
 	cw.lastWrite = now
-	cw.Event <- WriteEvent
+	cw.event <- WriteEvent
 }
 
-func (cw *CertWatcher) reportRemoveEvent() {
+func (cw *INotifyCertWatcher) reportRemoveEvent() {
 	now := time.Now()
 	if now.Sub(cw.lastRemove) < CertWatcherDelay {
 		return
 	}
 	cw.lastRemove = now
-	cw.Event <- RemoveEvent
+	cw.event <- RemoveEvent
 }
 
-func (cw *CertWatcher) watch() <-chan CertEvent {
-	cw.Event = make(chan CertEvent)
+func (cw *INotifyCertWatcher) watch() <-chan CertEvent {
+	cw.event = make(chan CertEvent)
 
 	go func() {
-		defer close(cw.Event)
+		defer close(cw.event)
 		for {
 			select {
 			case event, ok := <-cw.watcher.Events:
@@ -106,5 +115,5 @@ func (cw *CertWatcher) watch() <-chan CertEvent {
 			}
 		}
 	}()
-	return cw.Event
+	return cw.event
 }

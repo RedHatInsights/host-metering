@@ -18,7 +18,7 @@ type Daemon struct {
 	hostInfo         *hostinfo.HostInfo
 	hostInfoProvider hostinfo.HostInfoProvider
 	metricsLog       *notify.MetricsLog
-	certWatcher      *hostinfo.CertWatcher
+	certWatcher      hostinfo.CertWatcher
 	notifier         notify.Notifier
 	stopCh           chan os.Signal
 	started          bool
@@ -31,7 +31,7 @@ func NewDaemon(config *config.Config) (*Daemon, error) {
 		notifier:         notify.NewPrometheusNotifier(config),
 		hostInfoProvider: &hostinfo.SubManInfoProvider{},
 	}
-	d.certWatcher, err = hostinfo.NewCertWatcher(d.config.HostCertPath)
+	d.certWatcher, err = hostinfo.NewINotifyCertWatcher(d.config.HostCertPath)
 	if err != nil {
 		// CertWatch failure should not be fatal
 		logger.Errorf("Cert Watcher initialization failed: %v\n", err.Error())
@@ -62,7 +62,7 @@ func (d *Daemon) Run() error {
 
 	var certWatchEvent chan hostinfo.CertEvent
 	if d.certWatcher != nil {
-		certWatchEvent = d.certWatcher.Event
+		certWatchEvent = d.certWatcher.Event()
 	}
 
 	var collectTicker *time.Ticker

@@ -7,18 +7,18 @@ import (
 	"time"
 )
 
-func verifyNoMoreEvents(cw *CertWatcher, t *testing.T) {
+func verifyNoMoreEvents(cw *INotifyCertWatcher, t *testing.T) {
 	select {
-	case event := <-cw.Event:
+	case event := <-cw.Event():
 		t.Errorf("Unexpected event received: %v", event)
 	case <-time.After(CertWatcherDelay + 5*time.Millisecond):
 		return
 	}
 }
 
-func verifyWriteEvent(cw *CertWatcher, t *testing.T) {
+func verifyWriteEvent(cw *INotifyCertWatcher, t *testing.T) {
 	select {
-	case event := <-cw.Event:
+	case event := <-cw.Event():
 		if event != WriteEvent {
 			t.Errorf("Expected WriteEvent, got %v", event)
 		}
@@ -27,9 +27,9 @@ func verifyWriteEvent(cw *CertWatcher, t *testing.T) {
 	}
 }
 
-func verifyRemoveEvent(cw *CertWatcher, t *testing.T) {
+func verifyRemoveEvent(cw *INotifyCertWatcher, t *testing.T) {
 	select {
-	case event := <-cw.Event:
+	case event := <-cw.Event():
 		if event != RemoveEvent {
 			t.Errorf("Expected RemoveEvent, got %v", event)
 		}
@@ -39,7 +39,7 @@ func verifyRemoveEvent(cw *CertWatcher, t *testing.T) {
 }
 
 func TestReportWriteEvent(t *testing.T) {
-	cw := &CertWatcher{Event: make(chan CertEvent, 1)}
+	cw := &INotifyCertWatcher{event: make(chan CertEvent, 1)}
 
 	// test that multiple events within the delay window are ignored
 	cw.reportWriteEvent()
@@ -50,7 +50,7 @@ func TestReportWriteEvent(t *testing.T) {
 }
 
 func TestReportRemoveEvent(t *testing.T) {
-	cw := &CertWatcher{Event: make(chan CertEvent, 1)}
+	cw := &INotifyCertWatcher{event: make(chan CertEvent, 1)}
 
 	// test that multiple events within the delay window are ignored
 	cw.reportRemoveEvent()
@@ -67,7 +67,7 @@ func TestCertWatcher(t *testing.T) {
 	certPath := filepath.Join(tmpDir, "test.crt")
 
 	// Create a new CertWatcher for the test certificate file
-	cw, err := NewCertWatcher(certPath)
+	cw, err := NewINotifyCertWatcher(certPath)
 	if err != nil {
 		t.Fatalf("Failed to create CertWatcher: %v", err)
 	}

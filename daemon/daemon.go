@@ -19,6 +19,8 @@ type Daemon struct {
 	metricsLog  *notify.MetricsLog
 	certWatcher *hostinfo.CertWatcher
 	notifier    notify.Notifier
+	stopCh      chan os.Signal
+	started     bool
 }
 
 func NewDaemon(config *config.Config) (*Daemon, error) {
@@ -39,11 +41,13 @@ func NewDaemon(config *config.Config) (*Daemon, error) {
 }
 
 func (d *Daemon) Run() error {
+	d.started = false
 	logger.Infoln("Starting server...")
 
 	// Wait for SIGINT or SIGTERM to stop server
-	stopCh := make(chan os.Signal, 1)
-	signal.Notify(stopCh, syscall.SIGINT, syscall.SIGTERM)
+	d.stopCh = make(chan os.Signal, 1)
+	signal.Notify(d.stopCh, syscall.SIGINT, syscall.SIGTERM)
+	shutdownCh := make(chan int)
 
 	// Wait for SIGHUP to reload host ifo
 	reloadCh := make(chan os.Signal, 1)
@@ -52,6 +56,7 @@ func (d *Daemon) Run() error {
 	var collectTicker *time.Ticker
 	if d.config.CollectInterval > 0 {
 		collectTicker = time.NewTicker(d.config.CollectInterval)
+		defer collectTicker.Stop()
 	} else {
 		// Create dummy stopped ticker if collect interval is not configured
 		collectTicker = time.NewTicker(time.Duration(1) * time.Hour)
@@ -59,6 +64,7 @@ func (d *Daemon) Run() error {
 	}
 
 	writeTicker := time.NewTicker(d.config.WriteInterval)
+	defer writeTicker.Stop()
 
 	err := d.initialNotify()
 	if err != nil {
@@ -100,22 +106,38 @@ func (d *Daemon) Run() error {
 				if err := d.loadHostInfo(); err != nil {
 					logger.Errorf("Host info load error: %s\n", err.Error())
 				}
-			case <-stopCh:
-				collectTicker.Stop()
-				writeTicker.Stop()
+			case <-d.stopCh:
+				d.stopCh = nil
+				shutdownCh <- 1
 				return
 			}
 		}
 	}()
-
-	<-stopCh
-	logger.Infoln("Stopping server...")
+	logger.Infoln("Server fully started")
+	d.started = true
+	<-shutdownCh
+	d.started = false
+	logger.Infoln("Server stopped")
 	return nil
 }
 
 func (d *Daemon) RunOnce() error {
 	logger.Infoln("Executing once...")
 	return d.initialNotify()
+}
+
+func (d *Daemon) Stop() {
+	logger.Infoln("Initiating stop...")
+	if d.stopCh != nil || !d.started {
+		d.stopCh <- syscall.SIGTERM
+	} else {
+		logger.Infoln("Server is not running")
+	}
+}
+
+// Server is fully started (initial notification done, timers active)
+func (d *Daemon) IsStarted() bool {
+	return d.started
 }
 
 // initialNotify collects data and does an initial notification

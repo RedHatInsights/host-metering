@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RedHatInsights/host-metering/config"
+	"github.com/RedHatInsights/host-metering/hostinfo"
 	"github.com/golang/snappy"
 	"github.com/prometheus/prometheus/prompb"
-	"redhat.com/milton/config"
-	"redhat.com/milton/hostinfo"
 )
 
 const (

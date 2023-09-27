@@ -1,4 +1,4 @@
-module redhat.com/milton
+module github.com/RedHatInsights/host-metering
 
 go 1.19
 

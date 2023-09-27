@@ -7,10 +7,10 @@ import (
 	"syscall"
 	"time"
 
-	"redhat.com/milton/config"
-	"redhat.com/milton/hostinfo"
-	"redhat.com/milton/logger"
-	"redhat.com/milton/notify"
+	"github.com/RedHatInsights/host-metering/config"
+	"github.com/RedHatInsights/host-metering/hostinfo"
+	"github.com/RedHatInsights/host-metering/logger"
+	"github.com/RedHatInsights/host-metering/notify"
 )
 
 type Daemon struct {

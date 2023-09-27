@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/RedHatInsights/host-metering/logger"
 	"github.com/fsnotify/fsnotify"
-	"redhat.com/milton/logger"
 )
 
 type CertEvent int64

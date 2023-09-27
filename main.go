@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"redhat.com/milton/config"
-	"redhat.com/milton/daemon"
-	"redhat.com/milton/logger"
+	"github.com/RedHatInsights/host-metering/config"
+	"github.com/RedHatInsights/host-metering/daemon"
+	"github.com/RedHatInsights/host-metering/logger"
 )
 
 func main() {

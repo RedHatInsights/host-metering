@@ -3,8 +3,8 @@ package notify
 import (
 	"time"
 
+	"github.com/RedHatInsights/host-metering/hostinfo"
 	"github.com/prometheus/prometheus/prompb"
-	"redhat.com/milton/hostinfo"
 )
 
 type Notifier interface {

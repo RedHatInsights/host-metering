@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"redhat.com/milton/logger"
+	"github.com/RedHatInsights/host-metering/logger"
 )
 
 func LoadSubManInformation(hi *HostInfo) {

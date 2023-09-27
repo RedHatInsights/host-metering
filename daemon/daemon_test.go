@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RedHatInsights/host-metering/config"
+	"github.com/RedHatInsights/host-metering/hostinfo"
+	"github.com/RedHatInsights/host-metering/notify"
 	"github.com/prometheus/prometheus/prompb"
-	"redhat.com/milton/config"
-	"redhat.com/milton/hostinfo"
-	"redhat.com/milton/notify"
 )
 
 func TestRunOnce(t *testing.T) {

@@ -22,7 +22,7 @@ func TestDefaultConfig(t *testing.T) {
 		"  WriteRetryMinIntSec: 1\n" +
 		"  WriteRetryMaxIntSec: 10\n" +
 		"  MetricsMaxAgeSec: 5400\n" +
-		"  MetricsWALPath: /var/run/milton/metrics\n" +
+		"  MetricsWALPath: /var/run/host-metering/metrics\n" +
 		"  LogLevel: INFO\n" +
 		"  LogPath: \n"
 

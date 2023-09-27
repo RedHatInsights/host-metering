@@ -77,7 +77,7 @@ func main() {
 }
 
 func printUsage() {
-	fmt.Println("Usage: milton [OPTIONS] SUBCOMMAND")
+	fmt.Println("Usage: host-metering [OPTIONS] SUBCOMMAND")
 	fmt.Println("Options:")
 	flag.PrintDefaults()
 	fmt.Println("Subcommands:")

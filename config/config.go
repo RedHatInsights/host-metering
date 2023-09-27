@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	DefaultConfigPath           = "/etc/milton.conf"
+	DefaultConfigPath           = "/etc/host-metering.conf"
 	DefaultWriteUrl             = "http://localhost:9090/api/v1/write"
 	DefaultWriteInterval        = 600 * time.Second
 	DefaultCertPath             = "/etc/pki/consumer/cert.pem"
@@ -21,7 +21,7 @@ const (
 	DefaultWriteRetryMinInt     = 1 * time.Second
 	DefaultWriteRetryMaxInt     = 10 * time.Second
 	DefaultMetricsMaxAge        = 5400 * time.Second
-	DefaultMetricsWALPath       = "/var/run/milton/metrics"
+	DefaultMetricsWALPath       = "/var/run/host-metering/metrics"
 	DefaultLogLevel             = "INFO"
 	DefaultLogPath              = "" //Default to stderr, will be logged in journal.
 )

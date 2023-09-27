@@ -126,7 +126,7 @@ func TestMetricsLogCheckpoints(t *testing.T) {
 	checkError(t, err, "failed to truncate MetricsLog")
 }
 
-// Test basic functionality of the MetricsLog - how it would be used by milton
+// Test basic functionality of the MetricsLog - how it would be used by host-metering
 func TestMetricsLogBasics(t *testing.T) {
 	// Create a new MetricsLog instance
 	log, err := NewMetricsLog(createMetricsPath(t))
@@ -175,11 +175,11 @@ func TestMetricsLogBasics(t *testing.T) {
 }
 
 // Test scenario where Prometheus server is not initially reachable
-// (log is not truncated). And milton is restarted in the meantime.
+// (log is not truncated). And host-metering is restarted in the meantime.
 func TestRestart(t *testing.T) {
 	logPath := createMetricsPath(t)
 
-	// First run of milton
+	// First run of host-metering
 	log, err := NewMetricsLog(logPath)
 	checkError(t, err, "failed to create MetricsLog")
 
@@ -198,7 +198,7 @@ func TestRestart(t *testing.T) {
 	err = log.Close()
 	checkError(t, err, "failed to close MetricsLog")
 
-	// Second run of milton
+	// Second run of host-metering
 	log, _ = NewMetricsLog(logPath)
 
 	samples, checkpoint, err = log.GetSamples()
@@ -212,7 +212,7 @@ func TestRestart(t *testing.T) {
 	err = log.Close()
 	checkError(t, err, "failed to close MetricsLog")
 
-	// Third run of milton - after log was truncated
+	// Third run of host-metering - after log was truncated
 	log, err = NewMetricsLog(logPath)
 	checkError(t, err, "failed to create MetricsLog")
 	defer log.Close()

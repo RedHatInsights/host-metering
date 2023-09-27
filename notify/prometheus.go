@@ -127,7 +127,7 @@ func newPrometheusRequest(hostinfo *hostinfo.HostInfo, cfg *config.Config, sampl
 	req.Header.Add("Content-Encoding", "snappy")
 	req.Header.Set("Content-Type", "application/x-protobuf")
 	req.Header.Set("X-Prometheus-Remote-Write-Version", "0.1.0")
-	req.Header.Set("User-Agent", "milton/0.1.0")
+	req.Header.Set("User-Agent", "host-metering/0.1.0")
 
 	return req, nil
 }

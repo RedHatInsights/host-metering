@@ -1,0 +1,5 @@
+# Coverage
+coverage.*
+
+# Binary
+host-metering

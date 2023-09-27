@@ -192,51 +192,52 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 
 	// Update config from parsed INI file
 	var multiError MultiError
+	section := "host-metering"
 
-	if v, ok := config["milton"]["write_url"]; ok {
+	if v, ok := config[section]["write_url"]; ok {
 		c.WriteUrl = v
 	}
-	if v, ok := config["milton"]["write_interval_sec"]; ok {
+	if v, ok := config[section]["write_interval_sec"]; ok {
 		c.WriteInterval, err = parseSeconds("write_interval_sec", v, c.WriteInterval)
 		multiError.Add(err)
 	}
-	if v, ok := config["milton"]["host_cert_path"]; ok {
+	if v, ok := config[section]["host_cert_path"]; ok {
 		c.HostCertPath = v
 	}
-	if v, ok := config["milton"]["host_cert_key_path"]; ok {
+	if v, ok := config[section]["host_cert_key_path"]; ok {
 		c.HostCertKeyPath = v
 	}
-	if v, ok := config["milton"]["collect_interval_sec"]; ok {
+	if v, ok := config[section]["collect_interval_sec"]; ok {
 		c.CollectInterval, err = parseSeconds("collect_interval_sec", v, c.CollectInterval)
 		multiError.Add(err)
 	}
-	if v, ok := config["milton"]["label_refresh_interval_sec"]; ok {
+	if v, ok := config[section]["label_refresh_interval_sec"]; ok {
 		c.LabelRefreshInterval, err = parseSeconds("label_refresh_interval_sec", v, c.LabelRefreshInterval)
 		multiError.Add(err)
 	}
-	if v, ok := config["milton"]["write_retry_attempts"]; ok {
+	if v, ok := config[section]["write_retry_attempts"]; ok {
 		c.WriteRetryAttempts, err = parseUint("write_retry_attempts", v, c.WriteRetryAttempts)
 		multiError.Add(err)
 	}
-	if v, ok := config["milton"]["write_retry_min_int_sec"]; ok {
+	if v, ok := config[section]["write_retry_min_int_sec"]; ok {
 		c.WriteRetryMinInt, err = parseSeconds("write_retry_min_int_sec", v, c.WriteRetryMinInt)
 		multiError.Add(err)
 	}
-	if v, ok := config["milton"]["write_retry_max_int_sec"]; ok {
+	if v, ok := config[section]["write_retry_max_int_sec"]; ok {
 		c.WriteRetryMaxInt, err = parseSeconds("write_retry_max_int_sec", v, c.WriteRetryMaxInt)
 		multiError.Add(err)
 	}
-	if v, ok := config["milton"]["metrics_max_age_sec"]; ok {
+	if v, ok := config[section]["metrics_max_age_sec"]; ok {
 		c.MetricsMaxAge, err = parseSeconds("metrics_max_age_sec", v, c.MetricsMaxAge)
 		multiError.Add(err)
 	}
-	if v, ok := config["milton"]["metrics_wal_path"]; ok {
+	if v, ok := config[section]["metrics_wal_path"]; ok {
 		c.MetricsWALPath = v
 	}
-	if v, ok := config["milton"]["log_level"]; ok {
+	if v, ok := config[section]["log_level"]; ok {
 		c.LogLevel = v
 	}
-	if v, ok := config["milton"]["log_path"]; ok {
+	if v, ok := config[section]["log_path"]; ok {
 		c.LogPath = v
 	}
 

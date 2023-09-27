@@ -72,7 +72,7 @@ func TestConfigFile(t *testing.T) {
 		"  LogPath: /tmp/log\n"
 
 	// Update the configuration from a valid config file.
-	fileContent := "[milton]\n" +
+	fileContent := "[host-metering]\n" +
 		"# Ignore comments and empty lines.\n\n" +
 		"write_url = http://test/url\n" +
 		"write_interval_sec = 10\n" +
@@ -98,7 +98,7 @@ func TestConfigFile(t *testing.T) {
 	checkString(t, c.String(), expectedCfg)
 
 	// Don't update the configuration from a invalid config file.
-	fileContent = "[milton]\n" +
+	fileContent = "[host-metering]\n" +
 		"write_interval_sec = a\n" +
 		"collect_interval_sec = b\n" +
 		"label_refresh_interval_sec = c\n" +

@@ -145,19 +145,19 @@ func TestEnvVariables(t *testing.T) {
 		"  LogPath: /tmp/log\n"
 
 	// Set valid environment variables.
-	t.Setenv("MILTON_WRITE_URL", "http://test/url")
-	t.Setenv("MILTON_WRITE_INTERVAL_SEC", "10")
-	t.Setenv("MILTON_HOST_CERT_PATH", "/tmp/cert.pem")
-	t.Setenv("MILTON_HOST_CERT_KEY_PATH", "/tmp/key.pem")
-	t.Setenv("MILTON_COLLECT_INTERVAL_SEC", "20")
-	t.Setenv("MILTON_LABEL_REFRESH_INTERVAL_SEC", "300")
-	t.Setenv("MILTON_WRITE_RETRY_ATTEMPTS", "4")
-	t.Setenv("MILTON_WRITE_RETRY_MIN_INT_SEC", "5")
-	t.Setenv("MILTON_WRITE_RETRY_MAX_INT_SEC", "6")
-	t.Setenv("MILTON_METRICS_MAX_AGE_SEC", "700")
-	t.Setenv("MILTON_METRICS_WAL_PATH", "/tmp/metrics")
-	t.Setenv("MILTON_LOG_LEVEL", "ERROR")
-	t.Setenv("MILTON_LOG_PATH", "/tmp/log")
+	t.Setenv("HOST_METERING_WRITE_URL", "http://test/url")
+	t.Setenv("HOST_METERING_WRITE_INTERVAL_SEC", "10")
+	t.Setenv("HOST_METERING_HOST_CERT_PATH", "/tmp/cert.pem")
+	t.Setenv("HOST_METERING_HOST_CERT_KEY_PATH", "/tmp/key.pem")
+	t.Setenv("HOST_METERING_COLLECT_INTERVAL_SEC", "20")
+	t.Setenv("HOST_METERING_LABEL_REFRESH_INTERVAL_SEC", "300")
+	t.Setenv("HOST_METERING_WRITE_RETRY_ATTEMPTS", "4")
+	t.Setenv("HOST_METERING_WRITE_RETRY_MIN_INT_SEC", "5")
+	t.Setenv("HOST_METERING_WRITE_RETRY_MAX_INT_SEC", "6")
+	t.Setenv("HOST_METERING_METRICS_MAX_AGE_SEC", "700")
+	t.Setenv("HOST_METERING_METRICS_WAL_PATH", "/tmp/metrics")
+	t.Setenv("HOST_METERING_LOG_LEVEL", "ERROR")
+	t.Setenv("HOST_METERING_LOG_PATH", "/tmp/log")
 
 	// Environment variables are set. Change the defaults.
 	c := NewConfig()
@@ -167,25 +167,25 @@ func TestEnvVariables(t *testing.T) {
 	checkString(t, c.String(), expectedCfg)
 
 	// Set invalid environment variables.
-	t.Setenv("MILTON_WRITE_INTERVAL_SEC", "a")
-	t.Setenv("MILTON_COLLECT_INTERVAL_SEC", "b")
-	t.Setenv("MILTON_LABEL_REFRESH_INTERVAL_SEC", "c")
-	t.Setenv("MILTON_WRITE_RETRY_ATTEMPTS", "d")
-	t.Setenv("MILTON_WRITE_RETRY_MIN_INT_SEC", "e")
-	t.Setenv("MILTON_WRITE_RETRY_MAX_INT_SEC", "f")
-	t.Setenv("MILTON_METRICS_MAX_AGE_SEC", "g")
+	t.Setenv("HOST_METERING_WRITE_INTERVAL_SEC", "a")
+	t.Setenv("HOST_METERING_COLLECT_INTERVAL_SEC", "b")
+	t.Setenv("HOST_METERING_LABEL_REFRESH_INTERVAL_SEC", "c")
+	t.Setenv("HOST_METERING_WRITE_RETRY_ATTEMPTS", "d")
+	t.Setenv("HOST_METERING_WRITE_RETRY_MIN_INT_SEC", "e")
+	t.Setenv("HOST_METERING_WRITE_RETRY_MAX_INT_SEC", "f")
+	t.Setenv("HOST_METERING_METRICS_MAX_AGE_SEC", "g")
 
 	// Environment variables are invalid. Keep the previous configuration.
 	err = c.UpdateFromEnvVars()
 
 	expectedMsg := "multiple errors occurred:\n" +
-		"invalid value of 'MILTON_WRITE_INTERVAL_SEC': strconv.ParseUint: parsing \"a\": invalid syntax\n" +
-		"invalid value of 'MILTON_COLLECT_INTERVAL_SEC': strconv.ParseUint: parsing \"b\": invalid syntax\n" +
-		"invalid value of 'MILTON_LABEL_REFRESH_INTERVAL_SEC': strconv.ParseUint: parsing \"c\": invalid syntax\n" +
-		"invalid value of 'MILTON_WRITE_RETRY_ATTEMPTS': strconv.ParseUint: parsing \"d\": invalid syntax\n" +
-		"invalid value of 'MILTON_WRITE_RETRY_MIN_INT_SEC': strconv.ParseUint: parsing \"e\": invalid syntax\n" +
-		"invalid value of 'MILTON_WRITE_RETRY_MAX_INT_SEC': strconv.ParseUint: parsing \"f\": invalid syntax\n" +
-		"invalid value of 'MILTON_METRICS_MAX_AGE_SEC': strconv.ParseUint: parsing \"g\": invalid syntax\n"
+		"invalid value of 'HOST_METERING_WRITE_INTERVAL_SEC': strconv.ParseUint: parsing \"a\": invalid syntax\n" +
+		"invalid value of 'HOST_METERING_COLLECT_INTERVAL_SEC': strconv.ParseUint: parsing \"b\": invalid syntax\n" +
+		"invalid value of 'HOST_METERING_LABEL_REFRESH_INTERVAL_SEC': strconv.ParseUint: parsing \"c\": invalid syntax\n" +
+		"invalid value of 'HOST_METERING_WRITE_RETRY_ATTEMPTS': strconv.ParseUint: parsing \"d\": invalid syntax\n" +
+		"invalid value of 'HOST_METERING_WRITE_RETRY_MIN_INT_SEC': strconv.ParseUint: parsing \"e\": invalid syntax\n" +
+		"invalid value of 'HOST_METERING_WRITE_RETRY_MAX_INT_SEC': strconv.ParseUint: parsing \"f\": invalid syntax\n" +
+		"invalid value of 'HOST_METERING_METRICS_MAX_AGE_SEC': strconv.ParseUint: parsing \"g\": invalid syntax\n"
 
 	checkString(t, c.String(), expectedCfg)
 	checkString(t, err.Error(), expectedMsg)
@@ -195,19 +195,19 @@ func TestEnvVariables(t *testing.T) {
 func clearEnvironment() {
 	// Make sure that these environment variables are unset.
 	// WARNING: They won't be restored after the test.
-	_ = os.Unsetenv("MILTON_WRITE_URL")
-	_ = os.Unsetenv("MILTON_WRITE_INTERVAL_SEC")
-	_ = os.Unsetenv("MILTON_HOST_CERT_PATH")
-	_ = os.Unsetenv("MILTON_HOST_CERT_KEY_PATH")
-	_ = os.Unsetenv("MILTON_COLLECT_INTERVAL_SEC")
-	_ = os.Unsetenv("MILTON_LABEL_REFRESH_INTERVAL_SEC")
-	_ = os.Unsetenv("MILTON_WRITE_RETRY_ATTEMPTS")
-	_ = os.Unsetenv("MILTON_WRITE_RETRY_MIN_INT_SEC")
-	_ = os.Unsetenv("MILTON_WRITE_RETRY_MAX_INT_SEC")
-	_ = os.Unsetenv("MILTON_METRICS_MAX_AGE_SEC")
-	_ = os.Unsetenv("MILTON_METRICS_WAL_PATH")
-	_ = os.Unsetenv("MILTON_LOG_LEVEL")
-	_ = os.Unsetenv("MILTON_LOG_PATH")
+	_ = os.Unsetenv("HOST_METERING_WRITE_URL")
+	_ = os.Unsetenv("HOST_METERING_WRITE_INTERVAL_SEC")
+	_ = os.Unsetenv("HOST_METERING_HOST_CERT_PATH")
+	_ = os.Unsetenv("HOST_METERING_HOST_CERT_KEY_PATH")
+	_ = os.Unsetenv("HOST_METERING_COLLECT_INTERVAL_SEC")
+	_ = os.Unsetenv("HOST_METERING_LABEL_REFRESH_INTERVAL_SEC")
+	_ = os.Unsetenv("HOST_METERING_WRITE_RETRY_ATTEMPTS")
+	_ = os.Unsetenv("HOST_METERING_WRITE_RETRY_MIN_INT_SEC")
+	_ = os.Unsetenv("HOST_METERING_WRITE_RETRY_MAX_INT_SEC")
+	_ = os.Unsetenv("HOST_METERING_METRICS_MAX_AGE_SEC")
+	_ = os.Unsetenv("HOST_METERING_METRICS_WAL_PATH")
+	_ = os.Unsetenv("HOST_METERING_LOG_LEVEL")
+	_ = os.Unsetenv("HOST_METERING_LOG_PATH")
 }
 
 func checkError(t *testing.T, err error, message string) {

@@ -84,50 +84,50 @@ func (c *Config) UpdateFromEnvVars() error {
 	var err error
 	var multiError MultiError
 
-	if v := os.Getenv("MILTON_WRITE_URL"); v != "" {
+	if v := os.Getenv("HOST_METERING_WRITE_URL"); v != "" {
 		c.WriteUrl = v
 	}
-	if v := os.Getenv("MILTON_WRITE_INTERVAL_SEC"); v != "" {
-		c.WriteInterval, err = parseSeconds("MILTON_WRITE_INTERVAL_SEC", v, c.WriteInterval)
+	if v := os.Getenv("HOST_METERING_WRITE_INTERVAL_SEC"); v != "" {
+		c.WriteInterval, err = parseSeconds("HOST_METERING_WRITE_INTERVAL_SEC", v, c.WriteInterval)
 		multiError.Add(err)
 	}
-	if v := os.Getenv("MILTON_HOST_CERT_PATH"); v != "" {
+	if v := os.Getenv("HOST_METERING_HOST_CERT_PATH"); v != "" {
 		c.HostCertPath = v
 	}
-	if v := os.Getenv("MILTON_HOST_CERT_KEY_PATH"); v != "" {
+	if v := os.Getenv("HOST_METERING_HOST_CERT_KEY_PATH"); v != "" {
 		c.HostCertKeyPath = v
 	}
-	if v := os.Getenv("MILTON_COLLECT_INTERVAL_SEC"); v != "" {
-		c.CollectInterval, err = parseSeconds("MILTON_COLLECT_INTERVAL_SEC", v, c.CollectInterval)
+	if v := os.Getenv("HOST_METERING_COLLECT_INTERVAL_SEC"); v != "" {
+		c.CollectInterval, err = parseSeconds("HOST_METERING_COLLECT_INTERVAL_SEC", v, c.CollectInterval)
 		multiError.Add(err)
 	}
-	if v := os.Getenv("MILTON_LABEL_REFRESH_INTERVAL_SEC"); v != "" {
-		c.LabelRefreshInterval, err = parseSeconds("MILTON_LABEL_REFRESH_INTERVAL_SEC", v, c.LabelRefreshInterval)
+	if v := os.Getenv("HOST_METERING_LABEL_REFRESH_INTERVAL_SEC"); v != "" {
+		c.LabelRefreshInterval, err = parseSeconds("HOST_METERING_LABEL_REFRESH_INTERVAL_SEC", v, c.LabelRefreshInterval)
 		multiError.Add(err)
 	}
-	if v := os.Getenv("MILTON_WRITE_RETRY_ATTEMPTS"); v != "" {
-		c.WriteRetryAttempts, err = parseUint("MILTON_WRITE_RETRY_ATTEMPTS", v, c.WriteRetryAttempts)
+	if v := os.Getenv("HOST_METERING_WRITE_RETRY_ATTEMPTS"); v != "" {
+		c.WriteRetryAttempts, err = parseUint("HOST_METERING_WRITE_RETRY_ATTEMPTS", v, c.WriteRetryAttempts)
 		multiError.Add(err)
 	}
-	if v := os.Getenv("MILTON_WRITE_RETRY_MIN_INT_SEC"); v != "" {
-		c.WriteRetryMinInt, err = parseSeconds("MILTON_WRITE_RETRY_MIN_INT_SEC", v, c.WriteRetryMinInt)
+	if v := os.Getenv("HOST_METERING_WRITE_RETRY_MIN_INT_SEC"); v != "" {
+		c.WriteRetryMinInt, err = parseSeconds("HOST_METERING_WRITE_RETRY_MIN_INT_SEC", v, c.WriteRetryMinInt)
 		multiError.Add(err)
 	}
-	if v := os.Getenv("MILTON_WRITE_RETRY_MAX_INT_SEC"); v != "" {
-		c.WriteRetryMaxInt, err = parseSeconds("MILTON_WRITE_RETRY_MAX_INT_SEC", v, c.WriteRetryMaxInt)
+	if v := os.Getenv("HOST_METERING_WRITE_RETRY_MAX_INT_SEC"); v != "" {
+		c.WriteRetryMaxInt, err = parseSeconds("HOST_METERING_WRITE_RETRY_MAX_INT_SEC", v, c.WriteRetryMaxInt)
 		multiError.Add(err)
 	}
-	if v := os.Getenv("MILTON_METRICS_MAX_AGE_SEC"); v != "" {
-		c.MetricsMaxAge, err = parseSeconds("MILTON_METRICS_MAX_AGE_SEC", v, c.MetricsMaxAge)
+	if v := os.Getenv("HOST_METERING_METRICS_MAX_AGE_SEC"); v != "" {
+		c.MetricsMaxAge, err = parseSeconds("HOST_METERING_METRICS_MAX_AGE_SEC", v, c.MetricsMaxAge)
 		multiError.Add(err)
 	}
-	if v := os.Getenv("MILTON_METRICS_WAL_PATH"); v != "" {
+	if v := os.Getenv("HOST_METERING_METRICS_WAL_PATH"); v != "" {
 		c.MetricsWALPath = v
 	}
-	if v := os.Getenv("MILTON_LOG_LEVEL"); v != "" {
+	if v := os.Getenv("HOST_METERING_LOG_LEVEL"); v != "" {
 		c.LogLevel = v
 	}
-	if v := os.Getenv("MILTON_LOG_PATH"); v != "" {
+	if v := os.Getenv("HOST_METERING_LOG_PATH"); v != "" {
 		c.LogPath = v
 	}
 	return multiError.ErrorOrNil()

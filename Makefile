@@ -58,3 +58,14 @@ tarball: distdir vendor
 
 	@echo "Compressing the tarball..."
 	gzip -f $(DISTDIR)/$(PROJECT)-$(VERSION).tar
+
+# Clean
+.PHONY: clean
+clean:
+	@echo "Cleaning the project..."
+	rm -rf $(DISTDIR)
+	rm -rf $(CURDIR)/vendor
+	rm -rf $(CURDIR)/coverage.out
+	rm -rf $(CURDIR)/coverage.html
+	rm -rf $(CURDIR)/coverage.txt
+	rm -rf $(CURDIR)/$(PROJECT)

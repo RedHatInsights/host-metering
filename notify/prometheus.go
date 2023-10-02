@@ -11,6 +11,7 @@ import (
 	"github.com/RedHatInsights/host-metering/config"
 	"github.com/RedHatInsights/host-metering/hostinfo"
 	"github.com/RedHatInsights/host-metering/logger"
+	"github.com/RedHatInsights/host-metering/version"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/prometheus/prometheus/prompb"
@@ -127,7 +128,7 @@ func newPrometheusRequest(hostinfo *hostinfo.HostInfo, cfg *config.Config, sampl
 	req.Header.Add("Content-Encoding", "snappy")
 	req.Header.Set("Content-Type", "application/x-protobuf")
 	req.Header.Set("X-Prometheus-Remote-Write-Version", "0.1.0")
-	req.Header.Set("User-Agent", "host-metering/0.1.0")
+	req.Header.Set("User-Agent", "host-metering/"+version.Version)
 
 	return req, nil
 }

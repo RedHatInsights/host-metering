@@ -1,6 +1,7 @@
 # Build / Release
 dist/
 vendor/
+contrib/rpm/host-metering.spec
 
 # Coverage
 coverage.*

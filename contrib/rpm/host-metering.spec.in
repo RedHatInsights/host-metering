@@ -1,0 +1,71 @@
+%bcond_without check
+
+%if 0%{?rhel} <= 7 && ! 0%{?fedora} && ! 0%{?centos}
+%define gobuild(o:) scl enable go-toolset-1.19 -- go build -mod vendor -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${GO_LDFLAGS:-} ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '-Wl,-z,relro -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld'" -a -v %{?**};
+%endif
+%if 0%{?rhel} <= 7 && ! 0%{?fedora} && 0%{?centos}
+
+%define gobuild(o:) go build -mod vendor -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${GO_LDFLAGS:-} ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '-Wl,-z,relro -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld'" -a -v %{?**};
+%endif
+
+%global goipath         github.com/RedHatInsights/host-metering
+%global forgeurl        https://github.com/RedHatInsights/host-metering/
+%global autorelease     #AUTORELEASE#
+%global gomodulesmode   GO111MODULE=on
+
+
+%global godocs          README.md
+
+Name:           host-metering
+Version:        #VERSION#
+Release:        %{autorelease}%{?dist}
+Summary:        None
+
+License:        Apache-2.0
+ExcludeArch:    %{ix86} s390 ppc ppc64
+URL:            %{gourl}
+
+Source:         %{name}-%{version}.tar.gz
+
+%if 0%{?rhel} <= 7 && ! 0%{?fedora} && ! 0%{?centos}
+BuildRequires: go-toolset-1.19
+%else
+BuildRequires: golang >= 1.19
+BuildRequires: systemd-rpm-macros
+%endif
+BuildRequires: git
+
+%description
+Host metering service
+
+%gopkg
+
+%prep
+%setup -q -b 0
+
+# for possible downstream patches
+%autopatch -p1
+
+%build
+pwd
+%gobuild -o $(pwd)/bin/host-metering %{goipath}
+
+%install
+install -m 0755 -vd                     %{buildroot}%{_bindir}
+install -m 0755 -vp $(pwd)/bin/*        %{buildroot}%{_bindir}/
+install -m 0755 -vd                     %{buildroot}%{_unitdir}
+install -m 644 contrib/systemd/host-metering.service %{buildroot}%{_unitdir}/%{name}.service
+
+%if %{with check}
+%check
+%endif
+
+%files
+%doc README.md
+%{_bindir}/*
+%attr(644,root,root) %{_unitdir}/%{name}.service
+
+
+%changelog
+* Mon Oct 2 2023 Vobornik Petr <pvoborni@redhat.com> - #VERSION#-#AUTORELEASE#
+- No changelog. The history is kept in Git, downstreams have own logs.

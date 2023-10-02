@@ -1,3 +1,7 @@
+# Build / Release
+dist/
+vendor/
+
 # Coverage
 coverage.*
 

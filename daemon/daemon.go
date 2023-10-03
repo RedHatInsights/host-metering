@@ -161,6 +161,7 @@ func (d *Daemon) loadHostInfo() error {
 	logger.Infoln("HostInfo loaded")
 	logger.Infoln(hostInfo.String())
 	d.hostInfo = hostInfo
+	d.notifier.HostChanged()
 	return nil
 }
 

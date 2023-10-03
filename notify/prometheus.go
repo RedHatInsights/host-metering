@@ -23,9 +23,9 @@ import (
 var tlsInsecureSkipVerify = false
 
 type PrometheusNotifier struct {
-	cfg    *config.Config
-	lastId string
-	client *http.Client
+	cfg         *config.Config
+	validClient bool
+	client      *http.Client
 }
 
 func NewPrometheusNotifier(cfg *config.Config) *PrometheusNotifier {
@@ -35,17 +35,21 @@ func NewPrometheusNotifier(cfg *config.Config) *PrometheusNotifier {
 }
 
 func (n *PrometheusNotifier) Notify(samples []prompb.Sample, hostinfo *hostinfo.HostInfo) error {
-	if n.lastId != hostinfo.HostId {
+	if !n.validClient || n.client == nil {
 		if err := n.createHttpClient(); err != nil {
 			return err
 		}
-		n.lastId = hostinfo.HostId
+		n.validClient = true
 	}
 	request, err := newPrometheusRequest(hostinfo, n.cfg, samples)
 	if err != nil {
 		return err
 	}
 	return prometheusRemoteWrite(n.client, n.cfg, request)
+}
+
+func (n *PrometheusNotifier) HostChanged() {
+	n.validClient = false
 }
 
 func (n *PrometheusNotifier) createHttpClient() error {

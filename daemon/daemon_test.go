@@ -111,22 +111,26 @@ func TestRunWithoutCollect(t *testing.T) {
 
 // Test that HostInfo is reloaded on certificate change
 func TestReloadOnCertChange(t *testing.T) {
-	daemon, _, _, hostInfoProvider := createDaemon(t)
+	daemon, mockNotifier, _, hostInfoProvider := createDaemon(t)
 	certWatcher := daemon.certWatcher.(*mockCertWatcher)
 
 	// Init
+	checkHostChanged(t, mockNotifier, 0)
 	go daemon.Run()
 	waitForStarted(t, daemon)
 	hostInfoProvider.ResetCalled()
 	hostInfoProvider.WaitForCalled(t, 0)
+	checkHostChanged(t, mockNotifier, 1)
 
-	// Test that hostinfo is not reloaded on cert write
+	// Test that hostinfo is reloaded on cert write
 	certWatcher.ReportWriteEvent()
 	hostInfoProvider.WaitForCalled(t, 1)
+	checkHostChanged(t, mockNotifier, 2)
 
 	// Test that hostinfo is reloaded on cert removal
 	certWatcher.ReportRemoveEvent()
 	hostInfoProvider.WaitForCalled(t, 2)
+	checkHostChanged(t, mockNotifier, 3)
 
 	// Test that it works on multiple events
 	certWatcher.ReportWriteEvent()
@@ -137,6 +141,7 @@ func TestReloadOnCertChange(t *testing.T) {
 	hostInfoProvider.WaitForCalled(t, 5)
 	certWatcher.ReportRemoveEvent()
 	hostInfoProvider.WaitForCalled(t, 6)
+	checkHostChanged(t, mockNotifier, 7)
 
 	// Cleanup
 	daemon.Stop()
@@ -296,6 +301,13 @@ func checkEmptyMetricsLog(t *testing.T, metricsLog *notify.MetricsLog) {
 	}
 }
 
+func checkHostChanged(t *testing.T, notifier *mockNotifier, times uint) {
+	t.Helper()
+	if notifier.hostChangedTimes != times {
+		t.Fatalf("expected host changed %d times, got %d", times, notifier.hostChangedTimes)
+	}
+}
+
 func checkError(t *testing.T, err error, message string) {
 	t.Helper()
 	if err != nil {
@@ -356,13 +368,18 @@ type notifyArgs struct {
 }
 
 type mockNotifier struct {
-	calledWith *notifyArgs
-	result     func(samples []prompb.Sample, hostinfo *hostinfo.HostInfo) error
+	calledWith       *notifyArgs
+	hostChangedTimes uint
+	result           func(samples []prompb.Sample, hostinfo *hostinfo.HostInfo) error
 }
 
 func (n *mockNotifier) Notify(samples []prompb.Sample, hostinfo *hostinfo.HostInfo) error {
 	n.calledWith = &notifyArgs{samples, hostinfo}
 	return n.result(samples, hostinfo)
+}
+
+func (n *mockNotifier) HostChanged() {
+	n.hostChangedTimes++
 }
 
 func (n *mockNotifier) ResetCalledWith() {

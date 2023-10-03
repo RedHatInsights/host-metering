@@ -80,8 +80,8 @@ func TestNotify(t *testing.T) {
 	}
 	checkCalled(t, called, 2)
 
-	// Test that http client is recreated when hostId changes
-	hostinfo.HostId = "test2"
+	// Test that http client is recreated when host info changes
+	n.HostChanged()
 	err = n.Notify(samples, hostinfo)
 	checkError(t, err, "Failed to notify")
 

@@ -9,6 +9,9 @@ import (
 
 type Notifier interface {
 	Notify(samples []prompb.Sample, hostinfo *hostinfo.HostInfo) error
+
+	// HostChanged tells notifier that related information on host has changed
+	HostChanged()
 }
 
 func FilterSamplesByAge(samples []prompb.Sample, maxAge time.Duration) []prompb.Sample {

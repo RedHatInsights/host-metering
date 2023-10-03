@@ -18,8 +18,6 @@ import (
 
 // See https://prometheus.io/docs/concepts/remote_write_spec/ for specifiction of Prometheus remote write
 
-const requestTimeout time.Duration = 60 * time.Second
-
 // Should be used only for testing
 var tlsInsecureSkipVerify = false
 
@@ -55,17 +53,17 @@ func (n *PrometheusNotifier) createHttpClient() error {
 		return err
 	}
 
-	n.client, err = newMTLSHttpClient(keypair)
+	n.client, err = newMTLSHttpClient(keypair, n.cfg.WriteTimeout)
 	return err
 }
 
-func newMTLSHttpClient(keypair tls.Certificate) (*http.Client, error) {
+func newMTLSHttpClient(keypair tls.Certificate, timeout time.Duration) (*http.Client, error) {
 	tlsConfig := &tls.Config{
 		Certificates:       []tls.Certificate{keypair},
 		InsecureSkipVerify: tlsInsecureSkipVerify,
 	}
 	return &http.Client{
-		Timeout: requestTimeout,
+		Timeout: timeout,
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
 		},

@@ -20,6 +20,7 @@ const (
 	DefaultWriteRetryAttempts   = 8
 	DefaultWriteRetryMinInt     = 1 * time.Second
 	DefaultWriteRetryMaxInt     = 10 * time.Second
+	DefaultWriteTimeout         = 60 * time.Second
 	DefaultMetricsMaxAge        = 5400 * time.Second
 	DefaultMetricsWALPath       = "/var/run/host-metering/metrics"
 	DefaultLogLevel             = "INFO"
@@ -36,6 +37,7 @@ type Config struct {
 	WriteRetryAttempts   uint
 	WriteRetryMinInt     time.Duration
 	WriteRetryMaxInt     time.Duration
+	WriteTimeout         time.Duration
 	MetricsMaxAge        time.Duration
 	MetricsWALPath       string
 	LogLevel             string // one of "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
@@ -53,6 +55,7 @@ func NewConfig() *Config {
 		WriteRetryAttempts:   DefaultWriteRetryAttempts,
 		WriteRetryMinInt:     DefaultWriteRetryMinInt,
 		WriteRetryMaxInt:     DefaultWriteRetryMaxInt,
+		WriteTimeout:         DefaultWriteTimeout,
 		MetricsMaxAge:        DefaultMetricsMaxAge,
 		MetricsWALPath:       DefaultMetricsWALPath,
 		LogLevel:             DefaultLogLevel,
@@ -73,6 +76,7 @@ func (c *Config) String() string {
 			fmt.Sprintf("  WriteRetryAttempts: %d", c.WriteRetryAttempts),
 			fmt.Sprintf("  WriteRetryMinIntSec: %.0f", c.WriteRetryMinInt.Seconds()),
 			fmt.Sprintf("  WriteRetryMaxIntSec: %.0f", c.WriteRetryMaxInt.Seconds()),
+			fmt.Sprintf("  WriteTimeoutSec: %.0f", c.WriteTimeout.Seconds()),
 			fmt.Sprintf("  MetricsMaxAgeSec: %.0f", c.MetricsMaxAge.Seconds()),
 			fmt.Sprintf("  MetricsWALPath: %s", c.MetricsWALPath),
 			fmt.Sprintf("  LogLevel: %s", c.LogLevel),
@@ -115,6 +119,10 @@ func (c *Config) UpdateFromEnvVars() error {
 	}
 	if v := os.Getenv("HOST_METERING_WRITE_RETRY_MAX_INT_SEC"); v != "" {
 		c.WriteRetryMaxInt, err = parseSeconds("HOST_METERING_WRITE_RETRY_MAX_INT_SEC", v, c.WriteRetryMaxInt)
+		multiError.Add(err)
+	}
+	if v := os.Getenv("HOST_METERING_WRITE_TIMEOUT_SEC"); v != "" {
+		c.WriteTimeout, err = parseSeconds("HOST_METERING_WRITE_TIMEOUT_SEC", v, c.WriteTimeout)
 		multiError.Add(err)
 	}
 	if v := os.Getenv("HOST_METERING_METRICS_MAX_AGE_SEC"); v != "" {
@@ -225,6 +233,10 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 	}
 	if v, ok := config[section]["write_retry_max_int_sec"]; ok {
 		c.WriteRetryMaxInt, err = parseSeconds("write_retry_max_int_sec", v, c.WriteRetryMaxInt)
+		multiError.Add(err)
+	}
+	if v, ok := config[section]["write_timeout_sec"]; ok {
+		c.WriteTimeout, err = parseSeconds("write_timeout_sec", v, c.WriteTimeout)
 		multiError.Add(err)
 	}
 	if v, ok := config[section]["metrics_max_age_sec"]; ok {

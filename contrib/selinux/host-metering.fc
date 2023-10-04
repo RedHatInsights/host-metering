@@ -1,0 +1,5 @@
+/usr/bin/host-metering		--	gen_context(system_u:object_r:hostmetering_exec_t,s0)
+
+/usr/lib/systemd/system/host-metering.service		--	gen_context(system_u:object_r:hostmetering_unit_file_t,s0)
+
+/var/run/host-metering(/.*)?		gen_context(system_u:object_r:hostmetering_var_run_t,s0)

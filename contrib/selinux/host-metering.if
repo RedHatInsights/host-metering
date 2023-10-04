@@ -1,0 +1,126 @@
+
+## <summary>policy for host-metering</summary>
+
+########################################
+## <summary>
+##	Execute hostmetering_exec_t in the host-metering domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`hostmetering_domtrans',`
+	gen_require(`
+		type hostmetering_t, hostmetering_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, hostmetering_exec_t, hostmetering_t)
+')
+
+######################################
+## <summary>
+##	Execute host-metering in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hostmetering_exec',`
+	gen_require(`
+		type hostmetering_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, hostmetering_exec_t)
+')
+########################################
+## <summary>
+##	Read host-metering PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hostmetering_read_pid_files',`
+	gen_require(`
+		type hostmetering_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, hostmetering_var_run_t, hostmetering_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute host-metering server in the host-metering domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`hostmetering_systemctl',`
+	gen_require(`
+		type hostmetering_t;
+		type hostmetering_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 hostmetering_unit_file_t:file read_file_perms;
+	allow $1 hostmetering_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, hostmetering_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an host-metering environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`hostmetering_admin',`
+	gen_require(`
+		type hostmetering_t;
+		type hostmetering_var_run_t;
+	type hostmetering_unit_file_t;
+	')
+
+	allow $1 hostmetering_t:process { signal_perms };
+	ps_process_pattern($1, hostmetering_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 hostmetering_t:process ptrace;
+    ')
+
+	files_search_pids($1)
+	admin_pattern($1, hostmetering_var_run_t)
+
+	hostmetering_systemctl($1)
+	admin_pattern($1, hostmetering_unit_file_t)
+	allow $1 hostmetering_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

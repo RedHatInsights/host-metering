@@ -27,12 +27,50 @@ const (
 	testHostname = "host.example.test"
 )
 
+// Test that http client follows the environment Proxy settings
+//
+//   - this test is fragile as it is influenced by the environment as ProxyFromEnvironment
+//     is initialized only once, thus if any test before uses it without the env vars set then
+//     this will fail.
+func TestHttpClientProxy(t *testing.T) {
+	// Init
+	keypair, _, _, _ := createTestKeypair(t)
+	httpProxy := "http://proxy.example.com"
+	httpsProxy := "https://proxy.example.com"
+
+	t.Setenv("HTTP_PROXY", httpProxy)
+	t.Setenv("HTTPS_PROXY", httpsProxy)
+	client, err := newMTLSHttpClient(keypair, 1*time.Second)
+	checkError(t, err, "Failed to create http client")
+	proxyF := client.Transport.(*http.Transport).Proxy
+	if proxyF == nil {
+		t.Fatalf("Expected proxy function to be set")
+	}
+
+	// Test https proxy
+	httpsRequest, _ := http.NewRequest("GET", "https://example.com", nil)
+	checkError(t, err, "Failed to create http request")
+	proxyUrl, _ := proxyF(httpsRequest)
+	checkError(t, err, "Failed to get proxy url")
+	if proxyUrl == nil {
+		t.Fatalf("Expected proxy url to be set")
+	}
+	if proxyUrl.String() != httpsProxy {
+		t.Fatalf("Expected https proxy to be %s, got %s", httpsProxy, proxyUrl.String())
+	}
+
+	// Test http proxy
+	httpRequest, _ := http.NewRequest("GET", "http://example.com", nil)
+	proxyUrl, _ = proxyF(httpRequest)
+	if proxyUrl.String() != httpProxy {
+		t.Fatalf("Expected http proxy to be %s, got %s", httpProxy, proxyUrl.String())
+	}
+}
+
 // Test happy path of prometheus notifier
 func TestNotify(t *testing.T) {
-	// Test are using mock server with self-signed certificate
-	tlsInsecureSkipVerify = true
-
 	// Initialize notifier and data
+	useInsecureTLS(t)
 	_, certPath, keyPath, _ := createTestKeypair(t)
 	cfg := &config.Config{
 		HostCertPath:       certPath,
@@ -111,6 +149,7 @@ func TestNotifyNoCert(t *testing.T) {
 
 // Test that notify returns error when request fails
 func TestNotifyRequestError(t *testing.T) {
+	useInsecureTLS(t)
 	_, certPath, keyPath, _ := createTestKeypair(t)
 
 	cfg := &config.Config{
@@ -373,6 +412,14 @@ func checkLabels(t *testing.T, labels []prompb.Label) {
 }
 
 // Data init functions
+
+// Test uses tlsInsecureSkipVerify = true, e.g. for mock server with self-signed certificate
+func useInsecureTLS(t *testing.T) {
+	tlsInsecureSkipVerify = true
+	t.Cleanup(func() {
+		tlsInsecureSkipVerify = false
+	})
+}
 
 // Some Samples ordered by timestamp
 func createSamples() []prompb.Sample {

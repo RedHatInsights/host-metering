@@ -30,6 +30,13 @@ test:
 
 	@cat coverage.txt
 
+# Build
+.PHONY: build-selinux
+build-selinux:
+	@echo "Building SELinux policy..."
+	cd contrib/selinux && \
+		make -f /usr/share/selinux/devel/Makefile $(PROJECT).pp || exit
+
 # Release
 .PHONY: version
 version:
@@ -111,3 +118,5 @@ clean:
 	rm -rf $(CURDIR)/coverage.html
 	rm -rf $(CURDIR)/coverage.txt
 	rm -rf $(CURDIR)/$(PROJECT)
+	rm -rf $(CURDIR)/contrib/selinux/tmp
+	rm -rf $(CURDIR)/contrib/selinux/*.pp

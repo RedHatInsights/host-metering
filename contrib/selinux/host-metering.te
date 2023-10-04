@@ -1,0 +1,88 @@
+policy_module(host-metering, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type hostmetering_t;
+type hostmetering_exec_t;
+init_daemon_domain(hostmetering_t, hostmetering_exec_t)
+
+type hostmetering_var_run_t;
+files_pid_file(hostmetering_var_run_t)
+
+type hostmetering_unit_file_t;
+systemd_unit_file(hostmetering_unit_file_t)
+
+type hostmetering_tmp_t;
+files_tmp_file(hostmetering_tmp_t)
+
+########################################
+#
+# host-metering local policy
+#
+allow hostmetering_t self:capability { setgid setuid sys_rawio };
+allow hostmetering_t self:fifo_file rw_fifo_file_perms;
+allow hostmetering_t self:unix_stream_socket create_stream_socket_perms;
+allow hostmetering_t self:unix_dgram_socket create_socket_perms;
+
+manage_dirs_pattern(hostmetering_t, hostmetering_var_run_t, hostmetering_var_run_t)
+manage_files_pattern(hostmetering_t, hostmetering_var_run_t, hostmetering_var_run_t)
+manage_lnk_files_pattern(hostmetering_t, hostmetering_var_run_t, hostmetering_var_run_t)
+files_pid_filetrans(hostmetering_t, hostmetering_var_run_t, { dir file lnk_file })
+
+manage_dirs_pattern(hostmetering_t, hostmetering_tmp_t, hostmetering_tmp_t)
+manage_files_pattern(hostmetering_t, hostmetering_tmp_t, hostmetering_tmp_t)
+files_tmp_filetrans(hostmetering_t, hostmetering_tmp_t, { dir file })
+
+kernel_getattr_proc(hostmetering_t)
+kernel_read_network_state(hostmetering_t)
+kernel_read_system_state(hostmetering_t)
+kernel_read_net_sysctls(hostmetering_t)
+
+auth_read_passwd(hostmetering_t)
+
+corecmd_exec_bin(hostmetering_t)
+corecmd_exec_shell(hostmetering_t)
+
+corenet_tcp_connect_http_port(hostmetering_t)
+corenet_tcp_connect_websm_port(hostmetering_t)
+
+dev_list_sysfs(hostmetering_t)
+dev_read_raw_memory(hostmetering_t)
+dev_read_sysfs(hostmetering_t)
+
+files_list_tmp(hostmetering_t)
+
+init_read_state(hostmetering_t)
+
+libs_exec_ldconfig(hostmetering_t)
+
+optional_policy(`
+     sysnet_dns_name_resolve(hostmetering_t)
+     sysnet_domtrans_ifconfig(hostmetering_t)
+     sysnet_exec_ifconfig(hostmetering_t)
+')
+
+optional_policy(`
+     dbus_system_bus_client(hostmetering_t)
+')
+
+optional_policy(`
+     dmidecode_domtrans(hostmetering_t)
+')
+
+optional_policy(`
+    rhnsd_manage_config(hostmetering_t)
+')
+
+optional_policy(`
+    gen_require(`
+        type rhsmcertd_config_t;
+    ')
+    manage_files_pattern(hostmetering_t, rhsmcertd_config_t, rhsmcertd_config_t)
+    rhsmcertd_manage_lib_files(hostmetering_t)
+    rhsmcertd_read_log(hostmetering_t)
+')
+

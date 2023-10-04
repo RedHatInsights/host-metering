@@ -12,9 +12,12 @@
 %global forgeurl        https://github.com/RedHatInsights/host-metering/
 %global autorelease     #AUTORELEASE#
 %global gomodulesmode   GO111MODULE=on
-
-
 %global godocs          README.md
+
+# macros needed by SELinux
+%global selinuxtype     targeted
+%global moduletype      contrib
+%global modulename      host-metering
 
 Name:           host-metering
 Version:        #VERSION#
@@ -34,11 +37,23 @@ BuildRequires: golang >= 1.19
 BuildRequires: systemd-rpm-macros
 %endif
 BuildRequires: git
+BuildRequires: policycoreutils
+BuildRequires: selinux-policy
+BuildRequires: selinux-policy-devel
+Requires:      %{name}-selinux = %{version}-%{release}
 
 %description
 Host metering service
 
 %gopkg
+
+%package selinux
+Summary:       SELinux policy module for host-metering
+BuildArch:     noarch
+%{?selinux_requires}
+
+%description selinux
+This package installs and sets up the SELinux policy security module for host-metering.
 
 %prep
 %setup -q -b 0
@@ -49,6 +64,10 @@ Host metering service
 %build
 pwd
 %gobuild -o $(pwd)/bin/host-metering %{goipath}
+make build-selinux
+
+%pre selinux
+%selinux_relabel_pre -s %{selinuxtype}
 
 %install
 install -m 0755 -vd                     %{buildroot}%{_bindir}
@@ -56,14 +75,37 @@ install -m 0755 -vp $(pwd)/bin/*        %{buildroot}%{_bindir}/
 install -m 0755 -vd                     %{buildroot}%{_unitdir}
 install -m 644 contrib/systemd/host-metering.service %{buildroot}%{_unitdir}/%{name}.service
 
+install -D -m 0644 contrib/selinux/%{modulename}.pp %{buildroot}%{_datadir}/selinux/packages/%{selinuxtype}/%{modulename}.pp
+install -D -p -m 644 contrib/selinux/%{modulename}.if %{buildroot}%{_datadir}/selinux/devel/include/distributed/%{modulename}.if
+
 %if %{with check}
 %check
 %endif
+
+%post selinux
+%selinux_modules_install -s %{selinuxtype} %{_datadir}/selinux/packages/%{selinuxtype}/%{modulename}.pp
+%selinux_relabel_post -s %{selinuxtype}
+
+if [ "$1" -le "1" ]; then # First install
+   # the daemon needs to be restarted for the custom label to be applied
+   %systemd_postun_with_restart %{modulename}.service
+fi
+
+%postun selinux
+if [ $1 -eq 0 ]; then
+    %selinux_modules_uninstall -s %{selinuxtype} %{modulename}
+    %selinux_relabel_post -s %{selinuxtype}
+fi
 
 %files
 %doc README.md
 %{_bindir}/*
 %attr(644,root,root) %{_unitdir}/%{name}.service
+
+%files selinux
+%{_datadir}/selinux/packages/%{selinuxtype}/%{modulename}.pp
+%{_datadir}/selinux/devel/include/distributed/%{modulename}.if
+%ghost %{_sharedstatedir}/selinux/%{selinuxtype}/active/modules/200/%{modulename}
 
 
 %changelog

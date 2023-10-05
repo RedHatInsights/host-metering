@@ -86,3 +86,15 @@ Or visit the Prometheus Web UI at http://localhost:9090/graph?g0.expr=system_cpu
 $ make clean      # clean build&test files
 $ make clean-pod  # destroy podman pod
 ```
+
+## Running in a container
+This project has configuration for running inside VSCode container.
+
+You have to have a system with `subscription-manager` installed and registered correctly to use the UBI image (which is the base for this Dockerfile) and to have access to the relevan Red Hat repositories.
+
+## Mocking subscription-manager commands
+`mocked_run.sh` is a wrapper of `go run main.go` to execute the command in mocked context.
+
+### Preparing the mocks
+Inside the `mocks` folder run `./prepare_mock.sh` to generate outputs that will be used as mocks.
+You have to have a system with `subscription-manager` installed and registered correctly to generate the mocks.

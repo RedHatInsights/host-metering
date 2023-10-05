@@ -5,11 +5,6 @@ contrib/rpm/host-metering.spec
 contrib/selinux/tmp/
 contrib/selinux/host-metering.pp
 
-# testing
-hack/test-cert.crt
-hack/test-cert.key
-hack/cpumetrics/
-
 # Coverage
 coverage.*
 
@@ -17,3 +12,9 @@ coverage.*
 host-metering
 dist/host-metering
 node_modules
+
+#dev
+mocks/subscription-manager-*
+mocks/consumer/
+.devcontainer/docker-compose.local.yml
+mocks/cpumetrics/

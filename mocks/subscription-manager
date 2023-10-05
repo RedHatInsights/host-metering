@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "#######Mocked output#######"
+cat $(dirname "$0")/subscription-manager-$@

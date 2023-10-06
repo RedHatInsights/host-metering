@@ -12,6 +12,10 @@ RPMTOPDIR := $(DISTDIR)/rpmbuild
 GO := go
 TESTDIR := $(CURDIR)/test
 
+CONTAINER_POD := host-metering-pod
+DASHBOARD_URL = http://localhost:9090/graph?g0.expr=system_cpu_logical_count&g0.tab=0&g0.range_input=1m
+
+# Test
 .PHONY: test
 test:
 	@echo "Running the unit tests..."
@@ -31,11 +35,68 @@ test:
 	@cat coverage.txt
 
 # Build
+.PHONY: build
+build:
+	@echo "Building the project..."
+	$(GO) build -o $(DISTDIR)/$(PROJECT)
+
 .PHONY: build-selinux
 build-selinux:
 	@echo "Building SELinux policy..."
 	cd contrib/selinux && \
 		make -f /usr/share/selinux/devel/Makefile $(PROJECT).pp || exit
+
+# Functional testing (manual or automatic)
+
+.PHONY: test-daemon
+test-daemon: cert build prometheus
+	@echo "Running the $(PROJECT) in deamon mode..."
+
+	PATH=$(TESTDIR)/bin:$(PATH) \
+	$(DISTDIR)/$(PROJECT) --config hack/host-metering.conf daemon
+
+cert: hack/test-cert.crt hack/test-cert.key
+
+hack/test-cert.crt hack/test-cert.key:
+	@echo "Generating test certificates..."
+	cd hack && ./create-cert.sh
+
+# Containers
+
+.PHONY: container-pod
+container-pod:
+	if podman pod exists $(CONTAINER_POD); then \
+        echo "Pod $(CONTAINER_POD) exists."; \
+        exit 0; \
+	else \
+		echo "Creating the $(CONTAINER_POD)..."; \
+		podman pod create --replace -p 9090:9090 ${CONTAINER_POD}; \
+	fi
+
+.PHONY: prometheus
+prometheus: container-pod
+	@echo "See the dashboard at: ${DASHBOARD_URL}"
+
+	if podman ps --filter "name=hm-prometheus" --format '{{.Names}}' | grep -q "hm-prometheus"; then \
+		echo "Prometheus is already running."; \
+		exit 0; \
+	else \
+		echo "Starting Prometheus..."; \
+		podman run --pod ${CONTAINER_POD} \
+			   --name hm-prometheus \
+			   -d \
+			   -v ./hack/prometheus.yml:/etc/prometheus/prometheus.yml:Z \
+			   prometheus/prometheus \
+			   --config.file=/etc/prometheus/prometheus.yml \
+			   --storage.tsdb.path=/prometheus \
+			   --web.console.libraries=/usr/share/prometheus/console_libraries \
+			   --web.console.templates=/usr/share/prometheus/consoles \
+			   --web.enable-remote-write-receiver; \
+	fi
+
+.PHONY: clean-pod
+clean-pod:
+	podman pod rm -f ${CONTAINER_POD}
 
 # Release
 .PHONY: version
@@ -120,3 +181,6 @@ clean:
 	rm -rf $(CURDIR)/$(PROJECT)
 	rm -rf $(CURDIR)/contrib/selinux/tmp
 	rm -rf $(CURDIR)/contrib/selinux/*.pp
+	rm -rf $(CURDIR)/hack/cpumetrics
+	rm -f $(CURDIR)/hack/test-cert.crt
+	rm -f $(CURDIR)/hack/test-cert.key

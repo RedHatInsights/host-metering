@@ -1,0 +1,16 @@
+[req]
+prompt = no
+req_extensions = req_ext
+distinguished_name = dn
+
+[ dn ]
+C=US
+ST=North Carolina
+L=Raleigh
+O=Milton
+OU=Information Technology
+emailAddress=test@host-metering.test
+CN = test-host.host-metering.test
+
+[ req_ext ]
+subjectAltName = DNS:test-host.host-metering.test

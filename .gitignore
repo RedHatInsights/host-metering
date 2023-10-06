@@ -5,8 +5,14 @@ contrib/rpm/host-metering.spec
 contrib/selinux/tmp/
 contrib/selinux/host-metering.pp
 
+# testing
+hack/test-cert.crt
+hack/test-cert.key
+hack/cpumetrics/
+
 # Coverage
 coverage.*
 
 # Binary
 host-metering
+dist/host-metering

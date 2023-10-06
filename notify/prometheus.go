@@ -70,8 +70,12 @@ func newMTLSHttpClient(keypair tls.Certificate, timeout time.Duration) (*http.Cl
 	return &http.Client{
 		Timeout: timeout,
 		Transport: &http.Transport{
-			Proxy:           http.ProxyFromEnvironment,
-			TLSClientConfig: tlsConfig,
+			Proxy:                 http.ProxyFromEnvironment,
+			TLSClientConfig:       tlsConfig,
+			MaxIdleConns:          2,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
 		},
 	}, nil
 }

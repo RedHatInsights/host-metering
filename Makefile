@@ -3,6 +3,7 @@
 PROJECT := host-metering
 RPMNAME := host-metering
 VERSION := $(shell grep "Version" version/version.go | awk -F '"' '{print $$2}')
+NEXT_VERSION ?=
 SHORT_COMMIT ?= $(shell git rev-parse --short=8 HEAD)
 AUTORELEASE ?= "git$(shell date "+%Y%m%d%H%M")G$(SHORT_COMMIT)"
 
@@ -103,6 +104,12 @@ clean-pod:
 version:
 	@echo $(VERSION)
 
+.PHONY: version-update
+version-update:
+	@test -n "$(NEXT_VERSION)" || (echo "NEXT_VERSION is not set"; exit 1)
+	@echo "Updating the version to $(NEXT_VERSION)..."
+	sed -i "s/Version = \".*\"/Version = \"$(NEXT_VERSION)\"/" version/version.go
+
 .PHONY: distdir
 distdir:
 	@echo "Creating the destination directory..."
@@ -184,3 +191,11 @@ clean:
 	rm -rf $(CURDIR)/hack/cpumetrics
 	rm -f $(CURDIR)/hack/test-cert.crt
 	rm -f $(CURDIR)/hack/test-cert.key
+
+.PHONY: clean-node
+clean-node:
+	@echo "Cleaning the node..."
+	rm -rf $(CURDIR)/node_modules
+
+.PHONY: clean-all
+clean-all: clean clean-pod clean-node

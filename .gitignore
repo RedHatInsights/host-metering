@@ -16,3 +16,4 @@ coverage.*
 # Binary
 host-metering
 dist/host-metering
+node_modules

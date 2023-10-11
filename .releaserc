@@ -1,0 +1,43 @@
+{
+    "branches": [
+        "main"
+    ],
+    "plugins": [
+        "@semantic-release/commit-analyzer",
+        "@semantic-release/release-notes-generator",
+        [
+            "@semantic-release/exec",
+            {
+                "prepareCmd": "make version-update NEXT_VERSION=${nextRelease.version} ;",
+                "publishCmd": "make tarball"
+            }
+        ],
+        [
+            "@semantic-release/changelog",
+            {
+                "changelogFile": "CHANGELOG.md"
+            }
+        ],
+        [
+            "@semantic-release/git",
+            {
+                "assets": [
+                    "version/version.go",
+                    "CHANGELOG.md"
+                ],
+                "message": "build(release): ${nextRelease.version}\n\n${nextRelease.notes}"
+            }
+        ],
+        [
+            "@semantic-release/github",
+            {
+                "assets": [
+                    {
+                        "path": "dist/*.tar.gz",
+                        "label": "Tarball"
+                    }
+                ]
+            }
+        ]
+    ]
+}

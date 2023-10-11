@@ -26,6 +26,10 @@ See output/log:
 
 RPM builds of `main` branch are available at COPR:  https://copr.fedorainfracloud.org/coprs/pvoborni/host-metering/
 
+## Contribute
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Build
 
 ```

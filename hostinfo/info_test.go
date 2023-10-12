@@ -23,6 +23,7 @@ func TestHostInfo(t *testing.T) {
 	expectedString := "HostInfo:\n" +
 		"  CpuCount: 64\n" +
 		"  HostId: 01234567-89ab-cdef-0123-456789abcdef\n" +
+		"  ExternalOrganization: 12345678\n" +
 		"  SocketCount: 3\n" +
 		"  Product: Red Hat Enterprise Linux Server\n" +
 		"  Support: Premium\n" +

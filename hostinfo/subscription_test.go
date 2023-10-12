@@ -7,11 +7,12 @@ import (
 func TestLoadSubManInformation(t *testing.T) {
 	// Define the expected general host info.
 	expected := &HostInfo{
-		HostId:      "01234567-89ab-cdef-0123-456789abcdef",
-		SocketCount: "3",
-		Product:     "Red Hat Enterprise Linux Server",
-		Support:     "Premium",
-		Usage:       "Production",
+		HostId:               "01234567-89ab-cdef-0123-456789abcdef",
+		ExternalOrganization: "12345678",
+		SocketCount:          "3",
+		Product:              "Red Hat Enterprise Linux Server",
+		Support:              "Premium",
+		Usage:                "Production",
 	}
 
 	// Test the host info for AWS.

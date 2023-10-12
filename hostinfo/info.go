@@ -6,13 +6,14 @@ import (
 )
 
 type HostInfo struct {
-	CpuCount    uint
-	HostId      string
-	SocketCount string
-	Product     string
-	Support     string
-	Usage       string
-	Billing     BillingInfo
+	CpuCount             uint
+	HostId               string
+	ExternalOrganization string
+	SocketCount          string
+	Product              string
+	Support              string
+	Usage                string
+	Billing              BillingInfo
 }
 
 type BillingInfo struct {
@@ -57,6 +58,7 @@ func (hi *HostInfo) String() string {
 			"HostInfo:",
 			fmt.Sprintf("  CpuCount: %d", hi.CpuCount),
 			fmt.Sprintf("  HostId: %s", hi.HostId),
+			fmt.Sprintf("  ExternalOrganization: %s", hi.ExternalOrganization),
 			fmt.Sprintf("  SocketCount: %s", hi.SocketCount),
 			fmt.Sprintf("  Product: %s", hi.Product),
 			fmt.Sprintf("  Support: %s", hi.Support),

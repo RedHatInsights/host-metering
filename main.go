@@ -59,6 +59,13 @@ func main() {
 		//print out the configuration
 		logger.Infoln(cfg.String())
 
+		cv := config.NewConfigValidator(cfg)
+		err = cv.Validate()
+		if err != nil {
+			logger.Errorf("Invalid configuration: %v\n", err.Error())
+			os.Exit(2)
+		}
+
 		d, err := daemon.NewDaemon(cfg)
 		if err != nil {
 			logger.Errorf("Failed to create daemon: %v\n", err.Error())

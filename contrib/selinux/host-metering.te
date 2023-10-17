@@ -47,6 +47,7 @@ corecmd_exec_bin(hostmetering_t)
 corecmd_exec_shell(hostmetering_t)
 
 corenet_tcp_connect_http_port(hostmetering_t)
+corenet_tcp_connect_squid_port(hostmetering_t)
 corenet_tcp_connect_websm_port(hostmetering_t)
 
 dev_list_sysfs(hostmetering_t)
@@ -84,5 +85,5 @@ optional_policy(`
     manage_files_pattern(hostmetering_t, rhsmcertd_config_t, rhsmcertd_config_t)
     rhsmcertd_manage_lib_files(hostmetering_t)
     rhsmcertd_read_log(hostmetering_t)
+    rhsmcertd_dbus_chat(hostmetering_t)
 ')
-

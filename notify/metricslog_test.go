@@ -241,8 +241,9 @@ func createCorruptedMetrics(t *testing.T, path string) {
 }
 
 func checkError(t *testing.T, err error, message string) {
+	t.Helper()
 	if err != nil {
-		t.Fatalf("%s: %v", message, err)
+		t.Fatalf("%s: %v", message, err.Error())
 	}
 }
 

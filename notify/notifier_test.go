@@ -1,6 +1,8 @@
 package notify
 
 import (
+	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -38,4 +40,27 @@ func TestFilterSamplesByAge(t *testing.T) {
 		t.Errorf("Expected 0 samples, got %d", len(filtered))
 	}
 
+}
+
+func TestNotifyError(t *testing.T) {
+	wrappedErr := RecoverableError(fmt.Errorf("wrapped"))
+
+	if wrappedErr.Error() != "recoverable notify error: wrapped" {
+		t.Errorf("Expected error message 'recoverable notify error: wrapped', got %s", wrappedErr.Error())
+	}
+
+	if wrappedErr.Recoverable() != true {
+		t.Errorf("Expected recoverable error, got non-recoverable")
+	}
+
+	wrappedErr = NonRecoverableError(fmt.Errorf("wrapped"))
+
+	if wrappedErr.Error() != "non-recoverable notify error: wrapped" {
+		t.Errorf("Expected error message 'non-recoverable notify error: wrapped', got %s", wrappedErr.Error())
+	}
+
+	err := errors.Unwrap(wrappedErr)
+	if err.Error() != "wrapped" {
+		t.Errorf("Expected error message 'wrapped', got %s", err.Error())
+	}
 }

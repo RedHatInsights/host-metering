@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -215,22 +216,29 @@ func (d *Daemon) notify() error {
 	}
 	logger.Debugf("Sending %d sample(s)...\n", count)
 	err = d.notifier.Notify(samples, d.hostInfo)
-	if err != nil {
-		logger.Warnf("Error calling PrometheusRemoteWrite: %s\n", err.Error())
-		// clear old samples even on error so that WAL does not grow indefinitely
+	var notifyError *notify.NotifyError
+	var truncateError error
+	if err == nil {
+		// clear all samples on success as they were accepted by the server
+		logger.Debugln("Notification successful")
+		truncateError = d.metricsLog.RemoveSamples(checkpoint)
+	} else if errors.As(err, &notifyError) && !notifyError.Recoverable() {
+		// clear all samples on non-recoverable error
+		logger.Warnf("Notification: %s\n", notifyError.Error())
+		truncateError = d.metricsLog.RemoveSamples(checkpoint)
+	} else {
+		// don't clear or clear only old so that WAL does not grow indefinitely on retries
+		// on recoverable or unknowns errors
+		logger.Warnf("Notification: %s\n", err.Error())
 		if origCount != count {
-			err2 := d.metricsLog.RemoveSamples(checkpoint - uint64(count))
-			if err2 != nil {
-				logger.Warnf("Error truncating WAL: %s\n", err2.Error())
-			}
+			truncateError = d.metricsLog.RemoveSamples(checkpoint - uint64(count))
 		}
+	}
+
+	if truncateError != nil {
+		logger.Warnf("Error truncating WAL: %s\n", truncateError.Error())
 		return err
 	}
-	err = d.metricsLog.RemoveSamples(checkpoint)
-	if err != nil {
-		logger.Warnf("Error truncating WAL: %s\n", err.Error())
-		return err
-	}
-	logger.Debugln("Notification successful")
-	return nil
+
+	return err
 }

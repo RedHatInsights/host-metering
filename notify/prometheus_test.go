@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"io"
 	"math/big"
 	"net/http"
@@ -214,6 +215,7 @@ func TestRetriesAndBackoff(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected error on request failure")
 	}
+	checkRecoverable(t, err)
 	checkCalled(t, called, int(cfg.WriteRetryAttempts))
 
 	// Test that retries are done as expected and it will succeed
@@ -259,17 +261,19 @@ func TestNoRetriesOn4xx(t *testing.T) {
 
 	// Test that retries are done as expected and it will fail
 	err := prometheusRemoteWrite(client, cfg, request)
-	checkExpectedErrorContains(t, err, "Http Error: 400")
+	checkExpectedErrorContains(t, err, "http Error: 400")
+	checkNonRecoverable(t, err)
 	checkCalled(t, called, 1)
 
 	// Test that retries are done on 429 but not on subsequest 404
 	err = prometheusRemoteWrite(client, cfg, request)
-	checkExpectedErrorContains(t, err, "Http Error: 404")
+	checkExpectedErrorContains(t, err, "http Error: 404")
+	checkNonRecoverable(t, err)
 	checkCalled(t, called, 1+2)
 
 	// Last request is 200 and that should succeed without retries
 	err = prometheusRemoteWrite(client, cfg, request)
-	checkError(t, err, "Failed to send request")
+	checkError(t, err, "failed to send request")
 	checkCalled(t, called, 1+2+1)
 }
 
@@ -369,6 +373,22 @@ func checkExpectedErrorContains(t *testing.T, err error, message string) {
 	}
 	if !strings.Contains(err.Error(), message) {
 		t.Fatalf("unexpected error message: '%s' != '%s'", err.Error(), message)
+	}
+}
+
+func checkRecoverable(t *testing.T, err error) {
+	t.Helper()
+	var notifyError *NotifyError
+	if errors.As(err, &notifyError) && !notifyError.Recoverable() {
+		t.Fatalf("Expected error to be recoverable. Got: %s", err.Error())
+	}
+}
+
+func checkNonRecoverable(t *testing.T, err error) {
+	t.Helper()
+	var notifyError *NotifyError
+	if errors.As(err, &notifyError) && notifyError.Recoverable() {
+		t.Fatalf("Expected error to be non-recoverable. Got: %s", err.Error())
 	}
 }
 

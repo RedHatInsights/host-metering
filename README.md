@@ -89,12 +89,26 @@ $ make clean-pod  # destroy podman pod
 
 ## Running in a container
 This project has configuration for running inside VSCode container.
+### Prerequisites:
+1. It requires podman and podman-compose to be installed on the host machine.
+To install podman-compose, please run
+```
+sudo dnf install podman-compose
+```
+2. Make sure to add the following settings to user's settings.json (`ctrl+shift+P` -> `Preferences: Open user settings (JSON)`). This will set up the dev containers plugin to work with `podman` and `podman-compose`
+```
+    "dev.containers.dockerComposePath": "podman-compose",
+    "dev.containers.dockerPath": "podman"
+```
+3. Execute `.devcontainer/commands/prepare_containers.sh`. It will create `docker-compose.local.yml` file that will be used to run the container properly.
 
-You have to have a system with `subscription-manager` installed and registered correctly to use the UBI image (which is the base for this Dockerfile) and to have access to the relevan Red Hat repositories.
+### Running make commands in a container
+There is an option to run make commands inside the `docker-compose` generated environment. Just prefix a make command you would like to run with `podman-`. e.g. to run `make test` in a container, use `make podman-test`.
 
 ## Mocking subscription-manager commands
-`mocked_run.sh` is a wrapper of `go run main.go` to execute the command in mocked context.
+`mocked_run.sh` is a shortcut to running `go run main.go` with  mocked context.
 
 ### Preparing the mocks
-Inside the `mocks` folder run `./prepare_mock.sh` to generate outputs that will be used as mocks.
+Inside the `mocks` folder run `./mock_from_host.sh` to generate outputs that will be used as mocks.
 You have to have a system with `subscription-manager` installed and registered correctly to generate the mocks.
+

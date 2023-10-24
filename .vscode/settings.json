@@ -1,0 +1,5 @@
+{
+  "go.alternateTools": {
+    "go": "/opt/rh/go-toolset-1.19/root/usr/bin/go"
+  }
+}

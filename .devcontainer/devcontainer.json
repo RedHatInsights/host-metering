@@ -4,9 +4,15 @@
 	"name": "Go",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	// "image": "mcr.microsoft.com/devcontainers/go:1.19",
-	"build": {
-		"dockerfile": "Dockerfile"
-	},
+
+	"workspaceFolder": "/workspace/host-metering",
+
+	// to set the local folder prepare_containers script should run first.
+	// "initializeCommand": "${localWorkspaceFolder}/.devcontainer/commands/prepare_containers.sh",
+
+	"dockerComposeFile" : ["./docker-compose.yml", "./docker-compose.local.yml"],
+	"service" : "host-metering",
+	"shutdownAction" : "stopCompose",
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
@@ -34,8 +40,11 @@
 		"HOME": "/home",
 		"WORKDIR": "/workspaces/${localWorkspaceFolderBasename}"
 	},
-	"workspaceMount": "",
-	"runArgs": [
-		"--volume=${localWorkspaceFolder}:/workspaces/${localWorkspaceFolderBasename}:Z"
-	]
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"golang.go"
+			]
+		}
+	}
 }

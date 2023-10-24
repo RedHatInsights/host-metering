@@ -10,11 +10,9 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
-      "args": ["once"],
+      "args": ["--config", "${workspaceFolder}/.devcontainer/host-metering.conf", "once"],
       "env": {
-        "HOST_METERING_HOST_CERT_PATH": "${workspaceFolder}/mocks/consumer/cert.pem",
-        "HOST_METERING_HOST_CERT_KEY_PATH": "${workspaceFolder}/mocks/consumer/key.pem",
-        "PATH": "${workspaceFolder}/mocks:${env:PATH}"
+        "PATH": "${workspaceFolder}/mocks:${env:PATH}",
       }
     }
   ]

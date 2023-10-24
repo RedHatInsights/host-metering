@@ -13,15 +13,16 @@ RPMTOPDIR := $(DISTDIR)/rpmbuild
 GO := go
 TESTDIR := $(CURDIR)/test
 
-CONTAINER_POD := host-metering-pod
 DASHBOARD_URL = http://localhost:9090/graph?g0.expr=system_cpu_logical_count&g0.tab=0&g0.range_input=1m
+
+MOCKS_DIR = $(TESTDIR)/../mocks
 
 # Test
 .PHONY: test
-test:
+test: vendor
 	@echo "Running the unit tests..."
 
-	PATH=$(TESTDIR)/bin:$(PATH) \
+	PATH=$(MOCKS_DIR):$(PATH) \
 	$(GO) test -v \
 	-coverprofile=coverage.out \
 	-covermode=atomic \
@@ -49,55 +50,53 @@ build-selinux:
 
 # Functional testing (manual or automatic)
 
+.PHONY: container-env-setup
+container-env-setup:
+ifndef IS_IN_CONTAINER
+CONTAINER_TARGET = prometheus
+PROMETHEUS_ADDRESS = http://localhost:9090/api/v1/write
+else
+CONTAINER_TARGET =
+PROMETHEUS_ADDRESS = http://prometheus:9090/api/v1/write
+endif
+
 .PHONY: test-daemon
-test-daemon: cert build prometheus
+test-daemon: cert build container-env-setup $(CONTAINER_TARGET)
 	@echo "Running the $(PROJECT) in deamon mode..."
 
-	PATH=$(TESTDIR)/bin:$(PATH) \
-	$(DISTDIR)/$(PROJECT) --config hack/host-metering.conf daemon
+	PATH=$(MOCKS_DIR):$(PATH) \
+	HOST_METERING_WRITE_URL=$(PROMETHEUS_ADDRESS) \
+	$(DISTDIR)/$(PROJECT) --config .devcontainer/host-metering.conf daemon
 
-cert: hack/test-cert.crt hack/test-cert.key
+cert: mocks/consumer/cert.pem mocks/consumer/key.pem
 
-hack/test-cert.crt hack/test-cert.key:
+mocks/consumer/cert.pem mocks/consumer/key.pem:
 	@echo "Generating test certificates..."
-	cd hack && ./create-cert.sh
+	cd mocks && ./create-cert.sh
 
 # Containers
 
-.PHONY: container-pod
-container-pod:
-	if podman pod exists $(CONTAINER_POD); then \
-        echo "Pod $(CONTAINER_POD) exists."; \
-        exit 0; \
-	else \
-		echo "Creating the $(CONTAINER_POD)..."; \
-		podman pod create --replace -p 9090:9090 ${CONTAINER_POD}; \
-	fi
+.PHONY: podman-containers
+podman-containers:
+	podman-compose -f .devcontainer/docker-compose.yml build
 
 .PHONY: prometheus
-prometheus: container-pod
+prometheus: podman-containers
 	@echo "See the dashboard at: ${DASHBOARD_URL}"
 
-	if podman ps --filter "name=hm-prometheus" --format '{{.Names}}' | grep -q "hm-prometheus"; then \
-		echo "Prometheus is already running."; \
-		exit 0; \
-	else \
-		echo "Starting Prometheus..."; \
-		podman run --pod ${CONTAINER_POD} \
-			   --name hm-prometheus \
-			   -d \
-			   -v ./hack/prometheus.yml:/etc/prometheus/prometheus.yml:Z \
-			   prometheus/prometheus \
-			   --config.file=/etc/prometheus/prometheus.yml \
-			   --storage.tsdb.path=/prometheus \
-			   --web.console.libraries=/usr/share/prometheus/console_libraries \
-			   --web.console.templates=/usr/share/prometheus/consoles \
-			   --web.enable-remote-write-receiver; \
-	fi
+	podman-compose -f .devcontainer/docker-compose.yml up -d prometheus
+
+.PHONY: prometheus-stop
+prometheus-stop:
+	podman-compose -f .devcontainer/docker-compose.yml stop prometheus
+
+.PHONY: podman-%
+podman-%:
+	podman-compose -f .devcontainer/docker-compose.yml run -u root host-metering bash -c "cd /workspace/host-metering && make $(subst podman-,,$@)"
 
 .PHONY: clean-pod
 clean-pod:
-	podman pod rm -f ${CONTAINER_POD}
+	podman-compose -f .devcontainer/docker-compose.yml down
 
 # Release
 .PHONY: version
@@ -115,13 +114,18 @@ distdir:
 	@echo "Creating the destination directory..."
 	mkdir -p $(DISTDIR)
 
-.PHONY: vendor
+# Ensure vendor was run at least once
 vendor:
+	$(MAKE) force-vendor
+
+# refresh vendor cache
+.PHONY: force-vendor
+force-vendor:
 	@echo "Downloading go dependencies..."
 	$(GO) mod tidy && $(GO) mod vendor
 
 .PHONY: tarball
-tarball: distdir vendor
+tarball: distdir force-vendor
 	@echo "Creating a tarball with the source code..."
 	git archive \
 	    --format="tar" \
@@ -188,9 +192,8 @@ clean:
 	rm -rf $(CURDIR)/$(PROJECT)
 	rm -rf $(CURDIR)/contrib/selinux/tmp
 	rm -rf $(CURDIR)/contrib/selinux/*.pp
-	rm -rf $(CURDIR)/hack/cpumetrics
-	rm -f $(CURDIR)/hack/test-cert.crt
-	rm -f $(CURDIR)/hack/test-cert.key
+	rm -rf $(MOCKS_DIR)/cpumetrics
+	rm -rf $(MOCKS_DIR)/consumer
 
 .PHONY: clean-node
 clean-node:

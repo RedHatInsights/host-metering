@@ -27,6 +27,18 @@ cpu.cpu(s): 8
 cpu.cpu_socket(s): 3
 cpu.thread(s)_per_core: 2
 cpu.topology_source: kernel /sys cpu sibling lists
+conversions.activity: conversion
+conversions.activity_ended: 2023-10-06T14:32:44.223365Z
+conversions.activity_started: 2023-10-06T14:16:45.898768Z
+conversions.run_id: null
+conversions.source_os.id: Core
+conversions.source_os.name: CentOS Linux
+conversions.source_os.version: 7.9
+conversions.success: True
+conversions.target_os.id: Maipo
+conversions.target_os.name: Red Hat Enterprise Linux Server
+conversions.target_os.version: 7.9
+conversions.version: 1
 distribution.id: Maipo
 distribution.name: Red Hat Enterprise Linux Server
 distribution.version: 7.9

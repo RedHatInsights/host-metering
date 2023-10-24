@@ -19,6 +19,7 @@ func LoadSubManInformation(hi *HostInfo) {
 	facts, _ := GetSubManFacts()
 	hi.SocketCount, _ = GetSocketCount(facts)
 	hi.Product, _ = GetProduct(facts)
+	hi.ConversionsSuccess, _ = GetConversionsSuccess(facts)
 	hi.Billing, _ = GetBillingInfo(facts)
 }
 
@@ -57,6 +58,14 @@ func GetSocketCount(facts SubManValues) (string, error) {
 
 func GetProduct(facts SubManValues) (string, error) {
 	return facts.get("distribution.name")
+}
+
+func GetConversionsSuccess(facts SubManValues) (string, error) {
+	value, err := facts.get("conversions.success")
+	if err == nil {
+		value = strings.ToLower(value)
+	}
+	return value, err
 }
 
 func GetBillingInfo(facts SubManValues) (BillingInfo, error) {

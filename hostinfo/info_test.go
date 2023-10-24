@@ -28,6 +28,7 @@ func TestHostInfo(t *testing.T) {
 		"  Product: Red Hat Enterprise Linux Server\n" +
 		"  Support: Premium\n" +
 		"  Usage: Production\n" +
+		"  ConversionsSuccess: true\n" +
 		"  Billing.Model: marketplace\n" +
 		"  Billing.Marketplace: aws\n" +
 		"  Billing.MarketplaceAccount: 000000000000\n" +

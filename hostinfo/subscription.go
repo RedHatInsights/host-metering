@@ -11,8 +11,10 @@ import (
 )
 
 func LoadSubManInformation(hi *HostInfo) {
-	hi.HostId, _ = GetHostId()
-	hi.ExternalOrganization, _ = GetExternalOrganization()
+	identity := GetSubManIdentity()
+	hi.HostId, _ = GetHostId(identity)
+	hi.ExternalOrganization, _ = GetExternalOrganization(identity)
+
 	hi.Usage, _ = GetUsage()
 	hi.Support, _ = GetServiceLevel()
 
@@ -22,16 +24,17 @@ func LoadSubManInformation(hi *HostInfo) {
 	hi.Billing, _ = GetBillingInfo(facts)
 }
 
-func GetHostId() (string, error) {
+func GetSubManIdentity() SubManValues {
 	output, _ := execSubManCommand("identity")
-	values := parseSubManOutput(output)
-	return values.get("system identity")
+	return parseSubManOutput(output)
 }
 
-func GetExternalOrganization() (string, error) {
-	output, _ := execSubManCommand("identity")
-	values := parseSubManOutput(output)
-	return values.get("org ID")
+func GetHostId(identity SubManValues) (string, error) {
+	return identity.get("system identity")
+}
+
+func GetExternalOrganization(identity SubManValues) (string, error) {
+	return identity.get("org ID")
 }
 
 func GetUsage() (string, error) {

@@ -13,6 +13,7 @@ func TestLoadSubManInformation(t *testing.T) {
 		Product:              "Red Hat Enterprise Linux Server",
 		Support:              "Premium",
 		Usage:                "Production",
+		ConversionsSuccess:   "true",
 	}
 
 	// Test the host info for AWS.
@@ -78,6 +79,10 @@ func compareHostInfo(t *testing.T, hi *HostInfo, expected *HostInfo) {
 
 	if hi.Usage != expected.Usage {
 		t.Fatalf("an unexpected value of Usage: %v", hi.Usage)
+	}
+
+	if hi.ConversionsSuccess != expected.ConversionsSuccess {
+		t.Fatalf("an unexpected value of ConversionsSuccess: %v", hi.ConversionsSuccess)
 	}
 
 	if hi.Billing.Model != expected.Billing.Model {

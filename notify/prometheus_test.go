@@ -284,6 +284,21 @@ func TestLabels(t *testing.T) {
 	// With full host info
 	hi := createHostInfo()
 	createRequestAndCheckLabels(t, samples, hi)
+	writeRequest := hostInfo2WriteRequest(hi, samples)
+	checkLabelsPresence(t, writeRequest.Timeseries[0].Labels, []string{
+		"__name__",
+		"_id",
+		"billing_marketplace",
+		"billing_marketplace_account",
+		"billing_marketplace_instance_id",
+		"billing_model",
+		"conversions_success",
+		"external_organization",
+		"product",
+		"socket_count",
+		"support",
+		"usage",
+	})
 
 	// With host info that is missing some values
 	hi.Billing.MarketplaceAccount = ""
@@ -299,6 +314,9 @@ func TestLabels(t *testing.T) {
 	hi.HostId = ""
 	hi.Product = ""
 	hi.Support = ""
+	createRequestAndCheckLabels(t, samples, hi)
+
+	hi.ConversionsSuccess = ""
 	createRequestAndCheckLabels(t, samples, hi)
 }
 
@@ -431,6 +449,24 @@ func checkLabels(t *testing.T, labels []prompb.Label) {
 	}
 }
 
+// Check that labels with expected names are present
+func checkLabelsPresence(t *testing.T, labels []prompb.Label, expected_names []string) {
+	t.Helper()
+	// Test that labels are present
+	for _, name := range expected_names {
+		present := false
+		for _, label := range labels {
+			if label.Name == name {
+				present = true
+				break
+			}
+		}
+		if !present {
+			t.Fatalf("Expected %s label to be present", name)
+		}
+	}
+}
+
 // Data init functions
 
 // Test uses tlsInsecureSkipVerify = true, e.g. for mock server with self-signed certificate
@@ -452,12 +488,14 @@ func createSamples() []prompb.Sample {
 // Dummy host info with all fields filled
 func createHostInfo() *hostinfo.HostInfo {
 	return &hostinfo.HostInfo{
-		CpuCount:    1,
-		HostId:      "test",
-		SocketCount: "1",
-		Product:     "test product",
-		Support:     "test support",
-		Usage:       "test usage",
+		CpuCount:             1,
+		HostId:               "test",
+		SocketCount:          "1",
+		Product:              "test product",
+		Support:              "test support",
+		Usage:                "test usage",
+		ConversionsSuccess:   "true",
+		ExternalOrganization: "test external organization",
 		Billing: hostinfo.BillingInfo{
 			Model:                 "test model",
 			Marketplace:           "test marketplace",

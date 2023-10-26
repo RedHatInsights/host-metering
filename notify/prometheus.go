@@ -178,6 +178,10 @@ func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo, samples []prompb.Sample)
 			Value: hostinfo.Billing.Model,
 		},
 		{
+			Name:  "conversions_success",
+			Value: hostinfo.ConversionsSuccess,
+		},
+		{
 			Name:  "external_organization",
 			Value: hostinfo.ExternalOrganization,
 		},

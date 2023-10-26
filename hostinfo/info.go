@@ -13,6 +13,7 @@ type HostInfo struct {
 	Product              string
 	Support              string
 	Usage                string
+	ConversionsSuccess   string
 	Billing              BillingInfo
 }
 
@@ -63,6 +64,7 @@ func (hi *HostInfo) String() string {
 			fmt.Sprintf("  Product: %s", hi.Product),
 			fmt.Sprintf("  Support: %s", hi.Support),
 			fmt.Sprintf("  Usage: %s", hi.Usage),
+			fmt.Sprintf("  ConversionsSuccess: %s", hi.ConversionsSuccess),
 			fmt.Sprintf("  Billing.Model: %s", hi.Billing.Model),
 			fmt.Sprintf("  Billing.Marketplace: %s", hi.Billing.Marketplace),
 			fmt.Sprintf("  Billing.MarketplaceAccount: %s", hi.Billing.MarketplaceAccount),

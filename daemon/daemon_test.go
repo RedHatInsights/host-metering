@@ -152,6 +152,7 @@ func TestNotify(t *testing.T) {
 	daemon, notifier, metricsLog, hiProvider := createDaemon(t)
 	daemon.config.MetricsMaxAge = 10 * time.Second
 	daemon.hostInfo, _ = hiProvider.Load()
+	notifyPolicy := daemon.notifyPolicy.(*mockNotifyPolicy)
 
 	// Test that notifier is called when there are some samples
 	metricsLog.WriteSampleNow(1)
@@ -159,6 +160,7 @@ func TestNotify(t *testing.T) {
 	err := daemon.notify()
 	checkError(t, err, "failed to notify")
 	notifier.CheckWasCalled(t)
+	notifyPolicy.CheckWasCalled(t)
 
 	// Test that notifier was called with the sample and hostinfo
 	if len(notifier.calledWith.samples) != 1 {
@@ -335,14 +337,16 @@ func createDaemon(t *testing.T) (*Daemon, *mockNotifier, *notify.MetricsLog, *mo
 	notifier := &mockNotifier{}
 	notifier.ExpectSuccess()
 	daemon.notifier = notifier
+	daemon.notifyPolicy = NewMockNotifyPolicy(false)
 	daemon.certWatcher = &mockCertWatcher{make(chan hostinfo.CertEvent)}
 	hiProvider := newMockHostInfoProvider(&hostinfo.HostInfo{
-		CpuCount:    2,
-		HostId:      "testhost-id",
-		SocketCount: "1",
-		Product:     "testproduct",
-		Support:     "testsupport",
-		Usage:       "testusage",
+		CpuCount:             2,
+		HostId:               "testhost-id",
+		ExternalOrganization: "testorg",
+		SocketCount:          "1",
+		Product:              "testproduct",
+		Support:              "testsupport",
+		Usage:                "testusage",
 		Billing: hostinfo.BillingInfo{
 			Model:                 "testmodel",
 			Marketplace:           "testmarketplace",
@@ -424,6 +428,32 @@ func (n *mockNotifier) WaitForCall(t *testing.T, timeout time.Duration) {
 		}
 		time.Sleep(1 * time.Millisecond)
 	}
+}
+
+// Mock NotifyPolicy
+type mockNotifyPolicy struct {
+	Called uint
+	Fake   bool
+}
+
+func (m *mockNotifyPolicy) ShouldNotify(samples []prompb.Sample, hostinfo *hostinfo.HostInfo) error {
+	m.Called++
+	if !m.Fake {
+		policy := &notify.GeneralNotifyPolicy{}
+		return policy.ShouldNotify(samples, hostinfo)
+	}
+	return nil
+}
+
+func (m *mockNotifyPolicy) CheckWasCalled(t *testing.T) {
+	t.Helper()
+	if m.Called == 0 {
+		t.Fatalf("expected notify policy to be called")
+	}
+}
+
+func NewMockNotifyPolicy(fake bool) *mockNotifyPolicy {
+	return &mockNotifyPolicy{0, fake}
 }
 
 // Mock HostInfo provider

@@ -20,6 +20,7 @@ type Daemon struct {
 	metricsLog       *notify.MetricsLog
 	certWatcher      hostinfo.CertWatcher
 	notifier         notify.Notifier
+	notifyPolicy     notify.NotifyPolicy
 	stopCh           chan os.Signal
 	started          bool
 }
@@ -30,6 +31,7 @@ func NewDaemon(config *config.Config) (*Daemon, error) {
 		config:           config,
 		notifier:         notify.NewPrometheusNotifier(config),
 		hostInfoProvider: &hostinfo.SubManInfoProvider{},
+		notifyPolicy:     &notify.GeneralNotifyPolicy{},
 	}
 	d.certWatcher, err = hostinfo.NewINotifyCertWatcher(d.config.HostCertPath)
 	if err != nil {
@@ -208,11 +210,13 @@ func (d *Daemon) notify() error {
 	if d.config.MetricsMaxAge > 0 {
 		samples = notify.FilterSamplesByAge(samples, d.config.MetricsMaxAge)
 	}
-	count := len(samples)
-	if count == 0 {
-		logger.Debugln("No samples to send")
+	err = d.notifyPolicy.ShouldNotify(samples, d.hostInfo)
+	if err != nil {
+		logger.Warnf("Cannot notify: %s\n", err.Error())
 		return nil
 	}
+
+	count := len(samples)
 	logger.Debugf("Sending %d sample(s)...\n", count)
 	err = d.notifier.Notify(samples, d.hostInfo)
 	if err != nil {

@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -202,6 +203,33 @@ func TestNotify(t *testing.T) {
 		t.Fatalf("expected non-expired sample to be passed to notifier")
 	}
 
+	// Test that only expired samples are pruned on recoverable error
+	_, checkpoint, _ := metricsLog.GetSamples()
+	metricsLog.RemoveSamples(checkpoint)
+	expiredTs = time.Now().UnixMilli() - 11000
+	metricsLog.WriteSample(1, expiredTs)
+	metricsLog.WriteSampleNow(2)
+	notifier.ExpectError(notify.RecoverableError(fmt.Errorf("mocked")))
+	err = daemon.notify()
+	checkExpectedError(t, err, "recoverable notify error: mocked")
+	samples, _, _ = metricsLog.GetSamples()
+	if len(samples) != 1 {
+		t.Fatalf("expected expired sample to be pruned")
+	}
+	if samples[0].Value != 2 {
+		t.Fatalf("expected non-expired sample to be kept")
+	}
+
+	// Test that all samples are pruned on non-recoverable error
+	metricsLog.WriteSampleNow(2)
+	metricsLog.WriteSampleNow(2)
+	notifier.ExpectError(notify.NonRecoverableError(fmt.Errorf("mocked")))
+	err = daemon.notify()
+	checkExpectedError(t, err, "non-recoverable notify error: mocked")
+	samples, _, _ = metricsLog.GetSamples()
+	if len(samples) != 0 {
+		t.Fatalf("expected all samples to be pruned")
+	}
 }
 
 // Helper functions

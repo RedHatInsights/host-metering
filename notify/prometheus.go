@@ -37,13 +37,13 @@ func NewPrometheusNotifier(cfg *config.Config) *PrometheusNotifier {
 func (n *PrometheusNotifier) Notify(samples []prompb.Sample, hostinfo *hostinfo.HostInfo) error {
 	if !n.validClient || n.client == nil {
 		if err := n.createHttpClient(); err != nil {
-			return err
+			return RecoverableError(err)
 		}
 		n.validClient = true
 	}
 	request, err := newPrometheusRequest(hostinfo, n.cfg, samples)
 	if err != nil {
-		return err
+		return RecoverableError(err)
 	}
 	return prometheusRemoteWrite(n.client, n.cfg, request)
 }
@@ -89,7 +89,7 @@ func prometheusRemoteWrite(httpClient *http.Client, cfg *config.Config, httpRequ
 		resp, err := httpClient.Do(httpRequest)
 
 		if err != nil {
-			return fmt.Errorf("PrometheusRemoteWrite: %w", err)
+			return RecoverableError(err)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode/100 == 2 {
@@ -112,12 +112,12 @@ func prometheusRemoteWrite(httpClient *http.Client, cfg *config.Config, httpRequ
 			continue
 		}
 		if resp.StatusCode/100 == 4 {
-			return fmt.Errorf("PrometheusRemoteWrite: Http Error: %d, failing", resp.StatusCode)
+			return NonRecoverableError(fmt.Errorf("http Error: %d", resp.StatusCode))
 		}
-		return fmt.Errorf("PrometheusRemoteWrite: Unexpected Http Status: %d", resp.StatusCode)
+		return NonRecoverableError(fmt.Errorf("unexpected Http Status: %d", resp.StatusCode))
 	}
 
-	return fmt.Errorf("PrometheusRemoteWrite: Failed after %d attempts", attempt)
+	return RecoverableError(fmt.Errorf("failed after %d attempts", attempt))
 }
 
 func newPrometheusRequest(hostinfo *hostinfo.HostInfo, cfg *config.Config, samples []prompb.Sample) (

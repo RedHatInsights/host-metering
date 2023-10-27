@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	std_log "log"
 )
 
 // Test that logger global functions won't crash even if the logger is not initialized.
@@ -46,7 +48,7 @@ func TestLoggerGlobalFunctions(t *testing.T) {
 
 // Test initialization of logger with only log level
 func TestInitLogger(t *testing.T) {
-	InitLogger("", DebugLevel)
+	InitLogger("", DebugLevel, defaultLogPrefix, defaultLogFormat)
 	if log == nil {
 		t.Fatalf("logger is not initialized")
 	}
@@ -58,7 +60,7 @@ func TestInitLogger(t *testing.T) {
 func TestInitLoggerFile(t *testing.T) {
 	dir := t.TempDir()
 	path := dir + "/test.log"
-	InitLogger(path, DebugLevel)
+	InitLogger(path, DebugLevel, defaultLogPrefix, defaultLogFormat)
 	if log == nil {
 		t.Fatalf("logger is not initialized")
 	}
@@ -201,6 +203,42 @@ func TestOverridenLogger(t *testing.T) {
 	if len(entries) != 0 {
 		t.Fatalf("unexpected number of log entries after clear: %d", len(entries))
 	}
+}
+
+type LogPrefixTestCase struct {
+	prefix         string
+	expectedPrefix string
+	expectedFlag   int
+}
+
+func TestParseLogPrefix(t *testing.T) {
+	testCases := []LogPrefixTestCase{
+		{"", "", 0},
+		{"test", "test", 0},
+		{"test:", "test:", 0},
+		{"test: ", "test: ", 0},
+		{"test: %d", "test: ", std_log.Ldate},
+		{"test: %d %t", "test: ", std_log.Ldate | std_log.Ltime},
+		{"test: %d %t %m", "test: ", std_log.Ldate | std_log.Ltime | std_log.Lmicroseconds},
+		{"test: %S %l", "test: ", std_log.LstdFlags | std_log.Llongfile},
+		{"test: %S %s", "test: ", std_log.LstdFlags | std_log.Lshortfile},
+		{"test: %S %z", "test: ", std_log.LstdFlags | std_log.LUTC},
+		{"test%S %p", "test", std_log.LstdFlags | std_log.Lmsgprefix},
+		{"test: %S", "test: ", std_log.LstdFlags},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.prefix, func(t *testing.T) {
+			prefix, flag := ParseLogPrefix(tc.prefix)
+			if prefix != tc.expectedPrefix {
+				t.Fatalf("expected prefix: %s got: %s", tc.prefix, prefix)
+			}
+			if flag != tc.expectedFlag {
+				t.Fatalf("expected flag: %d got: %d", tc.expectedFlag, flag)
+			}
+		})
+	}
+
 }
 
 // Helper functions

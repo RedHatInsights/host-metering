@@ -6,10 +6,13 @@ import (
 	"strings"
 	"time"
 
+	std_log "log"
+
 	go_log "git.sr.ht/~spc/go-log"
 )
 
 const defaultLogFormat = 0
+const defaultLogPrefix = ""
 
 const (
 	DebugLevel = "DEBUG"
@@ -82,19 +85,14 @@ type Logger interface {
 }
 
 func InitDefaultLogger() Logger {
-	return go_log.New(os.Stderr, "", defaultLogFormat, go_log.LevelDebug)
+	return go_log.New(os.Stderr, defaultLogPrefix, defaultLogFormat, go_log.LevelDebug)
 }
 
-func InitLogger(file string, level string, logStructure ...int) error {
+func InitLogger(file string, level string, prefix string, flag int) error {
 	logLevel, err := go_log.ParseLevel(level)
 
 	if err != nil {
 		return err
-	}
-
-	actualLogStructure := defaultLogFormat
-	if len(logStructure) > 0 {
-		actualLogStructure = logStructure[0]
 	}
 
 	logFile := os.Stderr
@@ -105,7 +103,7 @@ func InitLogger(file string, level string, logStructure ...int) error {
 		return err
 	}
 
-	log = go_log.New(logFile, "", actualLogStructure, logLevel)
+	log = go_log.New(logFile, prefix, flag, logLevel)
 
 	return nil
 }
@@ -212,6 +210,43 @@ func Tracef(format string, v ...interface{}) {
 // handled in the manner of fmt.Println.
 func Traceln(v ...interface{}) {
 	getLogger().Traceln(v...)
+}
+
+func ParseLogPrefix(format string) (prefix string, flag int) {
+	if !strings.Contains(format, "%") {
+		return format, defaultLogFormat
+	}
+
+	prefix = format[:strings.Index(format, "%")]
+	flag = 0
+
+	if strings.Contains(format, "%d") {
+		flag |= std_log.Ldate
+	}
+	if strings.Contains(format, "%t") {
+		flag |= std_log.Ltime
+	}
+	if strings.Contains(format, "%m") {
+		flag |= std_log.Lmicroseconds
+	}
+	if strings.Contains(format, "%l") {
+		flag |= std_log.Llongfile
+	}
+	if strings.Contains(format, "%s") {
+		flag |= std_log.Lshortfile
+	}
+	if strings.Contains(format, "%z") {
+		flag |= std_log.LUTC
+	}
+	if strings.Contains(format, "%p") {
+		flag |= std_log.Lmsgprefix
+	}
+	if strings.Contains(format, "%S") {
+		flag |= std_log.LstdFlags
+	}
+
+	return prefix, flag
+
 }
 
 type LogEntry struct {

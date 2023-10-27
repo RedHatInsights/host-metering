@@ -228,12 +228,12 @@ func (d *Daemon) notify() error {
 		truncateError = d.metricsLog.RemoveSamples(checkpoint)
 	} else if errors.As(err, &notifyError) && !notifyError.Recoverable() {
 		// clear all samples on non-recoverable error
-		logger.Warnf("Notification: %s\n", notifyError.Error())
+		logger.Warnf("Notification [%d sample(s)]): %s\n", count, notifyError.Error())
 		truncateError = d.metricsLog.RemoveSamples(checkpoint)
 	} else {
 		// don't clear or clear only old so that WAL does not grow indefinitely on retries
 		// on recoverable or unknowns errors
-		logger.Warnf("Notification: %s\n", err.Error())
+		logger.Warnf("Notification [%d sample(s)]: %s\n", count, err.Error())
 		if origCount != count {
 			truncateError = d.metricsLog.RemoveSamples(checkpoint - uint64(count))
 		}

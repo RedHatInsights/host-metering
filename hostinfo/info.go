@@ -57,18 +57,18 @@ func (hi *HostInfo) String() string {
 	return strings.Join(
 		[]string{
 			"HostInfo:",
-			fmt.Sprintf("  CpuCount: %d", hi.CpuCount),
-			fmt.Sprintf("  HostId: %s", hi.HostId),
-			fmt.Sprintf("  ExternalOrganization: %s", hi.ExternalOrganization),
-			fmt.Sprintf("  SocketCount: %s", hi.SocketCount),
-			fmt.Sprintf("  Product: %s", hi.Product),
-			fmt.Sprintf("  Support: %s", hi.Support),
-			fmt.Sprintf("  Usage: %s", hi.Usage),
-			fmt.Sprintf("  ConversionsSuccess: %s", hi.ConversionsSuccess),
-			fmt.Sprintf("  Billing.Model: %s", hi.Billing.Model),
-			fmt.Sprintf("  Billing.Marketplace: %s", hi.Billing.Marketplace),
-			fmt.Sprintf("  Billing.MarketplaceAccount: %s", hi.Billing.MarketplaceAccount),
-			fmt.Sprintf("  Billing.MarketplaceInstanceId: %s", hi.Billing.MarketplaceInstanceId),
+			fmt.Sprintf("|  CpuCount: %d", hi.CpuCount),
+			fmt.Sprintf("|  HostId: %s", hi.HostId),
+			fmt.Sprintf("|  ExternalOrganization: %s", hi.ExternalOrganization),
+			fmt.Sprintf("|  SocketCount: %s", hi.SocketCount),
+			fmt.Sprintf("|  Product: %s", hi.Product),
+			fmt.Sprintf("|  Support: %s", hi.Support),
+			fmt.Sprintf("|  Usage: %s", hi.Usage),
+			fmt.Sprintf("|  ConversionsSuccess: %s", hi.ConversionsSuccess),
+			fmt.Sprintf("|  Billing.Model: %s", hi.Billing.Model),
+			fmt.Sprintf("|  Billing.Marketplace: %s", hi.Billing.Marketplace),
+			fmt.Sprintf("|  Billing.MarketplaceAccount: %s", hi.Billing.MarketplaceAccount),
+			fmt.Sprintf("|  Billing.MarketplaceInstanceId: %s", hi.Billing.MarketplaceInstanceId),
 		}, "\n")
 }
 

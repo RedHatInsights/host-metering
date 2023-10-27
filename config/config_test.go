@@ -12,20 +12,20 @@ func TestDefaultConfig(t *testing.T) {
 
 	// Define the expected defaults.
 	expectedCfg := "Config:\n" +
-		"  WriteUrl: http://localhost:9090/api/v1/write\n" +
-		"  WriteIntervalSec: 600\n" +
-		"  HostCertPath: /etc/pki/consumer/cert.pem\n" +
-		"  HostCertKeyPath: /etc/pki/consumer/key.pem\n" +
-		"  CollectIntervalSec: 0\n" +
-		"  LabelRefreshIntervalSec: 86400\n" +
-		"  WriteRetryAttempts: 8\n" +
-		"  WriteRetryMinIntSec: 1\n" +
-		"  WriteRetryMaxIntSec: 10\n" +
-		"  WriteTimeoutSec: 60\n" +
-		"  MetricsMaxAgeSec: 5400\n" +
-		"  MetricsWALPath: /var/run/host-metering/metrics\n" +
-		"  LogLevel: INFO\n" +
-		"  LogPath: \n"
+		"|  WriteUrl: http://localhost:9090/api/v1/write\n" +
+		"|  WriteIntervalSec: 600\n" +
+		"|  HostCertPath: /etc/pki/consumer/cert.pem\n" +
+		"|  HostCertKeyPath: /etc/pki/consumer/key.pem\n" +
+		"|  CollectIntervalSec: 0\n" +
+		"|  LabelRefreshIntervalSec: 86400\n" +
+		"|  WriteRetryAttempts: 8\n" +
+		"|  WriteRetryMinIntSec: 1\n" +
+		"|  WriteRetryMaxIntSec: 10\n" +
+		"|  WriteTimeoutSec: 60\n" +
+		"|  MetricsMaxAgeSec: 5400\n" +
+		"|  MetricsWALPath: /var/run/host-metering/metrics\n" +
+		"|  LogLevel: INFO\n" +
+		"|  LogPath: \n"
 
 	// Create the default configuration.
 	c := NewConfig()
@@ -58,20 +58,20 @@ func TestConfigFile(t *testing.T) {
 
 	// Define the expected configuration.
 	expectedCfg := "Config:\n" +
-		"  WriteUrl: http://test/url\n" +
-		"  WriteIntervalSec: 10\n" +
-		"  HostCertPath: /tmp/cert.pem\n" +
-		"  HostCertKeyPath: /tmp/key.pem\n" +
-		"  CollectIntervalSec: 20\n" +
-		"  LabelRefreshIntervalSec: 300\n" +
-		"  WriteRetryAttempts: 4\n" +
-		"  WriteRetryMinIntSec: 5\n" +
-		"  WriteRetryMaxIntSec: 6\n" +
-		"  WriteTimeoutSec: 6\n" +
-		"  MetricsMaxAgeSec: 700\n" +
-		"  MetricsWALPath: /tmp/metrics\n" +
-		"  LogLevel: ERROR\n" +
-		"  LogPath: /tmp/log\n"
+		"|  WriteUrl: http://test/url\n" +
+		"|  WriteIntervalSec: 10\n" +
+		"|  HostCertPath: /tmp/cert.pem\n" +
+		"|  HostCertKeyPath: /tmp/key.pem\n" +
+		"|  CollectIntervalSec: 20\n" +
+		"|  LabelRefreshIntervalSec: 300\n" +
+		"|  WriteRetryAttempts: 4\n" +
+		"|  WriteRetryMinIntSec: 5\n" +
+		"|  WriteRetryMaxIntSec: 6\n" +
+		"|  WriteTimeoutSec: 6\n" +
+		"|  MetricsMaxAgeSec: 700\n" +
+		"|  MetricsWALPath: /tmp/metrics\n" +
+		"|  LogLevel: ERROR\n" +
+		"|  LogPath: /tmp/log\n"
 
 	// Update the configuration from a valid config file.
 	fileContent := "[host-metering]\n" +
@@ -135,20 +135,20 @@ func TestEnvVariables(t *testing.T) {
 
 	// Define the expected configuration.
 	expectedCfg := "Config:\n" +
-		"  WriteUrl: http://test/url\n" +
-		"  WriteIntervalSec: 10\n" +
-		"  HostCertPath: /tmp/cert.pem\n" +
-		"  HostCertKeyPath: /tmp/key.pem\n" +
-		"  CollectIntervalSec: 20\n" +
-		"  LabelRefreshIntervalSec: 300\n" +
-		"  WriteRetryAttempts: 4\n" +
-		"  WriteRetryMinIntSec: 5\n" +
-		"  WriteRetryMaxIntSec: 6\n" +
-		"  WriteTimeoutSec: 6\n" +
-		"  MetricsMaxAgeSec: 700\n" +
-		"  MetricsWALPath: /tmp/metrics\n" +
-		"  LogLevel: ERROR\n" +
-		"  LogPath: /tmp/log\n"
+		"|  WriteUrl: http://test/url\n" +
+		"|  WriteIntervalSec: 10\n" +
+		"|  HostCertPath: /tmp/cert.pem\n" +
+		"|  HostCertKeyPath: /tmp/key.pem\n" +
+		"|  CollectIntervalSec: 20\n" +
+		"|  LabelRefreshIntervalSec: 300\n" +
+		"|  WriteRetryAttempts: 4\n" +
+		"|  WriteRetryMinIntSec: 5\n" +
+		"|  WriteRetryMaxIntSec: 6\n" +
+		"|  WriteTimeoutSec: 6\n" +
+		"|  MetricsMaxAgeSec: 700\n" +
+		"|  MetricsWALPath: /tmp/metrics\n" +
+		"|  LogLevel: ERROR\n" +
+		"|  LogPath: /tmp/log\n"
 
 	// Set valid environment variables.
 	t.Setenv("HOST_METERING_WRITE_URL", "http://test/url")

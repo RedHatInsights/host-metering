@@ -224,7 +224,7 @@ func (d *Daemon) notify() error {
 	var truncateError error
 	if err == nil {
 		// clear all samples on success as they were accepted by the server
-		logger.Debugln("Notification successful")
+		logger.Infof("Notification successful - sent %d sample(s)\n", count)
 		truncateError = d.metricsLog.RemoveSamples(checkpoint)
 	} else if errors.As(err, &notifyError) && !notifyError.Recoverable() {
 		// clear all samples on non-recoverable error

@@ -208,13 +208,22 @@ func TestNotify(t *testing.T) {
 	metricsLog.RemoveSamples(checkpoint)
 	expiredTs = time.Now().UnixMilli() - 11000
 	metricsLog.WriteSample(1, expiredTs)
+	_, _, _ = metricsLog.GetSamples()
+	metricsLog.WriteSample(1, expiredTs)
+	_, _, _ = metricsLog.GetSamples()
 	metricsLog.WriteSampleNow(2)
+	_, _, _ = metricsLog.GetSamples()
+	metricsLog.WriteSampleNow(3)
+	_, _, _ = metricsLog.GetSamples()
+	metricsLog.WriteSampleNow(4)
+	_, _, _ = metricsLog.GetSamples()
+	metricsLog.WriteSampleNow(5)
 	notifier.ExpectError(notify.RecoverableError(fmt.Errorf("mocked")))
 	err = daemon.notify()
 	checkExpectedError(t, err, "recoverable notify error: mocked")
 	samples, _, _ = metricsLog.GetSamples()
-	if len(samples) != 1 {
-		t.Fatalf("expected expired sample to be pruned")
+	if len(samples) != 4 {
+		t.Fatalf("expected expired sample to be pruned, got %d", len(samples))
 	}
 	if samples[0].Value != 2 {
 		t.Fatalf("expected non-expired sample to be kept")

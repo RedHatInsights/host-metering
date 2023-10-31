@@ -236,7 +236,7 @@ func (d *Daemon) notify() error {
 		logger.Warnf("Notification: %s\n", err.Error())
 		if origCount != count {
 			logger.Infof("Dropping %d expired sample(s)\n", origCount-count)
-			truncateError = d.metricsLog.RemoveSamples(checkpoint - uint64(count))
+			truncateError = d.metricsLog.RemoveOldestSamples(origCount - count)
 		}
 	}
 

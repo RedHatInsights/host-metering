@@ -74,6 +74,8 @@ install -m 0755 -vd                     %{buildroot}%{_bindir}
 install -m 0755 -vp $(pwd)/bin/*        %{buildroot}%{_bindir}/
 install -m 0755 -vd                     %{buildroot}%{_unitdir}
 install -m 644 contrib/systemd/host-metering.service %{buildroot}%{_unitdir}/%{name}.service
+install -m 0755 -vd                     %{buildroot}%{_mandir}/man1
+install -m 644 contrib/man/host-metering.1 %{buildroot}%{_mandir}/man1/host-metering.1
 
 install -D -m 0644 contrib/selinux/%{modulename}.pp %{buildroot}%{_datadir}/selinux/packages/%{selinuxtype}/%{modulename}.pp
 install -D -p -m 644 contrib/selinux/%{modulename}.if %{buildroot}%{_datadir}/selinux/devel/include/distributed/%{modulename}.if
@@ -101,6 +103,7 @@ fi
 %doc README.md
 %{_bindir}/*
 %attr(644,root,root) %{_unitdir}/%{name}.service
+%{_mandir}/man1/host-metering.1*
 
 %files selinux
 %{_datadir}/selinux/packages/%{selinuxtype}/%{modulename}.pp

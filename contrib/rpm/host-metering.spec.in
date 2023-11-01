@@ -82,6 +82,9 @@ install -D -p -m 644 contrib/selinux/%{modulename}.if %{buildroot}%{_datadir}/se
 %check
 %endif
 
+%post
+/bin/systemctl --system daemon-reload 2>&1 || :
+
 %post selinux
 %selinux_modules_install -s %{selinuxtype} %{_datadir}/selinux/packages/%{selinuxtype}/%{modulename}.pp
 %selinux_relabel_post -s %{selinuxtype}
@@ -89,6 +92,21 @@ install -D -p -m 644 contrib/selinux/%{modulename}.if %{buildroot}%{_datadir}/se
 if [ "$1" -le "1" ]; then # First install
    # the daemon needs to be restarted for the custom label to be applied
    %systemd_postun_with_restart %{modulename}.service
+fi
+
+%posttrans
+# restart on upgrade if was enabled
+/bin/systemctl is-enabled host-metering.service >/dev/null 2>&1
+if [  $? -eq 0 ]; then
+    /bin/systemctl restart host-metering.service >/dev/null || :
+fi
+
+
+%preun
+# stop and disable on uninstallation
+if [ $1 -eq 0 ]; then
+    /bin/systemctl --quiet stop host-metering.service || :
+    /bin/systemctl --quiet disable host-metering.service || :
 fi
 
 %postun selinux

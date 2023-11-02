@@ -51,6 +51,7 @@ Host metering service
 Summary:       SELinux policy module for host-metering
 BuildArch:     noarch
 %{?selinux_requires}
+Requires:      %{name} = %{version}-%{release}
 
 %description selinux
 This package installs and sets up the SELinux policy security module for host-metering.

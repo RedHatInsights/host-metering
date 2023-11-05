@@ -163,7 +163,7 @@ func (values SubManValues) get(name string) (string, error) {
 
 	if !ok {
 		err := fmt.Errorf("`%s` not found", name)
-		logger.Errorf("Error getting subscription info: %s", err.Error())
+		logger.Warnf("Unable to get subscription info: %s", err.Error())
 		return "", err
 	}
 

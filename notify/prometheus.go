@@ -123,6 +123,7 @@ func prometheusRemoteWrite(httpClient *http.Client, cfg *config.Config, httpRequ
 func newPrometheusRequest(hostinfo *hostinfo.HostInfo, cfg *config.Config, samples []prompb.Sample) (
 	*http.Request, error) {
 	writeRequest := hostInfo2WriteRequest(hostinfo, samples)
+	logger.Debugf("WriteRequest: %s", writeRequest)
 	compressedData, err := writeRequest2Payload(writeRequest)
 	if err != nil {
 		return nil, err

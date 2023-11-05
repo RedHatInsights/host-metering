@@ -1,1 +1,3 @@
 ---
+rule_files:
+  - ./contrib/recording-rules.yml

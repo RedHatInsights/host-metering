@@ -174,6 +174,52 @@ func (log *MetricsLog) RemoveSamples(checkpoint uint64) error {
 	return log.wal.TruncateFront(checkpoint)
 }
 
+func (log *MetricsLog) RemoveOldestSamples(numSamples int) error {
+	if numSamples <= 0 {
+		return nil
+	}
+
+	log.mu.Lock()
+	defer log.mu.Unlock()
+
+	firstIndex, err := log.wal.FirstIndex()
+	if err != nil {
+		return err
+	}
+
+	lastIndex, err := log.wal.LastIndex()
+	if err != nil {
+		return err
+	}
+
+	// Find index after the last sample to be removed.
+	samplesRead := 0
+	truncateIndex := firstIndex
+	for i := firstIndex; i <= lastIndex; i++ {
+		sample, err := log.readSample(i)
+		if err != nil {
+			return err
+		}
+
+		// Skip checkpoints.
+		if sample == nil {
+			continue
+		}
+
+		samplesRead++
+		truncateIndex = i + 1
+
+		if samplesRead >= numSamples {
+			break
+		}
+	}
+	if truncateIndex > lastIndex {
+		truncateIndex = lastIndex
+	}
+
+	return log.wal.TruncateFront(truncateIndex)
+}
+
 func (log *MetricsLog) Close() error {
 	log.mu.Lock()
 	defer log.mu.Unlock()

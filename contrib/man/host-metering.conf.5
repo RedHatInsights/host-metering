@@ -1,0 +1,115 @@
+.TH "HOST-METERING\&.CONF" "5" "10/31/2023" "HOST-METERING" "File Formats and Conventions"
+
+.SH "NAME"
+host-metering.conf \- the configuration file for host-metering
+
+.SH "FILE FORMAT"
+.PP
+The file has an ini\-style syntax and consists of sections and parameters.
+Only the [host-metering] section is recognized.
+
+.SH "SECTIONS"
+.SS "[host-metering]"
+.PP
+
+\fBSection parameters\fR
+
+.PP
+write_url (string)
+.RS 4
+Remote server endpoint.
+.RE
+
+.PP
+write_interval_sec (integer)
+.RS 4
+Interval between writes to remote server in seconds.
+.RE
+
+.PP
+host_cert_path (string)
+.RS 4
+Path to host certificate that is used for authentication with remote server.
+.RE
+
+.PP
+host_cert_key_path (string)
+.RS 4
+Path to host certificate key that is used for authentication with remote server.
+.RE
+
+.PP
+collect_interval_sec (integer)
+.RS 4
+Interval between collecting host metrics in seconds.
+.RE
+
+.PP
+label_refresh_interval_sec (integer)
+.RS 4
+Interval between refreshing host labels in seconds.
+.RE
+
+.PP
+write_retry_attempts (integer)
+.RS 4
+Number of write attempts to remote server.
+.RE
+
+.PP
+write_retry_min_int_sec (integer)
+.RS 4
+Minimum interval between write retries in seconds.
+.RE
+
+.PP
+write_retry_max_int_sec (integer)
+.RS 4
+Maximum interval between write retries in seconds.
+.RE
+
+.PP
+write_timeout_sec (integer)
+.RS 4
+Timeout for write to remote server in seconds.
+.RE
+
+.PP
+metrics_max_age_sec (integer)
+.RS 4
+Maximum age of collected metrics in seconds. After the time, the metrics are dropped.
+.RE
+
+.PP
+metrics_wal_path (string)
+.RS 4
+Path to directory where write ahead log files are stored.
+.RE
+
+.PP
+log_level (string)
+.RS 4
+Log level. Possible values are: DEBUG, INFO, WARN, ERROR, TRACE.
+.RE
+
+.PP
+log_path (string)
+.RS 4
+Path to log file. Default is empty - stderr.
+.RE
+
+.SH "EXAMPLES"
+.PP
+1\&. The following example shows how to switch the logging to DEBUG level\&.
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+[host-metering]
+log_level = DEBUG
+.fi
+
+.PP
+.SH "SEE ALSO"
+.BR host-metering(1)

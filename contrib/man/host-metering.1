@@ -1,0 +1,86 @@
+.TH HOST-METERING 1
+
+.SH "NAME"
+host-metering \- Host metering service
+
+.SH "SYNOPSIS"
+.B host-metering
+[\fB\-\-config\fR \fICONFIG_FILE_PATH\fR]
+.IR daemon
+
+.SH "DESCRIPTION"
+.B host-metering
+Host metering service regularly notifies remote server about the host's
+CPU count together with subscription and cloud information.
+
+.SH "OPTIONS"
+.TP
+.BR \-\-config =\fICONFIG_FILE_PATH\fR
+Path to configuration file.
+Default is /etc/host-metering.conf
+
+.SH "ENVIRONMENT VARIABLES"
+.PP
+\fBHOST_METERING_WRITE_URL\fR
+Remote server endpoint.
+
+\fBHOST_METERING_WRITE_INTERVAL_SEC\fR
+Interval between writes to remote server in seconds.
+
+\fBHOST_METERING_HOST_CERT_PATH\fR
+Path to host certificate that is used for authentication with remote server.
+
+\fBHOST_METERING_HOST_CERT_KEY_PATH\fR
+Path to host certificate key that is used for authentication with remote server.
+
+\fBHOST_METERING_COLLECT_INTERVAL_SEC\fR
+Interval between collecting host metrics in seconds.
+
+\fBHOST_METERING_LABEL_REFRESH_INTERVAL_SEC\fR
+Interval between refreshing host labels in seconds.
+
+\fBHOST_METERING_WRITE_RETRY_ATTEMPTS\fR
+Number of write attempts to remote server.
+
+\fBHOST_METERING_WRITE_RETRY_MIN_INT_SEC\fR
+Minimum interval between write retries in seconds.
+
+\fBHOST_METERING_WRITE_RETRY_MAX_INT_SEC\fR
+Maximum interval between write retries in seconds.
+
+\fBHOST_METERING_WRITE_TIMEOUT_SEC\fR
+Timeout for write to remote server in seconds.
+
+\fBHOST_METERING_METRICS_MAX_AGE_SEC\fR
+Maximum age of collected metrics in seconds. After the time, the metrics are dropped.
+
+\fBHOST_METERING_METRICS_WAL_PATH\fR
+Path to directory where write ahead log files are stored.
+
+\fBHOST_METERING_LOG_LEVEL\fR
+Log level. Possible values are: DEBUG, INFO, WARN, ERROR, TRACE.
+
+\fBHOST_METERING_LOG_PATH\fR
+Path to log file. Default is empty - stderr.
+
+.SH "FILES"
+.PP
+\fI/etc/host-metering.conf\fR
+.RS 4
+Default configuration file.
+.RE
+.PP
+\fI/var/run/host-metering\fR
+.RS 4
+The default directory for storing write ahead log files
+
+.SH "EXIT STATUS"
+0 if the command was successful
+
+1 if an error occurred
+
+2 if configuration is invalid
+
+.PP
+.SH "SEE ALSO"
+.BR host-metering.conf(5)

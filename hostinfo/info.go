@@ -10,7 +10,7 @@ type HostInfo struct {
 	HostId               string
 	ExternalOrganization string
 	SocketCount          string
-	Product              string
+	Product              []string
 	Support              string
 	Usage                string
 	ConversionsSuccess   string

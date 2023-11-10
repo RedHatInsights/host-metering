@@ -312,7 +312,7 @@ func TestLabels(t *testing.T) {
 	createRequestAndCheckLabels(t, samples, hi)
 
 	hi.HostId = ""
-	hi.Product = ""
+	hi.Product = []string{}
 	hi.Support = ""
 	createRequestAndCheckLabels(t, samples, hi)
 
@@ -491,7 +491,7 @@ func createHostInfo() *hostinfo.HostInfo {
 		CpuCount:             1,
 		HostId:               "test",
 		SocketCount:          "1",
-		Product:              "test product",
+		Product:              []string{"123", "456"},
 		Support:              "test support",
 		Usage:                "test usage",
 		ConversionsSuccess:   "true",

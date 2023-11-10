@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/RedHatInsights/host-metering/config"
@@ -188,7 +189,7 @@ func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo, samples []prompb.Sample)
 		},
 		{
 			Name:  "product",
-			Value: hostinfo.Product,
+			Value: strings.Join(hostinfo.Product, ","),
 		},
 		{
 			Name:  "socket_count",

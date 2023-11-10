@@ -36,6 +36,14 @@ test: vendor
 
 	@cat coverage.txt
 
+# Non-verbose failfast variant of unit tests
+.PHONY: test-ff
+test-ff: vendor
+	@echo "Running the unit tests..."
+
+	PATH=$(MOCKS_DIR):$(PATH) \
+	$(GO) test -failfast  ./...
+
 # Build
 .PHONY: build
 build:

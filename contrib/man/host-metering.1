@@ -21,6 +21,34 @@ Default is /etc/host-metering.conf
 
 .SH "ENVIRONMENT VARIABLES"
 .PP
+
+\fBHTTP_PROXY\fR
+Represents the value of the HTTP_PROXY or
+http_proxy environment variable. It will be used as the proxy
+URL for HTTP requests unless overridden by NO_PROXY.
+
+\fBHTTPS_PROXY\fR
+Represents the HTTPS_PROXY or https_proxy
+environment variable. It will be used as the proxy URL for
+HTTPS requests unless overridden by NoProxy.
+
+\fBNO_PROXY\fR
+Represents the NO_PROXY or no_proxy environment
+variable. It specifies a string that contains comma-separated values
+specifying hosts that should be excluded from proxying. Each value is
+represented by an IP address prefix (1.2.3.4), an IP address prefix in
+CIDR notation (1.2.3.4/8), a domain name, or a special DNS label (*).
+An IP address prefix and domain name can also include a literal port
+number (1.2.3.4:80).
+A domain name matches that name and all subdomains. A domain name with
+a leading "." matches subdomains only. For example "foo.com" matches
+"foo.com" and "bar.foo.com"; ".y.com" matches "x.y.com" but not "y.com".
+A single asterisk (*) indicates that no proxying should be done.
+A best effort is made to parse the string and errors are
+ignored.
+
+More details can be found on the offical go http documentation: https://pkg.go.dev/net/http#ProxyFromEnvironment
+
 \fBHOST_METERING_WRITE_URL\fR
 Remote server endpoint.
 

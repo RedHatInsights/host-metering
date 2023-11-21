@@ -241,6 +241,67 @@ func TestNotify(t *testing.T) {
 	}
 }
 
+func TestRunWithLabelRefresh(t *testing.T) {
+	daemon, _, _, _ := createDaemon(t)
+	daemon.config.LabelRefreshInterval = 5 * time.Millisecond
+
+	go daemon.Run()
+	checkRunning(t, daemon)
+
+	// Check initial labels are set to Mock default
+	if daemon.hostInfo.Product != "testproduct" || daemon.hostInfo.Support != "testsupport" {
+		t.Fatalf("expected initial mock labels")
+	}
+
+	// Change the HostInfoProvider Mock to return a predictable HostInfo after label refresh
+	newHostInfo := newMockHostInfoProvider(&hostinfo.HostInfo{
+		Product: "anotherproduct",
+		Support: "premium",
+	})
+
+	daemon.hostInfoProvider = newHostInfo
+
+	// Label refresh on label refresh interval
+	newHostInfo.ResetCalled()
+	newHostInfo.WaitForCalled(t, 1)
+	if daemon.hostInfo.Product != "anotherproduct" || daemon.hostInfo.Support != "premium" {
+		t.Fatalf("expected label refresh on label refresh interval")
+	}
+
+	// Cleanup
+	daemon.Stop()
+	waitForStopped(t, daemon)
+}
+
+func TestRunWithoutLabelRefresh(t *testing.T) {
+	daemon, _, _, _ := createDaemon(t)
+	daemon.config.LabelRefreshInterval = 0
+
+	go daemon.Run()
+	checkRunning(t, daemon)
+
+	// Check initial labels are set to Mock default
+	if daemon.hostInfo.Product != "testproduct" || daemon.hostInfo.Support != "testsupport" {
+		t.Fatalf("expected initial mock labels")
+	}
+
+	// Change the HostInfoProvider Mock to return a predictable HostInfo after label refresh
+	daemon.hostInfoProvider = newMockHostInfoProvider(&hostinfo.HostInfo{
+		Product: "anotherproduct",
+		Support: "premium",
+	})
+
+	// Wait for more than LabelRefreshInterval and check labels
+	time.Sleep(20 * time.Millisecond)
+	if daemon.hostInfo.Product != "testproduct" || daemon.hostInfo.Support != "testsupport" {
+		t.Fatalf("expected labels not to be refreshed")
+	}
+
+	// Cleanup
+	daemon.Stop()
+	waitForStopped(t, daemon)
+}
+
 // Helper functions
 
 // Wait and check if deamon run was initiated

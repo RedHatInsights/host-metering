@@ -81,6 +81,16 @@ func (d *Daemon) Run() error {
 	writeTicker := time.NewTicker(d.config.WriteInterval)
 	defer writeTicker.Stop()
 
+	var labelTicker *time.Ticker
+	if d.config.LabelRefreshInterval > 0 {
+		labelTicker = time.NewTicker(d.config.LabelRefreshInterval)
+		defer labelTicker.Stop()
+	} else {
+		// Create dummy stopped ticker if label interval is not configured
+		labelTicker = time.NewTicker(time.Duration(1) * time.Hour)
+		labelTicker.Stop()
+	}
+
 	go func() {
 		for {
 			select {
@@ -91,6 +101,13 @@ func (d *Daemon) Run() error {
 					d.collectMetrics()
 				}
 				d.notify()
+			case <-labelTicker.C:
+				logger.Infoln("Refresh labels...")
+				if err := d.loadHostInfo(); err != nil {
+					logger.Errorln(err.Error())
+					continue
+				}
+				logger.Infoln("Labels refreshed")
 			case <-reloadCh:
 				logger.Infoln("Reloading HostInfo...")
 				if err := d.loadHostInfo(); err != nil {

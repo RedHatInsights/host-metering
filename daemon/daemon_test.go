@@ -246,7 +246,7 @@ func TestRunWithLabelRefresh(t *testing.T) {
 	daemon.config.LabelRefreshInterval = 5 * time.Millisecond
 
 	go daemon.Run()
-	checkRunning(t, daemon)
+	waitForStarted(t, daemon)
 
 	// Check initial labels are set to Mock default
 	if daemon.hostInfo.Product != "testproduct" || daemon.hostInfo.Support != "testsupport" {
@@ -265,7 +265,7 @@ func TestRunWithLabelRefresh(t *testing.T) {
 	newHostInfo.ResetCalled()
 	newHostInfo.WaitForCalled(t, 1)
 	if daemon.hostInfo.Product != "anotherproduct" || daemon.hostInfo.Support != "premium" {
-		t.Fatalf("expected label refresh on label refresh interval")
+		t.Fatalf("expected label refresh on label refresh interval, got: %s, %s", daemon.hostInfo.Product, daemon.hostInfo.Support)
 	}
 
 	// Cleanup
@@ -278,7 +278,7 @@ func TestRunWithoutLabelRefresh(t *testing.T) {
 	daemon.config.LabelRefreshInterval = 0
 
 	go daemon.Run()
-	checkRunning(t, daemon)
+	waitForStarted(t, daemon)
 
 	// Check initial labels are set to Mock default
 	if daemon.hostInfo.Product != "testproduct" || daemon.hostInfo.Support != "testsupport" {
@@ -587,6 +587,7 @@ func (m *mockHostInfoProvider) WaitForCalled(t *testing.T, n uint) {
 	start := time.Now()
 	for {
 		if m.called == n {
+			time.Sleep(100 * time.Microsecond)
 			return
 		}
 		if time.Since(start) > 10*time.Millisecond {

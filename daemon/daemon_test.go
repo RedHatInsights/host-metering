@@ -249,13 +249,13 @@ func TestRunWithLabelRefresh(t *testing.T) {
 	waitForStarted(t, daemon)
 
 	// Check initial labels are set to Mock default
-	if daemon.hostInfo.Product != "testproduct" || daemon.hostInfo.Support != "testsupport" {
+	if daemon.hostInfo.Usage != "testusage" || daemon.hostInfo.Support != "testsupport" {
 		t.Fatalf("expected initial mock labels")
 	}
 
 	// Change the HostInfoProvider Mock to return a predictable HostInfo after label refresh
 	newHostInfo := newMockHostInfoProvider(&hostinfo.HostInfo{
-		Product: "anotherproduct",
+		Usage:   "anotherusage",
 		Support: "premium",
 	})
 
@@ -264,7 +264,7 @@ func TestRunWithLabelRefresh(t *testing.T) {
 	// Label refresh on label refresh interval
 	newHostInfo.ResetCalled()
 	newHostInfo.WaitForCalled(t, 1)
-	if daemon.hostInfo.Product != "anotherproduct" || daemon.hostInfo.Support != "premium" {
+	if daemon.hostInfo.Usage != "anotherusage" || daemon.hostInfo.Support != "premium" {
 		t.Fatalf("expected label refresh on label refresh interval, got: %s, %s", daemon.hostInfo.Product, daemon.hostInfo.Support)
 	}
 
@@ -281,19 +281,19 @@ func TestRunWithoutLabelRefresh(t *testing.T) {
 	waitForStarted(t, daemon)
 
 	// Check initial labels are set to Mock default
-	if daemon.hostInfo.Product != "testproduct" || daemon.hostInfo.Support != "testsupport" {
+	if daemon.hostInfo.Usage != "testusage" || daemon.hostInfo.Support != "testsupport" {
 		t.Fatalf("expected initial mock labels")
 	}
 
 	// Change the HostInfoProvider Mock to return a predictable HostInfo after label refresh
 	daemon.hostInfoProvider = newMockHostInfoProvider(&hostinfo.HostInfo{
-		Product: "anotherproduct",
+		Usage:   "anotherusage",
 		Support: "premium",
 	})
 
 	// Wait for more than LabelRefreshInterval and check labels
 	time.Sleep(20 * time.Millisecond)
-	if daemon.hostInfo.Product != "testproduct" || daemon.hostInfo.Support != "testsupport" {
+	if daemon.hostInfo.Usage != "testusage" || daemon.hostInfo.Support != "testsupport" {
 		t.Fatalf("expected labels not to be refreshed")
 	}
 

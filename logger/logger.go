@@ -97,7 +97,7 @@ func InitLogger(file string, level string, prefix string, flag int) error {
 
 	logFile := os.Stderr
 	if file != "" {
-		logFile, err = os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
+		logFile, err = os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	}
 	if err != nil {
 		return err

@@ -442,7 +442,7 @@ func createDaemon(t *testing.T) (*Daemon, *mockNotifier, *notify.MetricsLog, *mo
 		HostId:               "testhost-id",
 		ExternalOrganization: "testorg",
 		SocketCount:          "1",
-		Product:              "testproduct",
+		Product:              []string{"69"},
 		Support:              "testsupport",
 		Usage:                "testusage",
 		Billing: hostinfo.BillingInfo{

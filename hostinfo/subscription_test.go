@@ -1,6 +1,7 @@
 package hostinfo
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -10,7 +11,7 @@ func TestLoadSubManInformation(t *testing.T) {
 		HostId:               "01234567-89ab-cdef-0123-456789abcdef",
 		ExternalOrganization: "12345678",
 		SocketCount:          "3",
-		Product:              "Red Hat Enterprise Linux Server",
+		Product:              []string{"394", "69"},
 		Support:              "Premium",
 		Usage:                "Production",
 		ConversionsSuccess:   "true",
@@ -69,7 +70,7 @@ func compareHostInfo(t *testing.T, hi *HostInfo, expected *HostInfo) {
 		t.Fatalf("an unexpected value of SocketCount: %v", hi.SocketCount)
 	}
 
-	if hi.Product != expected.Product {
+	if !reflect.DeepEqual(hi.Product, expected.Product) {
 		t.Fatalf("an unexpected value of Product: %v", hi.Product)
 	}
 

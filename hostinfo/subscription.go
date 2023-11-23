@@ -59,8 +59,10 @@ func GetSocketCount(facts SubManValues) (string, error) {
 	return facts.get("cpu.cpu_socket(s)")
 }
 
-func GetProduct(facts SubManValues) (string, error) {
-	return facts.get("distribution.name")
+func GetProduct(facts SubManValues) ([]string, error) {
+	output, _ := execSubManCommand("list --installed")
+	values := parseSubManOutputMultiVal(output)
+	return values.get("Product ID")
 }
 
 func GetConversionsSuccess(facts SubManValues) (string, error) {
@@ -165,6 +167,60 @@ func (values SubManValues) get(name string) (string, error) {
 		err := fmt.Errorf("`%s` not found", name)
 		logger.Warnf("Unable to get subscription info: %s", err.Error())
 		return "", err
+	}
+
+	return v, nil
+}
+
+func parseSubManOutputMultiVal(output string) SubManMultiValues {
+	values := SubManMultiValues{}
+	reader := strings.NewReader(output)
+	scanner := bufio.NewScanner(reader)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		line = strings.TrimSpace(line)
+
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, ";") || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Parse key-value pairs
+		parts := strings.SplitN(line, ":", 2)
+
+		if len(parts) != 2 {
+			continue
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		values.add(key, value)
+	}
+
+	return values
+}
+
+type SubManMultiValues map[string][]string
+
+func (values SubManMultiValues) add(name string, value string) {
+	key := strings.ToLower(name)
+	v, ok := values[key]
+	if !ok {
+		values[key] = []string{value}
+		return
+	}
+
+	values[key] = append(v, value)
+}
+
+func (values SubManMultiValues) get(name string) ([]string, error) {
+	v, ok := values[strings.ToLower(name)]
+
+	if !ok {
+		err := fmt.Errorf("`%s` not found", name)
+		logger.Warnf("Unable to get subscription info: %s", err.Error())
+		return []string{}, err
 	}
 
 	return v, nil

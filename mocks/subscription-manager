@@ -136,6 +136,30 @@ FACTS_GCP=\
 "gcp_project_number: 000000000000
 gcp_instance_id: 1111111111111111111"
 
+LIST_INSTALLED=\
+"+-------------------------------------------+
+    Installed Product Status
++-------------------------------------------+
+Product Name:   Red Hat Developer Tools (for RHEL Server)
+Product ID:     394
+Version:        2021.3
+Arch:           x86_64
+Status:         Not Subscribed
+Status Details:
+Starts:
+Ends:
+
+Product Name:   Red Hat Enterprise Linux Server
+Product ID:     69
+Version:        7.9
+Arch:           x86_64
+Status:         Not Subscribed
+Status Details:
+Starts:
+Ends:
+
+"
+
 show_identity() {
   # Show information about the host identity.
   echo "${IDENTITY}"
@@ -170,6 +194,11 @@ show_facts() {
   esac
 }
 
+show_list_installed() {
+  # Show the list of installed products.
+  echo "${LIST_INSTALLED}"
+}
+
 hard_coded() {
   # Handle the specified subscription-manager command.
   case "${command:=${1}}" in
@@ -185,8 +214,14 @@ hard_coded() {
     facts)
       show_facts
       ;;
+    list)
+      show_list_installed
+      ;;
+    "list --installed")
+      show_list_installed
+      ;;
     *)
-      echo "This command is not supported." >&2
+      echo "Unsupported command: ${command}" >&2
       exit 1
       ;;
   esac

@@ -83,7 +83,7 @@ func fullyDefinedMockHostInfo() *hostinfo.HostInfo {
 		HostId:               "hostid",
 		ExternalOrganization: "externalorganization",
 		SocketCount:          "socketcount",
-		Product:              "product",
+		Product:              []string{"69"},
 		Support:              "support",
 		Usage:                "usage",
 		Billing:              fullyDefinedMockBillingInfo(),

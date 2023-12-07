@@ -19,3 +19,4 @@ mocks/consumer/
 mocks/cpumetrics/
 .devcontainer/docker-compose.local.yml
 coverage.*
+contrib/prometheus/recording-rules.yml

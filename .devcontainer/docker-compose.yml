@@ -8,15 +8,38 @@ services:
     volumes:
       - ../:/workspace/host-metering:Z
 
+  prometheus-rules-generator:
+    image: docker.io/mikefarah/yq:latest
+    volumes:
+      - ../contrib/prometheus:/workdir:Z
+    entrypoint: sh
+    command:
+      - -c
+      - "yq .objects[0].spec /workdir/recording-rules-resource.yml > /workdir/recording-rules.yml"
+    userns_mode: host
+    user: root
+
   prometheus:
     image: prometheus/prometheus
     ports:
       - 9090:9090
     volumes:
       - ./local_prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:Z
+      - ../contrib/prometheus:/etc/prometheus/contrib:Z
     command:
       -  '--config.file=/etc/prometheus/prometheus.yml'
       -  '--storage.tsdb.path=/prometheus'
       -  '--web.console.libraries=/usr/share/prometheus/console_libraries'
       -  '--web.console.templates=/usr/share/prometheus/consoles'
       -  '--web.enable-remote-write-receiver'
+    depends_on:
+      prometheus-rules-generator:
+        condition: service_completed_successfully
+
+  promtool:
+    # share common volume configuration with prometheus service
+    extends:
+      service: prometheus
+    image: dnanexus/promtool:2.9.2
+    ports: []
+    command: check config /etc/prometheus/prometheus.yml

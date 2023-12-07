@@ -102,6 +102,10 @@ prometheus-stop:
 podman-%:
 	podman-compose -f .devcontainer/docker-compose.yml run -u root host-metering bash -c "cd /workspace/host-metering && make $(subst podman-,,$@)"
 
+.PHONY: promtool-check-config
+promtool-check-config:
+	podman-compose -f .devcontainer/docker-compose.yml up promtool
+
 .PHONY: clean-pod
 clean-pod:
 	podman-compose -f .devcontainer/docker-compose.yml down

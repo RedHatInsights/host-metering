@@ -26,7 +26,7 @@ Summary:        None
 
 License:        Apache-2.0
 ExcludeArch:    %{ix86} s390 ppc ppc64
-URL:            %{gourl}
+URL:            https://github.com/RedHatInsights/host-metering/
 
 Source:         %{name}-%{version}.tar.gz
 

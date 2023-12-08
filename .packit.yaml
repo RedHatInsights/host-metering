@@ -1,0 +1,32 @@
+---
+# See the documentation for more information:
+# https://packit.dev/docs/configuration/
+
+specfile_path: contrib/rpm/host-metering.spec
+upstream_package_name: host-metering
+downstream_package_name: host-metering
+upstream_tag_template: "v{version}"
+srpm_build_deps:
+  - git
+  - make
+  - curl
+  - gzip
+  - tar
+  - rpm-build
+  - golang
+
+actions:
+  create-archive:
+    - "make tarball"
+    - "sh -c 'echo dist/host-metering-$(make version).tar.gz'"
+
+  get-current-version:
+    - "make version"
+
+  post-upstream-clone:
+    - "make rpm/spec"
+
+jobs:
+- job: copr_build
+  trigger: pull_request
+  targets: [fedora-stable, epel-7-x86_64, rhel-8-x86_64, rhel-9-x86_64]

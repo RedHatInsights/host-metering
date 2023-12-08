@@ -45,8 +45,6 @@ Requires:      %{name}-selinux = %{version}-%{release}
 %description
 Host metering service
 
-%gopkg
-
 %package selinux
 Summary:       SELinux policy module for host-metering
 BuildArch:     noarch

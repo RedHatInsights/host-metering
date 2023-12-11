@@ -22,6 +22,7 @@ func TestHostInfo(t *testing.T) {
 	// Define the expected defaults.
 	expectedString := "HostInfo:\n" +
 		"|  CpuCount: 64\n" +
+		"|  HostName: host.mock.test\n" +
 		"|  HostId: 01234567-89ab-cdef-0123-456789abcdef\n" +
 		"|  ExternalOrganization: 12345678\n" +
 		"|  SocketCount: 3\n" +

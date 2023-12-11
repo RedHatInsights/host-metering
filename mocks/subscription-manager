@@ -4,7 +4,7 @@
 
 IDENTITY=\
 "system identity: 01234567-89ab-cdef-0123-456789abcdef
-name: hostname
+name: host.mock.test
 org name: 12345678
 org ID: 12345678"
 

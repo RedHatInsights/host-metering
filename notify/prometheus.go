@@ -184,6 +184,10 @@ func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo, samples []prompb.Sample)
 			Value: hostinfo.ConversionsSuccess,
 		},
 		{
+			Name:  "display_name",
+			Value: hostinfo.HostName,
+		},
+		{
 			Name:  "external_organization",
 			Value: hostinfo.ExternalOrganization,
 		},

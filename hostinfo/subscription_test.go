@@ -9,6 +9,7 @@ func TestLoadSubManInformation(t *testing.T) {
 	// Define the expected general host info.
 	expected := &HostInfo{
 		HostId:               "01234567-89ab-cdef-0123-456789abcdef",
+		HostName:             "host.mock.test",
 		ExternalOrganization: "12345678",
 		SocketCount:          "3",
 		Product:              []string{"394", "69"},

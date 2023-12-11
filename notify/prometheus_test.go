@@ -293,6 +293,7 @@ func TestLabels(t *testing.T) {
 		"billing_marketplace_instance_id",
 		"billing_model",
 		"conversions_success",
+		"display_name",
 		"external_organization",
 		"product",
 		"socket_count",
@@ -490,6 +491,7 @@ func createHostInfo() *hostinfo.HostInfo {
 	return &hostinfo.HostInfo{
 		CpuCount:             1,
 		HostId:               "test",
+		HostName:             testHostname,
 		SocketCount:          "1",
 		Product:              []string{"123", "456"},
 		Support:              "test support",

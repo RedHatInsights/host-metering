@@ -8,6 +8,7 @@ import (
 type HostInfo struct {
 	CpuCount             uint
 	HostId               string
+	HostName             string
 	ExternalOrganization string
 	SocketCount          string
 	Product              []string
@@ -58,6 +59,7 @@ func (hi *HostInfo) String() string {
 		[]string{
 			"HostInfo:",
 			fmt.Sprintf("|  CpuCount: %d", hi.CpuCount),
+			fmt.Sprintf("|  HostName: %s", hi.HostName),
 			fmt.Sprintf("|  HostId: %s", hi.HostId),
 			fmt.Sprintf("|  ExternalOrganization: %s", hi.ExternalOrganization),
 			fmt.Sprintf("|  SocketCount: %s", hi.SocketCount),

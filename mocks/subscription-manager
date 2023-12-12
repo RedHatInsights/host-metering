@@ -215,10 +215,12 @@ hard_coded() {
       show_facts
       ;;
     list)
-      show_list_installed
-      ;;
-    "list --installed")
-      show_list_installed
+      if [ "${2}" == "--installed" ]; then
+        show_list_installed
+      else
+        echo "Unsupported command: ${command}" >&2
+        exit 1
+      fi
       ;;
     *)
       echo "Unsupported command: ${command}" >&2

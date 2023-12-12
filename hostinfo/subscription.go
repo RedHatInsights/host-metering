@@ -65,7 +65,7 @@ func GetSocketCount(facts SubManValues) (string, error) {
 }
 
 func GetProduct(facts SubManValues) ([]string, error) {
-	output, _ := execSubManCommand("list --installed")
+	output, _ := execSubManCommand("list", "--installed")
 	values := parseSubManOutputMultiVal(output)
 	return values.get("Product ID")
 }
@@ -109,8 +109,8 @@ func GetBillingInfo(facts SubManValues) (BillingInfo, error) {
 	return BillingInfo{}, err
 }
 
-func execSubManCommand(command string) (string, error) {
-	cmd := exec.Command("subscription-manager", command)
+func execSubManCommand(command ...string) (string, error) {
+	cmd := exec.Command("subscription-manager", command...)
 	logger.Debugf("Executing `subscription-manager %s`...\n", command)
 
 	var stdout, stderr bytes.Buffer

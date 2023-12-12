@@ -119,6 +119,7 @@ func execSubManCommand(command string) (string, error) {
 
 	if err != nil {
 		err = fmt.Errorf("`subscription-manager %s` has failed: %s", command, err.Error())
+		logger.Debugf("Stdout: %s\n", strings.TrimSpace(stdout.String()))
 		logger.Debugf("Stderr: %s\n", strings.TrimSpace(stderr.String()))
 		logger.Errorf("Error executing subscription manager: %s", err.Error())
 		return "", err

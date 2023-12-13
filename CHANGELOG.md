@@ -1,3 +1,20 @@
+# [1.1.0](https://github.com/RedHatInsights/host-metering/compare/v1.0.0...v1.1.0) (2023-12-13)
+
+
+### Bug Fixes
+
+* log file permissions ([e7a68ea](https://github.com/RedHatInsights/host-metering/commit/e7a68ea74bb1a9256851bc4d0ccf0a68de16d320))
+
+
+### Features
+
+* add label refresh on label_refresh_interval ([6cf0df3](https://github.com/RedHatInsights/host-metering/commit/6cf0df3506aee8819aa9e1abd4c7bb4f38c3e23e))
+* add prometheus recording rule to aggregate measurements ([#22](https://github.com/RedHatInsights/host-metering/issues/22)) ([55dc8b8](https://github.com/RedHatInsights/host-metering/commit/55dc8b8c6b45b7cd42b236790740ba241731668b))
+* capture and send installed products ID ([#25](https://github.com/RedHatInsights/host-metering/issues/25)) ([5f5e552](https://github.com/RedHatInsights/host-metering/commit/5f5e552abb5de46981fa9324341850b41eb1e937))
+* configurable log prefix ([fcb8555](https://github.com/RedHatInsights/host-metering/commit/fcb8555b8e2946b481d6067e88ae006452578f29))
+* document go proxy envs in man page ([773a12f](https://github.com/RedHatInsights/host-metering/commit/773a12fd4f6dfd3b76e53c1c1ad7e3a89c9e3f3d))
+* shorten go proxy env description ([728e497](https://github.com/RedHatInsights/host-metering/commit/728e49749e84038ee2a5c83103607b41209ce047))
+
 # 1.0.0 (2023-11-07)
 
 

@@ -36,6 +36,11 @@ BuildRequires: go-toolset-1.19
 BuildRequires: golang >= 1.19
 BuildRequires: systemd-rpm-macros
 %endif
+
+%if 0%{?rhel} > 8 || 0%{?fedora}
+BuildRequires: go-rpm-macros
+%endif
+
 BuildRequires: git
 BuildRequires: policycoreutils
 BuildRequires: selinux-policy

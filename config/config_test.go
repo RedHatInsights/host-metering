@@ -18,6 +18,7 @@ func TestDefaultConfig(t *testing.T) {
 		"|  HostCertKeyPath: /etc/pki/consumer/key.pem\n" +
 		"|  CollectIntervalSec: 0\n" +
 		"|  LabelRefreshIntervalSec: 86400\n" +
+		"|  SendHostname: yes\n" +
 		"|  WriteRetryAttempts: 8\n" +
 		"|  WriteRetryMinIntSec: 1\n" +
 		"|  WriteRetryMaxIntSec: 10\n" +
@@ -65,6 +66,7 @@ func TestConfigFile(t *testing.T) {
 		"|  HostCertKeyPath: /tmp/key.pem\n" +
 		"|  CollectIntervalSec: 20\n" +
 		"|  LabelRefreshIntervalSec: 300\n" +
+		"|  SendHostname: no\n" +
 		"|  WriteRetryAttempts: 4\n" +
 		"|  WriteRetryMinIntSec: 5\n" +
 		"|  WriteRetryMaxIntSec: 6\n" +
@@ -85,6 +87,7 @@ func TestConfigFile(t *testing.T) {
 		"collect_interval_sec = 20\n" +
 		"; And also these comments.\n" +
 		"label_refresh_interval_sec = 300\n" +
+		"send_hostname = no\n" +
 		"write_retry_attempts = 4\n" +
 		"write_retry_min_int_sec = 5\n" +
 		"write_retry_max_int_sec = 6\n" +
@@ -144,6 +147,7 @@ func TestEnvVariables(t *testing.T) {
 		"|  HostCertKeyPath: /tmp/key.pem\n" +
 		"|  CollectIntervalSec: 20\n" +
 		"|  LabelRefreshIntervalSec: 300\n" +
+		"|  SendHostname: no\n" +
 		"|  WriteRetryAttempts: 4\n" +
 		"|  WriteRetryMinIntSec: 5\n" +
 		"|  WriteRetryMaxIntSec: 6\n" +
@@ -160,6 +164,7 @@ func TestEnvVariables(t *testing.T) {
 	t.Setenv("HOST_METERING_HOST_CERT_PATH", "/tmp/cert.pem")
 	t.Setenv("HOST_METERING_HOST_CERT_KEY_PATH", "/tmp/key.pem")
 	t.Setenv("HOST_METERING_COLLECT_INTERVAL_SEC", "20")
+	t.Setenv("HOST_METERING_SEND_HOSTNAME", "no")
 	t.Setenv("HOST_METERING_LABEL_REFRESH_INTERVAL_SEC", "300")
 	t.Setenv("HOST_METERING_WRITE_RETRY_ATTEMPTS", "4")
 	t.Setenv("HOST_METERING_WRITE_RETRY_MIN_INT_SEC", "5")
@@ -214,6 +219,7 @@ func clearEnvironment() {
 	_ = os.Unsetenv("HOST_METERING_HOST_CERT_PATH")
 	_ = os.Unsetenv("HOST_METERING_HOST_CERT_KEY_PATH")
 	_ = os.Unsetenv("HOST_METERING_COLLECT_INTERVAL_SEC")
+	_ = os.Unsetenv("HOST_METERING_SEND_HOSTNAME")
 	_ = os.Unsetenv("HOST_METERING_LABEL_REFRESH_INTERVAL_SEC")
 	_ = os.Unsetenv("HOST_METERING_WRITE_RETRY_ATTEMPTS")
 	_ = os.Unsetenv("HOST_METERING_WRITE_RETRY_MIN_INT_SEC")

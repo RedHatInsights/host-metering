@@ -10,6 +10,11 @@ import (
 )
 
 const (
+	SendHostnameYes = "yes"
+	SendHostnameNo  = "no"
+)
+
+const (
 	DefaultConfigPath           = "/etc/host-metering.conf"
 	DefaultWriteUrl             = "http://localhost:9090/api/v1/write"
 	DefaultWriteInterval        = 600 * time.Second
@@ -17,6 +22,7 @@ const (
 	DefaultKeyPath              = "/etc/pki/consumer/key.pem"
 	DefaultCollectInterval      = 0 * time.Second
 	DefaultLabelRefreshInterval = 86400 * time.Second
+	DefaultSendHostname         = SendHostnameYes
 	DefaultWriteRetryAttempts   = 8
 	DefaultWriteRetryMinInt     = 1 * time.Second
 	DefaultWriteRetryMaxInt     = 10 * time.Second
@@ -33,6 +39,7 @@ type Config struct {
 	WriteInterval        time.Duration
 	CollectInterval      time.Duration
 	LabelRefreshInterval time.Duration
+	SendHostname         string
 	HostCertPath         string
 	HostCertKeyPath      string
 	WriteRetryAttempts   uint
@@ -54,6 +61,7 @@ func NewConfig() *Config {
 		HostCertKeyPath:      DefaultKeyPath,
 		CollectInterval:      DefaultCollectInterval,
 		LabelRefreshInterval: DefaultLabelRefreshInterval,
+		SendHostname:         DefaultSendHostname,
 		WriteRetryAttempts:   DefaultWriteRetryAttempts,
 		WriteRetryMinInt:     DefaultWriteRetryMinInt,
 		WriteRetryMaxInt:     DefaultWriteRetryMaxInt,
@@ -76,6 +84,7 @@ func (c *Config) String() string {
 			fmt.Sprintf("|  HostCertKeyPath: %s", c.HostCertKeyPath),
 			fmt.Sprintf("|  CollectIntervalSec: %.0f", c.CollectInterval.Seconds()),
 			fmt.Sprintf("|  LabelRefreshIntervalSec: %.0f", c.LabelRefreshInterval.Seconds()),
+			fmt.Sprintf("|  SendHostname: %s", c.SendHostname),
 			fmt.Sprintf("|  WriteRetryAttempts: %d", c.WriteRetryAttempts),
 			fmt.Sprintf("|  WriteRetryMinIntSec: %.0f", c.WriteRetryMinInt.Seconds()),
 			fmt.Sprintf("|  WriteRetryMaxIntSec: %.0f", c.WriteRetryMaxInt.Seconds()),
@@ -112,6 +121,9 @@ func (c *Config) UpdateFromEnvVars() error {
 	if v := os.Getenv("HOST_METERING_LABEL_REFRESH_INTERVAL_SEC"); v != "" {
 		c.LabelRefreshInterval, err = parseSeconds("HOST_METERING_LABEL_REFRESH_INTERVAL_SEC", v, c.LabelRefreshInterval)
 		multiError.Add(err)
+	}
+	if v := os.Getenv("HOST_METERING_SEND_HOSTNAME"); v != "" {
+		c.SendHostname = v
 	}
 	if v := os.Getenv("HOST_METERING_WRITE_RETRY_ATTEMPTS"); v != "" {
 		c.WriteRetryAttempts, err = parseUint("HOST_METERING_WRITE_RETRY_ATTEMPTS", v, c.WriteRetryAttempts)
@@ -229,6 +241,9 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 	if v, ok := config[section]["label_refresh_interval_sec"]; ok {
 		c.LabelRefreshInterval, err = parseSeconds("label_refresh_interval_sec", v, c.LabelRefreshInterval)
 		multiError.Add(err)
+	}
+	if v, ok := config[section]["send_hostname"]; ok {
+		c.SendHostname = v
 	}
 	if v, ok := config[section]["write_retry_attempts"]; ok {
 		c.WriteRetryAttempts, err = parseUint("write_retry_attempts", v, c.WriteRetryAttempts)

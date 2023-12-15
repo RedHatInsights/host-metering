@@ -123,7 +123,7 @@ func prometheusRemoteWrite(httpClient *http.Client, cfg *config.Config, httpRequ
 
 func newPrometheusRequest(hostinfo *hostinfo.HostInfo, cfg *config.Config, samples []prompb.Sample) (
 	*http.Request, error) {
-	writeRequest := hostInfo2WriteRequest(hostinfo, samples)
+	writeRequest := hostInfo2WriteRequest(hostinfo, samples, getLabelsToFilterOut(cfg))
 	logger.Debugf("WriteRequest: %s", writeRequest)
 	compressedData, err := writeRequest2Payload(writeRequest)
 	if err != nil {
@@ -142,6 +142,14 @@ func newPrometheusRequest(hostinfo *hostinfo.HostInfo, cfg *config.Config, sampl
 	return req, nil
 }
 
+func getLabelsToFilterOut(cfg *config.Config) []string {
+	labelsToFilterOut := make([]string, 0)
+	if cfg.SendHostname == config.SendHostnameNo {
+		labelsToFilterOut = append(labelsToFilterOut, "display_name")
+	}
+	return labelsToFilterOut
+}
+
 func filterEmptyLabels(labels []prompb.Label) []prompb.Label {
 	var result []prompb.Label
 	for _, label := range labels {
@@ -152,7 +160,23 @@ func filterEmptyLabels(labels []prompb.Label) []prompb.Label {
 	return result
 }
 
-func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo, samples []prompb.Sample) *prompb.WriteRequest {
+func filterOutLabelsByName(labels []prompb.Label, toFilterOut []string) []prompb.Label {
+	labelSet := make(map[string]bool)
+	for _, label := range toFilterOut {
+		labelSet[label] = true
+	}
+
+	var result []prompb.Label
+	for _, label := range labels {
+		if !labelSet[label.Name] {
+			result = append(result, label)
+		}
+	}
+
+	return result
+}
+
+func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo, samples []prompb.Sample, labelsToFilterOut []string) *prompb.WriteRequest {
 	// Labels must be sorted by name
 	labels := []prompb.Label{
 		{
@@ -210,6 +234,7 @@ func hostInfo2WriteRequest(hostinfo *hostinfo.HostInfo, samples []prompb.Sample)
 	}
 
 	labels = filterEmptyLabels(labels)
+	labels = filterOutLabelsByName(labels, labelsToFilterOut)
 
 	writeRequest := &prompb.WriteRequest{
 		Timeseries: []prompb.TimeSeries{

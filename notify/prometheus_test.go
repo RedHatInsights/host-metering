@@ -284,7 +284,7 @@ func TestLabels(t *testing.T) {
 	// With full host info
 	hi := createHostInfo()
 	createRequestAndCheckLabels(t, samples, hi)
-	writeRequest := hostInfo2WriteRequest(hi, samples)
+	writeRequest := hostInfo2WriteRequest(hi, samples, []string{})
 	checkLabelsPresence(t, writeRequest.Timeseries[0].Labels, []string{
 		"__name__",
 		"_id",
@@ -321,8 +321,95 @@ func TestLabels(t *testing.T) {
 	createRequestAndCheckLabels(t, samples, hi)
 }
 
+func TestLableFiltering(t *testing.T) {
+	// given
+	samples := createSamples()
+	hi := createHostInfo()
+
+	// when
+	writeRequest := hostInfo2WriteRequest(hi, samples, []string{"display_name", "socket_count"})
+
+	// then
+	checkLablesNotPresent(t, writeRequest.Timeseries[0].Labels, []string{"display_name", "socket_count"})
+}
+
+func TestFilterOutLabelsByName(t *testing.T) {
+	// given
+	labels := []prompb.Label{
+		{Name: "__name__", Value: "system_cpu_logical_count"},
+		{Name: "_id", Value: "test"},
+		{Name: "billing_marketplace", Value: "test"},
+	}
+
+	// when
+	filtered := filterOutLabelsByName(labels, []string{"_id"})
+
+	// then
+	if len(filtered) != 2 {
+		t.Fatalf("Expected 2 labels, got %d", len(filtered))
+	}
+	if filtered[0].Name != "__name__" || filtered[1].Name != "billing_marketplace" {
+		t.Fatalf("Expected labels to be filtered out")
+	}
+}
+
+type GetLabelsToFilterOutTestCase struct {
+	name     string
+	cfg      *config.Config
+	expected []string
+}
+
+func TestGetLabelsToFilterOut(t *testing.T) {
+
+	testCases := []GetLabelsToFilterOutTestCase{
+		{
+			name:     "No labels to filter out - Default",
+			cfg:      &config.Config{},
+			expected: []string{},
+		},
+		{
+			name: "Filter out display name, send_hostname set to no",
+			cfg: &config.Config{
+				SendHostname: config.SendHostnameNo,
+			},
+			expected: []string{"display_name"},
+		},
+		{
+			name: "Nothing to filter out, send_hostname set to yes",
+			cfg: &config.Config{
+				SendHostname: config.SendHostnameYes,
+			},
+			expected: []string{},
+		},
+		{
+			name: "Nothing to filter out, send_hostname set unexpected value",
+			cfg: &config.Config{
+				SendHostname: "unexpected",
+			},
+			expected: []string{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// when
+			labels := getLabelsToFilterOut(tc.cfg)
+
+			// then
+			if len(labels) != len(tc.expected) {
+				t.Fatalf("Expected %d labels, got %d: %s", len(tc.expected), len(labels), labels)
+			}
+			for i := range labels {
+				if labels[i] != tc.expected[i] {
+					t.Fatalf("Expected labels to be equal")
+				}
+			}
+		})
+	}
+}
+
 func createRequestAndCheckLabels(t *testing.T, samples []prompb.Sample, hostinfo *hostinfo.HostInfo) {
-	writeRequest := hostInfo2WriteRequest(hostinfo, samples)
+	writeRequest := hostInfo2WriteRequest(hostinfo, samples, []string{})
 	for _, ts := range writeRequest.Timeseries {
 		checkLabels(t, ts.Labels)
 	}
@@ -464,6 +551,17 @@ func checkLabelsPresence(t *testing.T, labels []prompb.Label, expected_names []s
 		}
 		if !present {
 			t.Fatalf("Expected %s label to be present", name)
+		}
+	}
+}
+
+func checkLablesNotPresent(t *testing.T, labels []prompb.Label, expected_missing []string) {
+	t.Helper()
+	for _, name := range expected_missing {
+		for _, label := range labels {
+			if label.Name == name {
+				t.Fatalf("Expected %s label to be missing", name)
+			}
 		}
 	}
 }

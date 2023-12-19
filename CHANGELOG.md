@@ -1,3 +1,18 @@
+# [1.2.0](https://github.com/RedHatInsights/host-metering/compare/v1.1.0...v1.2.0) (2023-12-19)
+
+
+### Bug Fixes
+
+* `subscription-manager list --installed` call failure ([698ff05](https://github.com/RedHatInsights/host-metering/commit/698ff05326c44b41e794d72a6e9e6f30039d701c))
+* log subscription-manager stdout on error ([aa9f13e](https://github.com/RedHatInsights/host-metering/commit/aa9f13e9bb9e2faaf49ed66664392a8bc496e73a))
+
+
+### Features
+
+* add send_hostname configuration option ([5c2ce20](https://github.com/RedHatInsights/host-metering/commit/5c2ce207ea826249ca6b588eb80d04b114fece7f))
+* filter out labels based on configuration ([1a948ff](https://github.com/RedHatInsights/host-metering/commit/1a948ff0db5f7e7478ba4041399ff06284e488a7))
+* send display_name label with host's name/fqdn ([5e0bc3c](https://github.com/RedHatInsights/host-metering/commit/5e0bc3cd837b856c8dcf1e35415abc491a9720ed))
+
 # [1.1.0](https://github.com/RedHatInsights/host-metering/compare/v1.0.0...v1.1.0) (2023-12-13)
 
 

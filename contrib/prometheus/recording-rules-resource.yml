@@ -12,6 +12,10 @@ objects:
   spec:
     groups:
       - name: host-metering
+        interval: 120m
+        limit: 0
         rules:
           - record: host:usage:workload:cpu_hours1h
             expr:  max by(_id) (sum_over_time(system_cpu_logical_count[1h:10m])) / scalar(count_over_time(vector(1)[1h:10m]))
+            labels:
+              rulesVersion: v0

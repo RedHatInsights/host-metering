@@ -12,7 +12,7 @@ objects:
   spec:
     groups:
       - name: host-metering
-        interval: 120m
+        interval: 30m
         limit: 0
         rules:
           - record: host:usage:workload:cpu_hours1h

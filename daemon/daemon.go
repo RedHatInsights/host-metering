@@ -54,7 +54,7 @@ func (d *Daemon) Run() error {
 	signal.Notify(d.stopCh, syscall.SIGINT, syscall.SIGTERM)
 	shutdownCh := make(chan int)
 
-	// Wait for SIGHUP to reload host ifo
+	// Wait for SIGHUP to reload host info
 	reloadCh := make(chan os.Signal, 1)
 	signal.Notify(reloadCh, syscall.SIGHUP)
 

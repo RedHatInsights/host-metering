@@ -66,7 +66,7 @@ $ make test-daemon
 ```
 
 It will run `host-metering` with:
-* mocked `subscriptin-manager`
+* mocked `subscription-manager`
 * test configuration file that is lowering intervals and using the following:
 * test certificate
 * custom path for metrics WAL

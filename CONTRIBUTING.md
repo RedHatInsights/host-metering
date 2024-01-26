@@ -132,7 +132,7 @@ It:
 ### Testing release
 
 It is a bit tricky to test the release process locally. It might be easier
-to do the changes, pushed them to your fork's main branch on GitHub and execute
+to do the changes, push them to your fork's main branch on GitHub and execute
 the release there.
 
 In local machine testing, make sure that the git repo has only your fork as

@@ -103,7 +103,7 @@ Similarly, a Deprecation section should start with "DEPRECATED: " followed by a 
 ### Check commit message locally:
 
 ```
-$ npm install commitlint@latest @commitlint/config-angular@latest
+$ npm install commitlint@latest @commitlint/config-conventional@latest
 $ npx commitlint --from HEAD~1
 ```
 

@@ -7,6 +7,8 @@ NEXT_VERSION ?=
 SHORT_COMMIT ?= $(shell git rev-parse --short=8 HEAD)
 AUTORELEASE ?= "git$(shell date "+%Y%m%d%H%M")G$(SHORT_COMMIT)"
 
+UBI_VERSION ?= 7
+
 DISTDIR ?= $(CURDIR)/dist
 RPMTOPDIR := $(DISTDIR)/rpmbuild
 
@@ -70,7 +72,7 @@ endif
 
 .PHONY: test-daemon
 test-daemon: cert build container-env-setup $(CONTAINER_TARGET)
-	@echo "Running the $(PROJECT) in deamon mode..."
+	@echo "Running $(PROJECT) in daemon mode..."
 
 	PATH=$(MOCKS_DIR):$(PATH) \
 	HOST_METERING_WRITE_URL=$(PROMETHEUS_ADDRESS) \
@@ -86,8 +88,8 @@ mocks/consumer/cert.pem mocks/consumer/key.pem:
 
 .PHONY: podman-containers
 podman-containers:
-	podman-compose -f .devcontainer/docker-compose.yml build
-
+	podman build --no-cache -t devcontainer_host-metering --build-arg UBI_VERSION=$(UBI_VERSION) -f .devcontainer/Dockerfile .
+	
 .PHONY: prometheus
 prometheus: podman-containers
 	@echo "See the dashboard at: ${DASHBOARD_URL}"

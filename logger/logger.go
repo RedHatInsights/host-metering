@@ -6,90 +6,37 @@ import (
 	"strings"
 	"time"
 
-	std_log "log"
-
-	go_log "git.sr.ht/~spc/go-log"
+	logrus "github.com/sirupsen/logrus"
 )
-
-const defaultLogFormat = 0
-const defaultLogPrefix = ""
 
 const (
-	DebugLevel = "DEBUG"
-	InfoLevel  = "INFO"
-	WarnLevel  = "WARN"
-	ErrorLevel = "ERROR"
-	TraceLevel = "TRACE"
+	DebugLevel = logrus.DebugLevel
+	InfoLevel  = logrus.InfoLevel
+	WarnLevel  = logrus.WarnLevel
+	ErrorLevel = logrus.ErrorLevel
 )
 
-type Logger interface {
-	// Error prints to the logger if level is at least LevelError. Arguments are
-	// handled in the manner of fmt.Print.
-	Error(v ...interface{})
+type Logger logrus.FieldLogger
 
-	// Errorf prints to the logger if level is at least LevelError. Arguments are
-	// handled in the manner of fmt.Printf.
-	Errorf(format string, v ...interface{})
+type CustomFormatter struct{}
 
-	// Errorln prints to the logger if level is at least LevelError. Arguments are
-	// handled in the manner of fmt.Println.
-	Errorln(v ...interface{})
-
-	// Warn prints to the logger if level is at least LevelWarn. Arguments are
-	// handled in the manner of fmt.Print.
-	Warn(v ...interface{})
-
-	// Warnf prints to the logger if level is at least LevelWarn. Arguments are
-	// handled in the manner of fmt.Printf.
-	Warnf(format string, v ...interface{})
-
-	// Warnln prints to the logger if level is at least LevelWarn. Arguments are
-	// handled in the manner of fmt.Println.
-	Warnln(v ...interface{})
-
-	// Info prints to the logger if level is at least LevelInfo. Arguments are
-	// handled in the manner of fmt.Print.
-	Info(v ...interface{})
-
-	// Infof prints to the logger if level is at least LevelInfo. Arguments are
-	// handled in the manner of fmt.Printf.
-	Infof(format string, v ...interface{})
-
-	// Infoln prints to the logger if level is at least LevelInfo. Arguments are
-	// handled in the manner of fmt.Println.
-	Infoln(v ...interface{})
-
-	// Debug prints to the logger if level is at least LevelDebug. Arguments are
-	// handled in the manner of fmt.Print.
-	Debug(v ...interface{})
-
-	// Debugf prints to the logger if level is at least LevelDebug. Arguments are
-	// handled in the manner of fmt.Printf.
-	Debugf(format string, v ...interface{})
-
-	// Debugln prints to the logger if level is at least LevelDebug. Arguments are
-	// handled in the manner of fmt.Println.
-	Debugln(v ...interface{})
-
-	// Trace prints to the logger if level is at least LevelTrace. Arguments are
-	// handled in the manner of fmt.Print.
-	Trace(v ...interface{})
-
-	// Tracef prints to the logger if level is at least LevelTrace. Arguments are
-	// handled in the manner of fmt.Printf.
-	Tracef(format string, v ...interface{})
-
-	// Traceln prints to the logger if level is at least LevelTrace. Arguments are
-	// handled in the manner of fmt.Println.
-	Traceln(v ...interface{})
+func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	message := entry.Message
+	if !strings.HasSuffix(message, "\n") {
+		message += "\n"
+	}
+	msg := fmt.Sprintf("%s %s", entry.Time.Format("2006/01/02 15:04:05"), message)
+	return []byte(msg), nil
 }
 
 func InitDefaultLogger() Logger {
-	return go_log.New(os.Stderr, defaultLogPrefix, defaultLogFormat, go_log.LevelDebug)
+	logger := logrus.New()
+	logger.SetFormatter(&CustomFormatter{})
+	return logger
 }
 
-func InitLogger(file string, level string, prefix string, flag int) error {
-	logLevel, err := go_log.ParseLevel(level)
+func InitLogger(file string, level string) error {
+	logLevel, err := logrus.ParseLevel(level)
 
 	if err != nil {
 		return err
@@ -103,7 +50,11 @@ func InitLogger(file string, level string, prefix string, flag int) error {
 		return err
 	}
 
-	log = go_log.New(logFile, prefix, flag, logLevel)
+	log = &logrus.Logger{
+		Out:       logFile,
+		Formatter: &CustomFormatter{},
+		Level:     logLevel,
+	}
 
 	return nil
 }
@@ -194,61 +145,6 @@ func Debugln(v ...interface{}) {
 	getLogger().Debugln(v...)
 }
 
-// Trace prints to the logger if level is at least LevelTrace. Arguments are
-// handled in the manner of fmt.Print.
-func Trace(v ...interface{}) {
-	getLogger().Trace(v...)
-}
-
-// Tracef prints to the logger if level is at least LevelTrace. Arguments are
-// handled in the manner of fmt.Printf.
-func Tracef(format string, v ...interface{}) {
-	getLogger().Tracef(format, v...)
-}
-
-// Traceln prints to the logger if level is at least LevelTrace. Arguments are
-// handled in the manner of fmt.Println.
-func Traceln(v ...interface{}) {
-	getLogger().Traceln(v...)
-}
-
-func ParseLogPrefix(format string) (prefix string, flag int) {
-	if !strings.Contains(format, "%") {
-		return format, defaultLogFormat
-	}
-
-	prefix = format[:strings.Index(format, "%")]
-	flag = 0
-
-	if strings.Contains(format, "%d") {
-		flag |= std_log.Ldate
-	}
-	if strings.Contains(format, "%t") {
-		flag |= std_log.Ltime
-	}
-	if strings.Contains(format, "%m") {
-		flag |= std_log.Lmicroseconds
-	}
-	if strings.Contains(format, "%l") {
-		flag |= std_log.Llongfile
-	}
-	if strings.Contains(format, "%s") {
-		flag |= std_log.Lshortfile
-	}
-	if strings.Contains(format, "%z") {
-		flag |= std_log.LUTC
-	}
-	if strings.Contains(format, "%p") {
-		flag |= std_log.Lmsgprefix
-	}
-	if strings.Contains(format, "%S") {
-		flag |= std_log.LstdFlags
-	}
-
-	return prefix, flag
-
-}
-
 type LogEntry struct {
 	Time    time.Time
 	Level   string
@@ -258,6 +154,7 @@ type LogEntry struct {
 
 // Custom logger for testing if other modules logged as expected.
 type TestLogger struct {
+	*logrus.Logger
 	entries []LogEntry
 }
 
@@ -279,8 +176,8 @@ func (l *TestLogger) formatMessageln(v ...interface{}) string {
 	return fmt.Sprintln(v...)
 }
 
-func (l *TestLogger) addLogEntry(level string, message string, method string) {
-	l.entries = append(l.entries, LogEntry{time.Now(), level, message, method})
+func (l *TestLogger) addLogEntry(level logrus.Level, message string, method string) {
+	l.entries = append(l.entries, LogEntry{time.Now(), level.String(), message, method})
 }
 
 func (l *TestLogger) Error(v ...interface{}) {
@@ -331,18 +228,6 @@ func (l *TestLogger) Debugln(v ...interface{}) {
 	l.addLogEntry(DebugLevel, l.formatMessageln(v...), "Debugln")
 }
 
-func (l *TestLogger) Trace(v ...interface{}) {
-	l.addLogEntry(TraceLevel, l.formatMessage(v...), "Trace")
-}
-
-func (l *TestLogger) Tracef(format string, v ...interface{}) {
-	l.addLogEntry(TraceLevel, l.formatMessagef(format, v...), "Tracef")
-}
-
-func (l *TestLogger) Traceln(v ...interface{}) {
-	l.addLogEntry(TraceLevel, l.formatMessageln(v...), "Traceln")
-}
-
 func (l *TestLogger) GetEntries() []LogEntry {
 	return l.entries
 }
@@ -360,12 +245,12 @@ func (l *TestLogger) GetLastEntry() *LogEntry {
 
 // Check if the last log entry is the expected one.
 // Message is checked if it is contained in the log entry (not exact match).
-func (l *TestLogger) IsLastEntry(level string, message string, method string) bool {
+func (l *TestLogger) IsLastEntry(level logrus.Level, message string, method string) bool {
 	entry := l.GetLastEntry()
 	if entry == nil {
 		return false
 	}
-	return (entry.Level == level &&
+	return (entry.Level == level.String() &&
 		entry.Method == method &&
 		strings.Contains(entry.Message, message))
 }

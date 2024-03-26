@@ -47,8 +47,7 @@ func main() {
 		}
 
 		// initialize the logger according to the given configuration
-		logPrefix, logFlag := logger.ParseLogPrefix(cfg.LogPrefix)
-		err = logger.InitLogger(cfg.LogPath, cfg.LogLevel, logPrefix, logFlag)
+		err = logger.InitLogger(cfg.LogPath, cfg.LogLevel)
 
 		if err != nil {
 			logger.Debugf("Error initializing logger: %s\n", err.Error())

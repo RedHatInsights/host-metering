@@ -6,13 +6,8 @@ import (
 	"strings"
 	"time"
 
-	std_log "log"
-
-	go_log "git.sr.ht/~spc/go-log"
+	logrus "github.com/sirupsen/logrus"
 )
-
-const defaultLogFormat = 0
-const defaultLogPrefix = ""
 
 const (
 	DebugLevel = "DEBUG"
@@ -84,12 +79,25 @@ type Logger interface {
 	Traceln(v ...interface{})
 }
 
-func InitDefaultLogger() Logger {
-	return go_log.New(os.Stderr, defaultLogPrefix, defaultLogFormat, go_log.LevelDebug)
+type CustomFormatter struct{}
+
+func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	message := entry.Message
+	if !strings.HasSuffix(message, "\n") {
+		message += "\n"
+	}
+	msg := fmt.Sprintf("%s %s", entry.Time.Format("2006/01/02 15:04:05"), message)
+	return []byte(msg), nil
 }
 
-func InitLogger(file string, level string, prefix string, flag int) error {
-	logLevel, err := go_log.ParseLevel(level)
+func InitDefaultLogger() Logger {
+	logger := logrus.New()
+	logger.SetFormatter(&CustomFormatter{})
+	return logger
+}
+
+func InitLogger(file string, level string) error {
+	logLevel, err := logrus.ParseLevel(level)
 
 	if err != nil {
 		return err
@@ -103,7 +111,11 @@ func InitLogger(file string, level string, prefix string, flag int) error {
 		return err
 	}
 
-	log = go_log.New(logFile, prefix, flag, logLevel)
+	log = &logrus.Logger{
+		Out:       logFile,
+		Formatter: &CustomFormatter{},
+		Level:     logLevel,
+	}
 
 	return nil
 }
@@ -210,43 +222,6 @@ func Tracef(format string, v ...interface{}) {
 // handled in the manner of fmt.Println.
 func Traceln(v ...interface{}) {
 	getLogger().Traceln(v...)
-}
-
-func ParseLogPrefix(format string) (prefix string, flag int) {
-	if !strings.Contains(format, "%") {
-		return format, defaultLogFormat
-	}
-
-	prefix = format[:strings.Index(format, "%")]
-	flag = 0
-
-	if strings.Contains(format, "%d") {
-		flag |= std_log.Ldate
-	}
-	if strings.Contains(format, "%t") {
-		flag |= std_log.Ltime
-	}
-	if strings.Contains(format, "%m") {
-		flag |= std_log.Lmicroseconds
-	}
-	if strings.Contains(format, "%l") {
-		flag |= std_log.Llongfile
-	}
-	if strings.Contains(format, "%s") {
-		flag |= std_log.Lshortfile
-	}
-	if strings.Contains(format, "%z") {
-		flag |= std_log.LUTC
-	}
-	if strings.Contains(format, "%p") {
-		flag |= std_log.Lmsgprefix
-	}
-	if strings.Contains(format, "%S") {
-		flag |= std_log.LstdFlags
-	}
-
-	return prefix, flag
-
 }
 
 type LogEntry struct {

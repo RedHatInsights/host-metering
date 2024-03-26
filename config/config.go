@@ -31,7 +31,6 @@ const (
 	DefaultMetricsWALPath       = "/var/run/host-metering/metrics"
 	DefaultLogLevel             = "INFO"
 	DefaultLogPath              = "" //Default to stderr, will be logged in journal.
-	DefaultLogPrefix            = ""
 )
 
 type Config struct {
@@ -50,7 +49,6 @@ type Config struct {
 	MetricsWALPath       string
 	LogLevel             string // one of "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
 	LogPath              string
-	LogPrefix            string
 }
 
 func NewConfig() *Config {
@@ -70,7 +68,6 @@ func NewConfig() *Config {
 		MetricsWALPath:       DefaultMetricsWALPath,
 		LogLevel:             DefaultLogLevel,
 		LogPath:              DefaultLogPath,
-		LogPrefix:            DefaultLogPrefix,
 	}
 }
 
@@ -93,7 +90,6 @@ func (c *Config) String() string {
 			fmt.Sprintf("|  MetricsWALPath: %s", c.MetricsWALPath),
 			fmt.Sprintf("|  LogLevel: %s", c.LogLevel),
 			fmt.Sprintf("|  LogPath: %s", c.LogPath),
-			fmt.Sprintf("|  LogPrefix: %s", c.LogPrefix),
 		}, "\n")
 }
 
@@ -153,9 +149,6 @@ func (c *Config) UpdateFromEnvVars() error {
 	}
 	if v := os.Getenv("HOST_METERING_LOG_PATH"); v != "" {
 		c.LogPath = v
-	}
-	if v := os.Getenv("HOST_METERING_LOG_PREFIX"); v != "" {
-		c.LogPrefix = v
 	}
 	return multiError.ErrorOrNil()
 }
@@ -273,9 +266,6 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 	}
 	if v, ok := config[section]["log_path"]; ok {
 		c.LogPath = v
-	}
-	if v, ok := config[section]["log_prefix"]; ok {
-		c.LogPrefix = v
 	}
 
 	return multiError.ErrorOrNil()

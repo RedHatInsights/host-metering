@@ -4,8 +4,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-
-	std_log "log"
 )
 
 // Test that logger global functions won't crash even if the logger is not initialized.
@@ -37,18 +35,11 @@ func TestLoggerGlobalFunctions(t *testing.T) {
 	Debugf("Debugf Test %s", "test")
 	clearLogger()
 	Debugln("Debugln Test")
-
-	clearLogger()
-	Trace("Trace Test")
-	clearLogger()
-	Tracef("Tracef Tracef %s", "test")
-	clearLogger()
-	Traceln("Traceln Traceln Test")
 }
 
 // Test initialization of logger with only log level
 func TestInitLogger(t *testing.T) {
-	InitLogger("", DebugLevel, defaultLogPrefix, defaultLogFormat)
+	InitLogger("", DebugLevel.String())
 	if log == nil {
 		t.Fatalf("logger is not initialized")
 	}
@@ -60,7 +51,7 @@ func TestInitLogger(t *testing.T) {
 func TestInitLoggerFile(t *testing.T) {
 	dir := t.TempDir()
 	path := dir + "/test.log"
-	InitLogger(path, DebugLevel, defaultLogPrefix, defaultLogFormat)
+	InitLogger(path, DebugLevel.String())
 	if log == nil {
 		t.Fatalf("logger is not initialized")
 	}
@@ -177,23 +168,8 @@ func TestOverridenLogger(t *testing.T) {
 		t.Fatalf("Debugln message is not logged")
 	}
 
-	Trace("Trace Test")
-	if !logger.IsLastEntry(TraceLevel, "Trace Test", "Trace") {
-		t.Fatalf("Trace message is not logged")
-	}
-
-	Tracef("Tracef Tracef %s", "test")
-	if !logger.IsLastEntry(TraceLevel, "Tracef Tracef test", "Tracef") {
-		t.Fatalf("Tracef message is not logged")
-	}
-
-	Traceln("Traceln Traceln Test")
-	if !logger.IsLastEntry(TraceLevel, "Traceln Traceln Test", "Traceln") {
-		t.Fatalf("Traceln message is not logged")
-	}
-
 	entries := logger.GetEntries()
-	if len(entries) != 15 {
+	if len(entries) != 12 {
 		t.Fatalf("unexpected number of log entries: %d", len(entries))
 	}
 
@@ -203,42 +179,6 @@ func TestOverridenLogger(t *testing.T) {
 	if len(entries) != 0 {
 		t.Fatalf("unexpected number of log entries after clear: %d", len(entries))
 	}
-}
-
-type LogPrefixTestCase struct {
-	prefix         string
-	expectedPrefix string
-	expectedFlag   int
-}
-
-func TestParseLogPrefix(t *testing.T) {
-	testCases := []LogPrefixTestCase{
-		{"", "", 0},
-		{"test", "test", 0},
-		{"test:", "test:", 0},
-		{"test: ", "test: ", 0},
-		{"test: %d", "test: ", std_log.Ldate},
-		{"test: %d %t", "test: ", std_log.Ldate | std_log.Ltime},
-		{"test: %d %t %m", "test: ", std_log.Ldate | std_log.Ltime | std_log.Lmicroseconds},
-		{"test: %S %l", "test: ", std_log.LstdFlags | std_log.Llongfile},
-		{"test: %S %s", "test: ", std_log.LstdFlags | std_log.Lshortfile},
-		{"test: %S %z", "test: ", std_log.LstdFlags | std_log.LUTC},
-		{"test%S %p", "test", std_log.LstdFlags | std_log.Lmsgprefix},
-		{"test: %S", "test: ", std_log.LstdFlags},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.prefix, func(t *testing.T) {
-			prefix, flag := ParseLogPrefix(tc.prefix)
-			if prefix != tc.expectedPrefix {
-				t.Fatalf("expected prefix: %s got: %s", tc.prefix, prefix)
-			}
-			if flag != tc.expectedFlag {
-				t.Fatalf("expected flag: %d got: %d", tc.expectedFlag, flag)
-			}
-		})
-	}
-
 }
 
 // Helper functions

@@ -89,49 +89,6 @@ Log level. Possible values are: DEBUG, INFO, WARN, ERROR, TRACE.
 \fBHOST_METERING_LOG_PATH\fR
 Path to log file. Default is empty - stderr.
 
-\fBHOST_METERING_LOG_PREFIX\fR
-Prefix of log messages. Default is empty. Format: "[PREFIX][FLAG]*"
-
-.RS 4
-
-\fBPREFIX:\fR string until first occurance of %
-
-\fBFLAGS:\fR
-.RS 4
-.TP
-.B %d
-Date
-
-.TP
-.B %t
-Time
-
-.TP
-.B %m
-Microseconds
-
-.TP
-.B %l
-Long file name
-
-.TP
-.B %s
-Short file name
-
-.TP
-.B %z
-Use UTC
-
-.TP
-.B %p
-Move the "PREFIX" from the beginning of the line to before the message
-
-.TP
-.B %S
-Datetime (same as "%d %t")
-.RE
-.RE
-
 .SH "FILES"
 .PP
 \fI/etc/host-metering.conf\fR

@@ -39,7 +39,7 @@ func TestLoggerGlobalFunctions(t *testing.T) {
 
 // Test initialization of logger with only log level
 func TestInitLogger(t *testing.T) {
-	InitLogger("", DebugLevel.String())
+	InitLogger("", DebugLevel.String(), "")
 	if log == nil {
 		t.Fatalf("logger is not initialized")
 	}
@@ -51,7 +51,7 @@ func TestInitLogger(t *testing.T) {
 func TestInitLoggerFile(t *testing.T) {
 	dir := t.TempDir()
 	path := dir + "/test.log"
-	InitLogger(path, DebugLevel.String())
+	InitLogger(path, DebugLevel.String(), "test_instance")
 	if log == nil {
 		t.Fatalf("logger is not initialized")
 	}
@@ -64,13 +64,16 @@ func TestInitLoggerFile(t *testing.T) {
 		t.Fatalf("log file is not created")
 	}
 
-	// Check that the file contains the logger message
+	// Check that the file contains the instanceID and logger message
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("cannot read the log file")
 	}
 	if !strings.Contains(string(data), testMsg) {
 		t.Fatalf("log file does not contain the logged message")
+	}
+	if !strings.HasPrefix(string(data), "[test_instance]") {
+		t.Errorf("Expected the output to start with '[test_instance]', but got: %s", string(data))
 	}
 }
 

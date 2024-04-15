@@ -21,11 +21,20 @@ type Logger logrus.FieldLogger
 type CustomFormatter struct{}
 
 func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	var msg string
+
+	instanceID, ok := entry.Data["instance_id"].(string)
+	if ok {
+		msg = fmt.Sprintf("[%s] ", instanceID)
+	}
+
 	message := entry.Message
 	if !strings.HasSuffix(message, "\n") {
 		message += "\n"
 	}
-	msg := fmt.Sprintf("%s %s", entry.Time.Format("2006/01/02 15:04:05"), message)
+
+	msg += fmt.Sprintf("%s %s", entry.Time.Format("2006/01/02 15:04:05"), message)
+
 	return []byte(msg), nil
 }
 
@@ -35,7 +44,7 @@ func InitDefaultLogger() Logger {
 	return logger
 }
 
-func InitLogger(file string, level string) error {
+func InitLogger(file string, level string, instanceID string) error {
 	logLevel, err := logrus.ParseLevel(level)
 
 	if err != nil {
@@ -54,6 +63,10 @@ func InitLogger(file string, level string) error {
 		Out:       logFile,
 		Formatter: &CustomFormatter{},
 		Level:     logLevel,
+	}
+
+	if instanceID != "" {
+		log = log.WithField("instance_id", instanceID)
 	}
 
 	return nil

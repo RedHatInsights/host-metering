@@ -26,7 +26,8 @@ func TestDefaultConfig(t *testing.T) {
 		"|  MetricsMaxAgeSec: 5400\n" +
 		"|  MetricsWALPath: /var/run/host-metering/metrics\n" +
 		"|  LogLevel: INFO\n" +
-		"|  LogPath: \n"
+		"|  LogPath: \n" +
+		"|  InstanceID: \n"
 
 	// Create the default configuration.
 	c := NewConfig()
@@ -73,7 +74,8 @@ func TestConfigFile(t *testing.T) {
 		"|  MetricsMaxAgeSec: 700\n" +
 		"|  MetricsWALPath: /tmp/metrics\n" +
 		"|  LogLevel: ERROR\n" +
-		"|  LogPath: /tmp/log\n"
+		"|  LogPath: /tmp/log\n" +
+		"|  InstanceID: test-instance\n"
 
 	// Update the configuration from a valid config file.
 	fileContent := "[host-metering]\n" +
@@ -93,7 +95,9 @@ func TestConfigFile(t *testing.T) {
 		"metrics_max_age_sec = 700\n" +
 		"metrics_wal_path = /tmp/metrics\n" +
 		"log_level = ERROR\n" +
-		"log_path = /tmp/log\n"
+		"log_path = /tmp/log\n" +
+		"instance_id = test-instance\n"
+
 	c := NewConfig()
 
 	createConfigFile(t, path, fileContent)
@@ -151,7 +155,8 @@ func TestEnvVariables(t *testing.T) {
 		"|  MetricsMaxAgeSec: 700\n" +
 		"|  MetricsWALPath: /tmp/metrics\n" +
 		"|  LogLevel: ERROR\n" +
-		"|  LogPath: /tmp/log\n"
+		"|  LogPath: /tmp/log\n" +
+		"|  InstanceID: test-instance\n"
 
 	// Set valid environment variables.
 	t.Setenv("HOST_METERING_WRITE_URL", "http://test/url")
@@ -169,6 +174,7 @@ func TestEnvVariables(t *testing.T) {
 	t.Setenv("HOST_METERING_METRICS_WAL_PATH", "/tmp/metrics")
 	t.Setenv("HOST_METERING_LOG_LEVEL", "ERROR")
 	t.Setenv("HOST_METERING_LOG_PATH", "/tmp/log")
+	t.Setenv("HOST_METERING_INSTANCE_ID", "test-instance")
 
 	// Environment variables are set. Change the defaults.
 	c := NewConfig()
@@ -223,6 +229,7 @@ func clearEnvironment() {
 	_ = os.Unsetenv("HOST_METERING_METRICS_WAL_PATH")
 	_ = os.Unsetenv("HOST_METERING_LOG_LEVEL")
 	_ = os.Unsetenv("HOST_METERING_LOG_PATH")
+	_ = os.Unsetenv("HOST_METERING_INSTANCE_ID")
 }
 
 func checkError(t *testing.T, err error, message string) {

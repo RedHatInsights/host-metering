@@ -72,7 +72,7 @@ It will run `host-metering` with:
 * custom path for metrics WAL
 * Prometheus server started in a podman container
 
-Note: You may specifiy the UBI version you wish to test with the optional `UBI_VERSION` argument. If not specified, it will default to 7:
+Note: You may specify the UBI version you wish to test with the optional `UBI_VERSION` argument. If not specified, it will default to 7:
 
 ```
 $ make test-daemon UBI_VERSION=<version_number>

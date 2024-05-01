@@ -53,9 +53,10 @@ func TestRunWithCollect(t *testing.T) {
 	daemon.config.CollectInterval = 20 * time.Millisecond
 	daemon.config.WriteInterval = 30 * time.Millisecond
 
-	// Test that deamon does initial notification on start before
+	// Test that daemon does initial notification on start
 	go daemon.Run()
 	checkRunning(t, daemon)
+
 	// Check initial notification (before fully started)
 	notifier.WaitForCall(t, 10*time.Millisecond)
 	if len(notifier.calledWith.samples) != 1 {
@@ -171,7 +172,7 @@ func TestNotify(t *testing.T) {
 		t.Fatalf("expected hostinfo to be passed to notifier")
 	}
 
-	// Test that log is trunctated after notifying
+	// Test that log is truncated after notifying
 	checkEmptyMetricsLog(t, metricsLog)
 
 	// Test that notifier is not called when there are no samples
@@ -304,7 +305,7 @@ func TestRunWithoutLabelRefresh(t *testing.T) {
 
 // Helper functions
 
-// Wait and check if deamon run was initiated
+// Wait and check if daemon run was initiated
 func checkRunning(t *testing.T, daemon *Daemon) {
 	timeout := time.NewTimer(10 * time.Millisecond)
 	defer timeout.Stop()
@@ -321,7 +322,7 @@ func checkRunning(t *testing.T, daemon *Daemon) {
 	}
 }
 
-// Wait and check if deamon is not started
+// Wait and check if daemon is not started
 func waitForStopped(t *testing.T, daemon *Daemon) {
 	t.Helper()
 	timeout := time.NewTimer(10 * time.Millisecond)
@@ -339,7 +340,7 @@ func waitForStopped(t *testing.T, daemon *Daemon) {
 	}
 }
 
-// Wait and check if deamon is started
+// Wait and check if daemon is started
 func waitForStarted(t *testing.T, daemon *Daemon) {
 	t.Helper()
 	timeout := time.NewTimer(100 * time.Millisecond)

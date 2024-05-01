@@ -265,7 +265,7 @@ func TestNoRetriesOn4xx(t *testing.T) {
 	checkNonRecoverable(t, err)
 	checkCalled(t, called, 1)
 
-	// Test that retries are done on 429 but not on subsequest 404
+	// Test that retries are done on 429 but not on subsequent 404
 	err = prometheusRemoteWrite(client, cfg, request)
 	checkExpectedErrorContains(t, err, "http Error: 404")
 	checkNonRecoverable(t, err)

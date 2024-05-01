@@ -18,7 +18,7 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 )
 
-// See https://prometheus.io/docs/concepts/remote_write_spec/ for specifiction of Prometheus remote write
+// See https://prometheus.io/docs/concepts/remote_write_spec/ for specification of Prometheus remote write
 
 // Should be used only for testing
 var tlsInsecureSkipVerify = false

@@ -85,14 +85,14 @@ func TestOverrideLogger(t *testing.T) {
 		t.Fatalf("logger is not overridden")
 	}
 
-	currrentLogger := getLogger()
-	if currrentLogger != logger {
+	currentLogger := getLogger()
+	if currentLogger != logger {
 		t.Fatalf("logger is not overridden")
 	}
 }
 
 // Test that global logger functions will use the overridden logger.
-func TestOverridenLogger(t *testing.T) {
+func TestOverriddenLogger(t *testing.T) {
 	logger := NewTestLogger()
 	OverrideLogger(logger)
 

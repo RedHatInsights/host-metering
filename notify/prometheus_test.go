@@ -91,7 +91,7 @@ func TestNotify(t *testing.T) {
 		}
 
 		// Test that request is in prometheus remote write format
-		checkPromethuesRemoteWriteHeaders(t, r)
+		checkPrometheusRemoteWriteHeaders(t, r)
 		checkRequestBody(t, r)
 		checkRequestUsesHostCert(t, r)
 
@@ -144,7 +144,7 @@ func TestNotifyNoCert(t *testing.T) {
 	err := n.Notify(samples, hostinfo)
 
 	if !strings.Contains(err.Error(), "no such file or directory") {
-		t.Fatal("Expected error on not finding certicate")
+		t.Fatal("Expected error on not finding certificate")
 	}
 }
 
@@ -321,7 +321,7 @@ func TestLabels(t *testing.T) {
 	createRequestAndCheckLabels(t, samples, hi)
 }
 
-func TestLableFiltering(t *testing.T) {
+func TestLabelFiltering(t *testing.T) {
 	// given
 	samples := createSamples()
 	hi := createHostInfo()
@@ -330,7 +330,7 @@ func TestLableFiltering(t *testing.T) {
 	writeRequest := hostInfo2WriteRequest(hi, samples, []string{"display_name", "socket_count"})
 
 	// then
-	checkLablesNotPresent(t, writeRequest.Timeseries[0].Labels, []string{"display_name", "socket_count"})
+	checkLabelsNotPresent(t, writeRequest.Timeseries[0].Labels, []string{"display_name", "socket_count"})
 }
 
 func TestFilterOutLabelsByName(t *testing.T) {
@@ -418,7 +418,7 @@ func createRequestAndCheckLabels(t *testing.T, samples []prompb.Sample, hostinfo
 // Helper checks
 
 // Check that the request has headers as expected in Prometheus remote write spec
-func checkPromethuesRemoteWriteHeaders(t *testing.T, r *http.Request) {
+func checkPrometheusRemoteWriteHeaders(t *testing.T, r *http.Request) {
 	if r.Header.Get("Content-Encoding") != "snappy" {
 		t.Errorf(
 			"Expected: `Content-Encoding: snappy` header, got: `%s`",
@@ -555,7 +555,7 @@ func checkLabelsPresence(t *testing.T, labels []prompb.Label, expected_names []s
 	}
 }
 
-func checkLablesNotPresent(t *testing.T, labels []prompb.Label, expected_missing []string) {
+func checkLabelsNotPresent(t *testing.T, labels []prompb.Label, expected_missing []string) {
 	t.Helper()
 	for _, name := range expected_missing {
 		for _, label := range labels {

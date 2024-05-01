@@ -48,7 +48,7 @@ type Config struct {
 	WriteTimeout         time.Duration
 	MetricsMaxAge        time.Duration
 	MetricsWALPath       string
-	LogLevel             string // one of "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
+	LogLevel             string // one of "ERROR", "WARN", "INFO", "DEBUG"
 	LogPath              string
 	InstanceID           string
 }

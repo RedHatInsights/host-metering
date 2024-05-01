@@ -43,7 +43,7 @@ func TestInitLogger(t *testing.T) {
 	if log == nil {
 		t.Fatalf("logger is not initialized")
 	}
-	// Test some usuage
+	// Test some usage
 	log.Debug("Debug Test")
 }
 
@@ -56,7 +56,7 @@ func TestInitLoggerFile(t *testing.T) {
 		t.Fatalf("logger is not initialized")
 	}
 	testMsg := "Test message"
-	// Test some usuage
+	// Test some usage
 	log.Debug(testMsg)
 
 	// Check that the file is created
@@ -77,7 +77,7 @@ func TestInitLoggerFile(t *testing.T) {
 	}
 }
 
-// Test that logger can be raplaced by other implementation of Logger interface.
+// Test that logger can be replaced by other implementation of Logger interface.
 func TestOverrideLogger(t *testing.T) {
 	logger := NewTestLogger()
 	OverrideLogger(logger)
@@ -91,7 +91,7 @@ func TestOverrideLogger(t *testing.T) {
 	}
 }
 
-// Test that global logger functions will use the overriden logger.
+// Test that global logger functions will use the overridden logger.
 func TestOverridenLogger(t *testing.T) {
 	logger := NewTestLogger()
 	OverrideLogger(logger)

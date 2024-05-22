@@ -223,6 +223,104 @@ func TestRestart(t *testing.T) {
 	checkIndex(t, checkpoint, 6)
 }
 
+func TestRemoveOldestSamples(t *testing.T) {
+	tests := []struct {
+		name           string
+		log            *MetricsLog
+		samplesToWrite []uint    // Samples to write log before removal
+		numSamples     int       // Number of oldest samples to remove
+		wantLogFile    []float64 // Expected remaining samples after removal
+		wantIndex      uint64    // Expected index after removal
+		wantErr        bool
+		wantErrMsg     string
+	}{
+		{
+			name:           "Remove 3 oldest samples",
+			log:            &MetricsLog{path: createMetricsPath(t)},
+			samplesToWrite: []uint{1, 2, 3, 4, 5},
+			numSamples:     3,
+			wantLogFile:    []float64{4, 5},
+			wantIndex:      6,
+			wantErr:        false,
+		},
+		{
+			name:           "Remove 0 samples",
+			log:            &MetricsLog{path: createMetricsPath(t)},
+			samplesToWrite: []uint{1, 2, 3, 4, 5, 6},
+			numSamples:     0,
+			wantLogFile:    []float64{1, 2, 3, 4, 5, 6},
+			wantIndex:      7,
+			wantErr:        false,
+		},
+		{
+			name:           "Attempt to remove a negative number of samples",
+			log:            &MetricsLog{path: createMetricsPath(t)},
+			samplesToWrite: []uint{1, 2, 3, 4, 5},
+			numSamples:     -2,
+			wantLogFile:    []float64{1, 2, 3, 4, 5}, // Expect no samples to be removed
+			wantIndex:      6,
+			wantErr:        false,
+		},
+		{
+			name:           "Attempt to remove more samples than exist in log",
+			log:            &MetricsLog{path: createMetricsPath(t)},
+			samplesToWrite: []uint{1, 2, 3, 4, 5},
+			numSamples:     60,
+			wantLogFile:    []float64{5}, // Expecting only most recent sample to remain
+			wantIndex:      6,
+			wantErr:        false,
+		},
+		{
+			name:        "No samples written to file",
+			log:         &MetricsLog{path: createMetricsPath(t)},
+			wantLogFile: []float64{}, // Expecting empty log file
+			wantIndex:   1,
+			wantErr:     false,
+		},
+		{
+			name:       "Passing invalid log path",
+			log:        &MetricsLog{path: ""},
+			wantErr:    true,
+			wantErrMsg: "metrics log path cannot be empty",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			// Create a new MetricsLog instance for testing
+			log, err := NewMetricsLog(tt.log.path)
+			if err != nil {
+				checkExpectedError(t, err, tt.wantErrMsg)
+				return
+			}
+			defer log.Close()
+
+			// Write samples to the log
+			for _, sample := range tt.samplesToWrite {
+				err := log.WriteSampleNow(sample)
+				checkError(t, err, "failed to write sample")
+			}
+
+			// Call RemoveOldestSamples with the desired number of samples to remove
+			err = log.RemoveOldestSamples(tt.numSamples)
+			if (err != nil) != tt.wantErr {
+				checkExpectedError(t, err, tt.wantErrMsg)
+			}
+
+			// Retrieve the remaining samples
+			samples, checkpoint, err := log.GetSamples()
+			checkError(t, err, "failed to get samples")
+
+			// Check remaining samples match expected samples
+			checkSamples(t, samples, tt.wantLogFile...)
+
+			// Check index is as expected after removing samples
+			checkIndex(t, checkpoint, tt.wantIndex)
+		})
+	}
+}
+
 func createMetricsPath(t *testing.T) string {
 	dir := t.TempDir()
 	return dir + "/metrics"

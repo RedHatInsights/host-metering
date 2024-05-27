@@ -1,3 +1,11 @@
+# [1.3.0](https://github.com/RedHatInsights/host-metering/compare/v1.2.0...v1.3.0) (2024-05-27)
+
+
+### Features
+
+* add optional InstanceID field to log output ([#46](https://github.com/RedHatInsights/host-metering/issues/46)) ([27751a7](https://github.com/RedHatInsights/host-metering/commit/27751a736224d7e8bcae8bec58cba2ed95e00720))
+* enable host-metering.service on rpm installation ([d231460](https://github.com/RedHatInsights/host-metering/commit/d23146027411a881a6f8e5cfdd6a87513ec69fba))
+
 # [1.2.0](https://github.com/RedHatInsights/host-metering/compare/v1.1.0...v1.2.0) (2023-12-19)
 
 

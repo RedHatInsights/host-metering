@@ -28,6 +28,14 @@ Will be used as the proxy URL for HTTP requests unless overridden by NO_PROXY.
 \fBHTTPS_PROXY\fR
 Will be used as the proxy URL for HTTPS requests unless overridden by NO_PROXY.
 
+As systemd services do not have visibility into environment variables that are active in the user environment by default, the HTTP_PROXY and HTTPS_PROXY variables set within the user environment will not be detected by the host-metering service. 
+To use custom proxy settings that will persist across package updates, you can create a .conf override file containing your custom proxy settings within the `/etc/systemd/system/host-metering.service.d/` directory.
+
+Example override file contents: 
+[Service]
+Environment="HTTP_PROXY=http://proxy.example.com:3465"
+Environment="HTTPS_PROXY=http://proxy.example.com:3465"
+
 \fBNO_PROXY\fR
 Specifies a string that contains comma-separated values
 specifying hosts that should be excluded from proxying. Each value is

@@ -176,7 +176,7 @@ rpm: rpm/srpm
 .PHONY: rpm/mock
 rpm/mock: rpm/srpm
 	mkdir -p $(DISTDIR)/mock7
-	mock -r contrib/rpm/epel-7-x86_64-custom.cfg \
+	mock -r epel-7-x86_64 \
 	     --resultdir=$(DISTDIR)/mock7/ \
 	     --rebuild $(RPMTOPDIR)/SRPMS/$(shell ls -1 $(RPMTOPDIR)/SRPMS)
 

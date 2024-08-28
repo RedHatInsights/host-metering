@@ -24,6 +24,8 @@ func TestHostInfo(t *testing.T) {
 		"|  CpuCount: 64\n" +
 		"|  HostName: host.mock.test\n" +
 		"|  HostId: 01234567-89ab-cdef-0123-456789abcdef\n" +
+		"|  HTTP Proxy: No proxy set\n" +
+		"|  HTTPS Proxy: No proxy set\n" +
 		"|  ExternalOrganization: 12345678\n" +
 		"|  SocketCount: 3\n" +
 		"|  Product: [394 69]\n" +

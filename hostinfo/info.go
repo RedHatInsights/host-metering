@@ -2,6 +2,7 @@ package hostinfo
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -55,12 +56,24 @@ func LoadHostInfo() (*HostInfo, error) {
 }
 
 func (hi *HostInfo) String() string {
+	httpProxy := os.Getenv("HTTP_PROXY")
+	if httpProxy == "" {
+		httpProxy = "No proxy set"
+	}
+
+	httpsProxy := os.Getenv("HTTPS_PROXY")
+	if httpsProxy == "" {
+		httpsProxy = "No proxy set"
+	}
+
 	return strings.Join(
 		[]string{
 			"HostInfo:",
 			fmt.Sprintf("|  CpuCount: %d", hi.CpuCount),
 			fmt.Sprintf("|  HostName: %s", hi.HostName),
 			fmt.Sprintf("|  HostId: %s", hi.HostId),
+			fmt.Sprintf("|  HTTP Proxy: %s", httpProxy),
+			fmt.Sprintf("|  HTTPS Proxy: %s", httpsProxy),
 			fmt.Sprintf("|  ExternalOrganization: %s", hi.ExternalOrganization),
 			fmt.Sprintf("|  SocketCount: %s", hi.SocketCount),
 			fmt.Sprintf("|  Product: %s", hi.Product),

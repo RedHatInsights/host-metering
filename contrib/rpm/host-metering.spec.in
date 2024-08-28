@@ -78,6 +78,7 @@ install -m 0755 -vd                     %{buildroot}%{_bindir}
 install -m 0755 -vp $(pwd)/bin/*        %{buildroot}%{_bindir}/
 install -m 0755 -vd                     %{buildroot}%{_unitdir}
 install -m 644 contrib/systemd/host-metering.service %{buildroot}%{_unitdir}/%{name}.service
+install -m 0755 contrib/systemd/host-metering-proxy-setup.sh %{buildroot}%{_bindir}/host-metering-proxy-setup.sh
 install -m 0755 -vd                     %{buildroot}%{_presetdir}
 install -m 644 contrib/systemd/80-host-metering.preset %{buildroot}%{_presetdir}/80-%{name}.preset
 install -m 0755 -vd                     %{buildroot}%{_mandir}/man1

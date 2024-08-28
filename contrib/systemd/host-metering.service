@@ -6,7 +6,7 @@ After=network-online.target
 [Service]
 Type=simple
 Environment=LC_ALL=C.UTF-8
-ExecStart=/usr/bin/host-metering daemon
+ExecStart=/usr/bin/host-metering-proxy-setup.sh
 ExecReload=/usr/bin/kill -HUP $MAINPID
 
 Restart=always

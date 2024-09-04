@@ -111,6 +111,9 @@ func GetBillingInfo(facts SubManValues) (BillingInfo, error) {
 
 func execSubManCommand(command ...string) (string, error) {
 	cmd := exec.Command("subscription-manager", command...)
+
+	// Set LANG to C.UTF-8 to force English output for predictable key lookups
+	cmd.Env = append(cmd.Environ(), "LANG=C.UTF-8")
 	logger.Debugf("Executing `subscription-manager %s`...\n", command)
 
 	var stdout, stderr bytes.Buffer

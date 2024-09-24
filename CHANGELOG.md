@@ -1,3 +1,16 @@
+# [1.4.0](https://github.com/RedHatInsights/host-metering/compare/v1.3.0...v1.4.0) (2024-09-24)
+
+
+### Bug Fixes
+
+* execute sub-man cli with c.utf-8 lang locale ([5a63c1e](https://github.com/RedHatInsights/host-metering/commit/5a63c1e47670d719f192c1e0cf6c67f3361e51bc))
+
+
+### Features
+
+* add proxy config to hostinfo ([4540793](https://github.com/RedHatInsights/host-metering/commit/45407935a7abb79b4d432a1c003c17b62b9dba00))
+* load proxy config on service start ([73efc2d](https://github.com/RedHatInsights/host-metering/commit/73efc2d3f55ab1e4d42b8a7a8ad573d3f4f7d5ad))
+
 # [1.3.0](https://github.com/RedHatInsights/host-metering/compare/v1.2.0...v1.3.0) (2024-05-27)
 
 

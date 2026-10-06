@@ -48,6 +48,8 @@ sepolicy manpage -p . -d hostmetering_t
 /sbin/restorecon -F -R -v /usr/bin/host-metering
 # Fixing the file context on /usr/lib/systemd/system/host-metering.service
 /sbin/restorecon -F -R -v /usr/lib/systemd/system/host-metering.service
+# Fixing the file context on /run/host-metering
+/sbin/restorecon -F -R -v /run/host-metering
 # Fixing the file context on /var/run/host-metering
 /sbin/restorecon -F -R -v /var/run/host-metering
 # Generate a rpm package for the newly generated policy

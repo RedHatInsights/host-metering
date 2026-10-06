@@ -1,11 +1,7 @@
 %bcond_without check
 
-%if 0%{?rhel} <= 7 && ! 0%{?fedora} && ! 0%{?centos}
-%define gobuild(o:) scl enable go-toolset-1.19 -- go build -mod vendor -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${GO_LDFLAGS:-} ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '-Wl,-z,relro -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld'" -a -v %{?**};
-%endif
-%if 0%{?rhel} <= 7 && ! 0%{?fedora} && 0%{?centos}
-
-%define gobuild(o:) go build -mod vendor -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${GO_LDFLAGS:-} ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '-Wl,-z,relro -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld'" -a -v %{?**};
+%if ! 0%{?gobuild:1}
+%define gobuild(o:) go build -mod vendor -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${GO_LDFLAGS:-} ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -extldflags '-Wl,-z,relro -Wl,-z,now'" -a -v %{?**};
 %endif
 
 %global goipath         github.com/RedHatInsights/host-metering
@@ -30,21 +26,16 @@ URL:            https://github.com/RedHatInsights/host-metering/
 
 Source:         %{name}-%{version}.tar.gz
 
-%if 0%{?rhel} <= 7 && ! 0%{?fedora} && ! 0%{?centos}
-BuildRequires: go-toolset-1.19
-%else
+%if 0%{?rhel} >= 8 || 0%{?fedora}
 BuildRequires: golang >= 1.19
-BuildRequires: systemd-rpm-macros
-%endif
-
-%if 0%{?rhel} > 8 || 0%{?fedora}
 BuildRequires: go-rpm-macros
+BuildRequires: systemd-rpm-macros
+BuildRequires: selinux-policy-devel
 %endif
 
 BuildRequires: git
 BuildRequires: policycoreutils
 BuildRequires: selinux-policy
-BuildRequires: selinux-policy-devel
 Requires:      %{name}-selinux = %{version}-%{release}
 
 %description
@@ -91,6 +82,8 @@ install -D -p -m 644 contrib/selinux/%{modulename}.if %{buildroot}%{_datadir}/se
 
 %if %{with check}
 %check
+export PATH=$(pwd)/mocks:$PATH
+go test -v ./...
 %endif
 
 %post

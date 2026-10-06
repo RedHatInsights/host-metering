@@ -173,12 +173,8 @@ rpm/srpm: tarball rpm/spec
 rpm: rpm/srpm
 	rpmbuild --define '_topdir $(RPMTOPDIR)' -bb contrib/rpm/$(RPMNAME).spec
 
-.PHONY: rpm/mock
-rpm/mock: rpm/srpm
-	mkdir -p $(DISTDIR)/mock7
-	mock -r contrib/rpm/epel-7-x86_64-custom.cfg \
-	     --resultdir=$(DISTDIR)/mock7/ \
-	     --rebuild $(RPMTOPDIR)/SRPMS/$(shell ls -1 $(RPMTOPDIR)/SRPMS)
+.PHONY: mock-8
+mock-8: rpm/mock-8
 
 .PHONY: rpm/mock-8
 rpm/mock-8: rpm/srpm
@@ -187,12 +183,55 @@ rpm/mock-8: rpm/srpm
 	     --resultdir=$(DISTDIR)/mock8/ \
 	     --rebuild $(RPMTOPDIR)/SRPMS/$(shell ls -1 $(RPMTOPDIR)/SRPMS)
 
+.PHONY: mock-9
+mock-9: rpm/mock-9
+
 .PHONY: rpm/mock-9
 rpm/mock-9: rpm/srpm
 	mkdir -p $(DISTDIR)/mock9
 	mock -r centos-stream-9-x86_64 \
 	     --resultdir=$(DISTDIR)/mock9 \
 	     --rebuild $(RPMTOPDIR)/SRPMS/$(shell ls -1 $(RPMTOPDIR)/SRPMS)
+
+.PHONY: mock-10
+mock-10: rpm/mock-10
+
+.PHONY: rpm/mock-10
+rpm/mock-10: rpm/srpm
+	mkdir -p $(DISTDIR)/mock10
+	mock -r centos-stream-10-x86_64 \
+	     --resultdir=$(DISTDIR)/mock10 \
+	     --rebuild $(RPMTOPDIR)/SRPMS/$(shell ls -1 $(RPMTOPDIR)/SRPMS)
+
+.PHONY: container-rpm-8 rpm-ubi8
+container-rpm-8: rpm/srpm
+	podman run --rm \
+		-v $(CURDIR):/workspace:z \
+		-w /workspace \
+		docker.io/library/almalinux:8 \
+		bash -c "dnf install -y epel-release && dnf install -y --enablerepo=powertools go-rpm-macros-epel go-srpm-macros golang git make rpm-build systemd-rpm-macros selinux-policy-devel policycoreutils selinux-policy tar gzip systemd && rpmbuild --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
+
+rpm-ubi8: container-rpm-8
+
+.PHONY: container-rpm-9 rpm-ubi9
+container-rpm-9: rpm/srpm
+	podman run --rm \
+		-v $(CURDIR):/workspace:z \
+		-w /workspace \
+		quay.io/centos/centos:stream9 \
+		bash -c "dnf install -y golang git make rpm-build systemd-rpm-macros selinux-policy-devel go-rpm-macros policycoreutils selinux-policy tar gzip systemd && rpmbuild --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
+
+rpm-ubi9: container-rpm-9
+
+.PHONY: container-rpm-10 rpm-ubi10
+container-rpm-10: rpm/srpm
+	podman run --rm \
+		-v $(CURDIR):/workspace:z \
+		-w /workspace \
+		quay.io/centos/centos:stream10 \
+		bash -c "dnf install -y golang git make rpm-build systemd-rpm-macros selinux-policy-devel go-rpm-macros policycoreutils selinux-policy tar gzip systemd && rpmbuild --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
+
+rpm-ubi10: container-rpm-10
 
 # Clean
 .PHONY: clean

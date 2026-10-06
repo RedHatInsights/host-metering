@@ -1,9 +1,6 @@
 #!/bin/bash
-SCLS=go-toolset-1.19
+# Go is already available in the default path in modern UBI images.
 
-if [ -x "$(command -v scl_source)" ]; then
-  source scl_source enable $SCLS
-fi
-
-cd $WORKDIR
+cd "${WORKDIR:-/workspace/host-metering}"
 exec "$@"
+

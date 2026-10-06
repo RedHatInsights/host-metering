@@ -20,3 +20,11 @@ mocks/cpumetrics/
 .devcontainer/docker-compose.local.yml
 coverage.*
 contrib/prometheus/recording-rules.yml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+

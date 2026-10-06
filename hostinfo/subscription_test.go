@@ -104,3 +104,114 @@ func compareHostInfo(t *testing.T, hi *HostInfo, expected *HostInfo) {
 	}
 
 }
+
+func TestRHEL10Environment(t *testing.T) {
+	// Simulate RHEL 10 where service-level is removed / errors out
+	t.Setenv("SIMULATE_RHEL10", "true")
+
+	// 1. With syspurpose available
+	t.Setenv("MOCK_SYSPURPOSE_JSON", `{"role": "Production", "service_level_agreement": "Premium", "usage": "Production"}`)
+	hi := &HostInfo{}
+	LoadSubManInformation(hi)
+
+	if hi.Support != "Premium" {
+		t.Errorf("Expected Support to fall back to syspurpose 'Premium' under RHEL 10, got: %s", hi.Support)
+	}
+	if hi.Usage != "Production" {
+		t.Errorf("Expected Usage to fall back to syspurpose 'Production' under RHEL 10, got: %s", hi.Usage)
+	}
+
+	// 2. With syspurpose also unavailable/errors out - should fail/omit gracefully (Support and Usage are empty, no panic)
+	t.Setenv("MOCK_SYSPURPOSE_UNAVAILABLE", "true")
+	t.Setenv("MOCK_LEGACY_USAGE_UNAVAILABLE", "true")
+	hiGraceful := &HostInfo{}
+	LoadSubManInformation(hiGraceful)
+
+	if hiGraceful.Support != "" {
+		t.Errorf("Expected Support to be empty when service-level and syspurpose both fail, got: %s", hiGraceful.Support)
+	}
+	if hiGraceful.Usage != "" {
+		t.Errorf("Expected Usage to be empty when usage and syspurpose both fail, got: %s", hiGraceful.Usage)
+	}
+}
+
+func TestSyspurposeEnvironments(t *testing.T) {
+	// Test legacy usage/service-level disabled, relying entirely on syspurpose
+	t.Setenv("MOCK_LEGACY_USAGE_UNAVAILABLE", "true")
+	t.Setenv("MOCK_SERVICE_LEVEL_UNAVAILABLE", "true")
+
+	// Case A: Standard JSON output
+	t.Setenv("MOCK_SYSPURPOSE_JSON", `{"role": "Development", "service_level_agreement": "Standard", "usage": "Development"}`)
+	hi := &HostInfo{}
+	LoadSubManInformation(hi)
+
+	if hi.Support != "Standard" {
+		t.Errorf("Expected Support to be Standard, got: %s", hi.Support)
+	}
+	if hi.Usage != "Development" {
+		t.Errorf("Expected Usage to be Development, got: %s", hi.Usage)
+	}
+
+	// Case B: Alternate keys / structures in JSON
+	t.Setenv("MOCK_SYSPURPOSE_JSON", `{"current_role": "Production", "sla": "Self-Support", "current_usage": "Production"}`)
+	hiAlt := &HostInfo{}
+	LoadSubManInformation(hiAlt)
+
+	if hiAlt.Support != "Self-Support" {
+		t.Errorf("Expected Support to parse 'sla': Self-Support, got: %s", hiAlt.Support)
+	}
+	if hiAlt.Usage != "Production" {
+		t.Errorf("Expected Usage to parse 'current_usage': Production, got: %s", hiAlt.Usage)
+	}
+
+	// Case C: Plain key-value text format (non-JSON)
+	t.Setenv("MOCK_SYSPURPOSE_JSON", "Role: Production\nService Level Agreement: Premium\nUsage: Production")
+	hiKV := &HostInfo{}
+	LoadSubManInformation(hiKV)
+
+	if hiKV.Support != "Premium" {
+		t.Errorf("Expected Support to parse from KV: Premium, got: %s", hiKV.Support)
+	}
+	if hiKV.Usage != "Production" {
+		t.Errorf("Expected Usage to parse from KV: Production, got: %s", hiKV.Usage)
+	}
+}
+
+func TestCloudMarketplaceFacts(t *testing.T) {
+	// This test directly exercises GetBillingInfo to verify cloud marketplace facts extraction
+	factsAWS := SubManValues{
+		"aws_account_id":  "123456789012",
+		"aws_instance_id": "i-0123456789abcdef0",
+	}
+	biAWS, err := GetBillingInfo(factsAWS)
+	if err != nil {
+		t.Fatalf("Failed to parse AWS billing info: %v", err)
+	}
+	if biAWS.Marketplace != "aws" || biAWS.MarketplaceAccount != "123456789012" || biAWS.MarketplaceInstanceId != "i-0123456789abcdef0" {
+		t.Errorf("Unexpected AWS billing info: %+v", biAWS)
+	}
+
+	factsAzure := SubManValues{
+		"azure_subscription_id": "sub-id-123",
+		"azure_instance_id":      "inst-id-456",
+	}
+	biAzure, err := GetBillingInfo(factsAzure)
+	if err != nil {
+		t.Fatalf("Failed to parse Azure billing info: %v", err)
+	}
+	if biAzure.Marketplace != "azure" || biAzure.MarketplaceAccount != "sub-id-123" || biAzure.MarketplaceInstanceId != "inst-id-456" {
+		t.Errorf("Unexpected Azure billing info: %+v", biAzure)
+	}
+
+	factsGCP := SubManValues{
+		"gcp_project_number": "proj-789",
+		"gcp_instance_id":     "inst-999",
+	}
+	biGCP, err := GetBillingInfo(factsGCP)
+	if err != nil {
+		t.Fatalf("Failed to parse GCP billing info: %v", err)
+	}
+	if biGCP.Marketplace != "gcp" || biGCP.MarketplaceAccount != "proj-789" || biGCP.MarketplaceInstanceId != "inst-999" {
+		t.Errorf("Unexpected GCP billing info: %+v", biGCP)
+	}
+}

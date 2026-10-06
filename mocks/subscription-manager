@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ "${1}" == "--rhel10" ]; then
+  export SIMULATE_RHEL10="true"
+  shift
+fi
+
 # Tries to look for a predefined file, if the file does not exist, it will use hard-coded version
 
 IDENTITY=\
@@ -206,10 +211,46 @@ hard_coded() {
       show_identity
       ;;
     usage)
+      if [ "${MOCK_LEGACY_USAGE_UNAVAILABLE}" == "true" ]; then
+        echo "Error: usage command not available" >&2
+        exit 1
+      fi
       show_usage
       ;;
     service-level)
+      if [ "${SIMULATE_RHEL10}" == "true" ] || [ "${RHEL_VERSION}" == "10" ] || [ "${MOCK_SERVICE_LEVEL_UNAVAILABLE}" == "true" ]; then
+        echo "Error: service-level command is deprecated and removed in RHEL 10" >&2
+        exit 1
+      fi
       show_service_level
+      ;;
+    syspurpose)
+      if [ "${MOCK_SYSPURPOSE_UNAVAILABLE}" == "true" ]; then
+        echo "Error: syspurpose command not available" >&2
+        exit 1
+      fi
+      case "${2}" in
+        show)
+          if [ -n "${MOCK_SYSPURPOSE_JSON}" ]; then
+            echo "${MOCK_SYSPURPOSE_JSON}"
+          else
+            echo '{"role": "Production", "service_level_agreement": "Premium", "usage": "Production"}'
+          fi
+          ;;
+        usage)
+          echo "${MOCK_SYSPURPOSE_USAGE:-Production}"
+          ;;
+        role)
+          echo "${MOCK_SYSPURPOSE_ROLE:-Production}"
+          ;;
+        service-level|service_level_agreement)
+          echo "${MOCK_SYSPURPOSE_SLA:-Premium}"
+          ;;
+        *)
+          echo "Unsupported syspurpose subcommand: ${2}" >&2
+          exit 1
+          ;;
+      esac
       ;;
     facts)
       show_facts

@@ -3,6 +3,7 @@ package hostinfo
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -44,15 +45,45 @@ func GetExternalOrganization(identity SubManValues) (string, error) {
 }
 
 func GetUsage() (string, error) {
-	output, _ := execSubManCommand("usage")
-	values := parseSubManOutput(output)
-	return values.get("Current Usage")
+	output, err := execSubManCommand("usage")
+	if err == nil {
+		values := parseSubManOutput(output)
+		if val, err := values.get("Current Usage"); err == nil && val != "" {
+			return val, nil
+		}
+	}
+
+	// Graceful fallback to syspurpose usage, then role
+	logger.Debugf("subscription-manager usage failed or empty, falling back to syspurpose")
+	if val, err := GetSyspurposeField("usage"); err == nil && val != "" {
+		return val, nil
+	}
+	if val, err := GetSyspurposeField("role"); err == nil && val != "" {
+		return val, nil
+	}
+
+	return "", nil
 }
 
 func GetServiceLevel() (string, error) {
-	output, _ := execSubManCommand("service-level")
-	values := parseSubManOutput(output)
-	return values.get("Current service level")
+	output, err := execSubManCommand("service-level")
+	if err == nil {
+		values := parseSubManOutput(output)
+		if val, err := values.get("Current service level"); err == nil && val != "" {
+			return val, nil
+		}
+	}
+
+	// Graceful fallback to syspurpose service_level_agreement or service-level
+	logger.Debugf("subscription-manager service-level failed or empty, falling back to syspurpose SLA")
+	if val, err := GetSyspurposeField("service_level_agreement"); err == nil && val != "" {
+		return val, nil
+	}
+	if val, err := GetSyspurposeField("service-level"); err == nil && val != "" {
+		return val, nil
+	}
+
+	return "", nil
 }
 
 func GetSubManFacts() (SubManValues, error) {
@@ -109,26 +140,145 @@ func GetBillingInfo(facts SubManValues) (BillingInfo, error) {
 	return BillingInfo{}, err
 }
 
-func execSubManCommand(command ...string) (string, error) {
-	cmd := exec.Command("subscription-manager", command...)
+func execCommand(name string, arg ...string) (string, error) {
+	cmd := exec.Command(name, arg...)
 
 	// Set LANG to C.UTF-8 to force English output for predictable key lookups
 	cmd.Env = append(cmd.Environ(), "LANG=C.UTF-8")
-	logger.Debugf("Executing `subscription-manager %s`...\n", command)
+	logger.Debugf("Executing `%s %s`...\n", name, arg)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	err := cmd.Run()
 
 	if err != nil {
-		err = fmt.Errorf("`subscription-manager %s` has failed: %s", command, err.Error())
+		err = fmt.Errorf("`%s %s` has failed: %s", name, arg, err.Error())
 		logger.Debugf("Stdout: %s\n", strings.TrimSpace(stdout.String()))
 		logger.Debugf("Stderr: %s\n", strings.TrimSpace(stderr.String()))
-		logger.Errorf("Error executing subscription manager: %s", err.Error())
+		logger.Errorf("Error executing command: %s", err.Error())
 		return "", err
 	}
 
 	return stdout.String(), nil
+}
+
+func execSubManCommand(command ...string) (string, error) {
+	return execCommand("subscription-manager", command...)
+}
+
+func cleanCommandOutput(output string) string {
+	var lines []string
+	for _, line := range strings.Split(output, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "###") || strings.Contains(trimmed, "Mocked output") {
+			continue
+		}
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n")
+}
+
+func getKeysToTry(fieldName string) []string {
+	fn := strings.ToLower(fieldName)
+	if fn == "usage" {
+		return []string{"usage", "current usage", "current_usage"}
+	}
+	if fn == "role" {
+		return []string{"role", "current role", "current_role"}
+	}
+	if fn == "service_level_agreement" || fn == "service-level" || fn == "servicelevel" {
+		return []string{"service_level_agreement", "service level agreement", "service-level", "servicelevel", "current service level", "current_service_level", "sla"}
+	}
+	return []string{fieldName}
+}
+
+func parseSyspurposeOutput(output string, fieldName string) string {
+	cleaned := cleanCommandOutput(output)
+	cleaned = strings.TrimSpace(cleaned)
+	if cleaned == "" {
+		return ""
+	}
+
+	// Try JSON first
+	var jsonMap map[string]interface{}
+	if err := json.Unmarshal([]byte(cleaned), &jsonMap); err == nil {
+		keysToTry := getKeysToTry(fieldName)
+		for _, key := range keysToTry {
+			if val, ok := jsonMap[key]; ok {
+				if strVal, ok := val.(string); ok {
+					return strings.TrimSpace(strVal)
+				}
+			}
+		}
+	}
+
+	// Fallback to line-by-line key-value parsing
+	reader := strings.NewReader(cleaned)
+	scanner := bufio.NewScanner(reader)
+	keysToTry := getKeysToTry(fieldName)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, ";") || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		key := strings.ToLower(strings.TrimSpace(parts[0]))
+		value := strings.TrimSpace(parts[1])
+
+		// Strip potential JSON syntax if output was partially JSON-like but unmarshal failed
+		key = strings.Trim(key, `"{}, `)
+		value = strings.Trim(value, `"{}, `)
+
+		for _, k := range keysToTry {
+			if key == strings.ToLower(k) {
+				return value
+			}
+		}
+	}
+
+	// If the output is just a single line without any colon, return it
+	lines := strings.Split(cleaned, "\n")
+	if len(lines) == 1 {
+		singleLine := strings.TrimSpace(lines[0])
+		if singleLine != "" && !strings.Contains(singleLine, ":") {
+			return singleLine
+		}
+	}
+
+	return ""
+}
+
+func GetSyspurposeField(fieldName string) (string, error) {
+	// Try subscription-manager syspurpose show first
+	output, err := execSubManCommand("syspurpose", "show")
+	if err != nil {
+		// Fallback to standalone syspurpose show
+		output, err = execCommand("syspurpose", "show")
+	}
+
+	if err != nil {
+		// Also try subcommands (e.g. syspurpose usage or syspurpose role)
+		output, err = execSubManCommand("syspurpose", fieldName)
+		if err != nil {
+			output, err = execCommand("syspurpose", fieldName)
+		}
+	}
+
+	if err == nil && output != "" {
+		val := parseSyspurposeOutput(output, fieldName)
+		if val != "" {
+			return val, nil
+		}
+	}
+
+	return "", fmt.Errorf("field `%s` not found in syspurpose", fieldName)
 }
 
 func parseSubManOutput(output string) SubManValues {

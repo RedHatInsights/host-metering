@@ -1,0 +1,4 @@
+#!/bin/bash
+# Standalone syspurpose mock wrapper
+# Forwards calls to subscription-manager with the "syspurpose" prefix
+"$(dirname "$0")/subscription-manager" syspurpose "$@"

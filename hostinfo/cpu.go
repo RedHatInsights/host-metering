@@ -2,6 +2,7 @@ package hostinfo
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/prometheus/procfs"
 )
@@ -10,15 +11,18 @@ import (
 func GetCPUCount() (uint, error) {
 
 	fs, err := procfs.NewFS("/proc")
-	if err != nil {
-		return 0, fmt.Errorf("GetCPUCount: failed to open procfs: %w", err)
+	if err == nil {
+		info, err := fs.CPUInfo()
+		if err == nil && len(info) > 0 {
+			return uint(len(info)), nil
+		}
 	}
 
-	info, err := fs.CPUInfo()
-	if err != nil {
-		return 0, fmt.Errorf("GetCPUCount: failed to load CPUInfo: %w", err)
+	// Resilient fallback using runtime.NumCPU()
+	cpuCount := uint(runtime.NumCPU())
+	if cpuCount > 0 {
+		return cpuCount, nil
 	}
 
-	cpuCount := uint(len(info))
-	return cpuCount, nil
+	return 0, fmt.Errorf("GetCPUCount: failed to determine CPU count")
 }

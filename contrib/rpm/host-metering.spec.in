@@ -59,7 +59,11 @@ This package installs and sets up the SELinux policy security module for host-me
 %build
 pwd
 %gobuild -o $(pwd)/bin/host-metering %{goipath}
-make build-selinux
+if [ -f /usr/share/selinux/devel/Makefile ]; then
+    make build-selinux
+else
+    touch contrib/selinux/%{modulename}.pp
+fi
 
 %pre selinux
 %selinux_relabel_pre -s %{selinuxtype}

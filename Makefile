@@ -7,7 +7,7 @@ NEXT_VERSION ?=
 SHORT_COMMIT ?= $(shell git rev-parse --short=8 HEAD)
 AUTORELEASE ?= "git$(shell date "+%Y%m%d%H%M")G$(SHORT_COMMIT)"
 
-UBI_VERSION ?= 7
+UBI_VERSION ?= 9
 
 DISTDIR ?= $(CURDIR)/dist
 RPMTOPDIR := $(DISTDIR)/rpmbuild

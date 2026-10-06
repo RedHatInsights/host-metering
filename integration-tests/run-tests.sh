@@ -9,7 +9,7 @@ SPUN_UP=false
 cleanup() {
   if [ "$SPUN_UP" = "true" ]; then
     echo "Tearing down container services..."
-    $COMPOSE_CMD -f "$BASE_DIR/integration-tests/docker/docker-compose.test.yml" down -v --remove-orphans || true
+    $COMPOSE_CMD -f "$BASE_DIR/integration-tests/docker/docker-compose.test.yml" down -v --remove-orphans >/dev/null 2>&1 || true
   fi
 }
 
@@ -74,7 +74,8 @@ run_integration_tests() {
   echo "Running pytest in ubi${version} container..."
   $COMPOSE_CMD -f "$BASE_DIR/integration-tests/docker/docker-compose.test.yml" run --rm \
     -e HOST_METERING_WRITE_URL=http://prometheus:9090/api/v1/write \
-    "ubi${version}" pytest "integration-tests/test_integration.py" "${PYTEST_FLAGS[@]}"
+    -e PROMETHEUS_URL=http://prometheus:9090 \
+    "ubi${version}" pytest "integration-tests/" "${PYTEST_FLAGS[@]}"
 }
 
 # Parse arguments

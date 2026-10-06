@@ -150,7 +150,9 @@ metrics_wal_path={wal_path}
     with open(config_path, "w") as f:
         f.write(config_content)
 
-    res = subprocess.run([host_metering_bin, "-config", config_path, "daemon"], capture_output=True, text=True)
+    env = os.environ.copy()
+    env.pop("HOST_METERING_WRITE_URL", None)
+    res = subprocess.run([host_metering_bin, "-config", config_path, "daemon"], env=env, capture_output=True, text=True)
     assert res.returncode == 2
     assert "Invalid configuration: WriteURL must be defined" in res.stderr
 
@@ -176,6 +178,8 @@ metrics_wal_path={wal_path}
     with open(config_path, "w") as f:
         f.write(config_content)
 
-    res = subprocess.run([host_metering_bin, "-config", config_path, "daemon"], capture_output=True, text=True)
+    env = os.environ.copy()
+    env.pop("HOST_METERING_WRITE_INTERVAL_SEC", None)
+    res = subprocess.run([host_metering_bin, "-config", config_path, "daemon"], env=env, capture_output=True, text=True)
     assert res.returncode == 2
     assert "WriteInterval must be bigger than WriteRetryAttempts" in res.stderr

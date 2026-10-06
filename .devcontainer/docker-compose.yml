@@ -20,7 +20,7 @@ services:
     user: root
 
   prometheus:
-    image: prometheus/prometheus
+    image: docker.io/prom/prometheus:latest
     ports:
       - 9090:9090
     volumes:

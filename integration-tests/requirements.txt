@@ -1,0 +1,5 @@
+pytest
+requests
+prometheus-api-client
+tenacity
+cryptography

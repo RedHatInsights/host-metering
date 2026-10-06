@@ -1,7 +1,7 @@
 %bcond_without check
 
 %if ! 0%{?gobuild:1}
-%define gobuild(o:) go build -mod vendor -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${GO_LDFLAGS:-} ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -extldflags '-Wl,-z,relro -Wl,-z,now'" -a -v %{?**};
+%define gobuild(o:) go build -mod vendor -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${GO_LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -extldflags '${LDFLAGS:-} -Wl,-z,relro -Wl,-z,now'" -a -v %{?**};
 %endif
 
 %global goipath         github.com/RedHatInsights/host-metering

@@ -219,7 +219,7 @@ container-rpm-9: rpm/srpm
 		-v $(CURDIR):/workspace:z \
 		-w /workspace \
 		registry.access.redhat.com/ubi9/ubi:latest \
-		bash -c "dnf install -y golang git make rpm-build systemd-rpm-macros tar gzip && rpmbuild --nodeps --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
+		bash -c "dnf install -y golang git make rpm-build systemd-rpm-macros go-rpm-macros tar gzip && rpmbuild --nodeps --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
 
 rpm-ubi9: container-rpm-9
 
@@ -229,7 +229,7 @@ container-rpm-10: rpm/srpm
 		-v $(CURDIR):/workspace:z \
 		-w /workspace \
 		registry.access.redhat.com/ubi10/ubi:latest \
-		bash -c "dnf install -y golang git make rpm-build systemd-rpm-macros tar gzip && rpmbuild --nodeps --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
+		bash -c "dnf install -y golang git make rpm-build systemd-rpm-macros go-rpm-macros tar gzip && rpmbuild --nodeps --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
 
 rpm-ubi10: container-rpm-10
 

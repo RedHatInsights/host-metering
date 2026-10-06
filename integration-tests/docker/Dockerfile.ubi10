@@ -1,6 +1,4 @@
-ARG UBI_VERSION=9
-
-FROM registry.access.redhat.com/ubi${UBI_VERSION}/ubi:latest
+FROM registry.access.redhat.com/ubi10/ubi:latest
 
 # Install Go, Python3, pip, git, openssl, and system utilities
 RUN dnf install -y \

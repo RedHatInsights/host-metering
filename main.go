@@ -9,15 +9,22 @@ import (
 	"github.com/RedHatInsights/host-metering/config"
 	"github.com/RedHatInsights/host-metering/daemon"
 	"github.com/RedHatInsights/host-metering/logger"
+	"github.com/RedHatInsights/host-metering/version"
 )
 
 func main() {
 	configPath := flag.String("config", config.DefaultConfigPath, "Configuration file path")
+	versionFlag := flag.Bool("version", false, "Print version")
 
 	flag.NewFlagSet("help", flag.ExitOnError)
 	flag.NewFlagSet("daemon", flag.ExitOnError)
 	flag.NewFlagSet("once", flag.ExitOnError)
 	flag.Parse()
+
+	if *versionFlag {
+		fmt.Println(version.Version)
+		return
+	}
 	args := flag.Args()
 
 	if len(args) < 1 {

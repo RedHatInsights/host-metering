@@ -55,8 +55,7 @@ build:
 .PHONY: build-selinux
 build-selinux:
 	@echo "Building SELinux policy..."
-	cd contrib/selinux && \
-		(if [ -f /usr/share/selinux/devel/Makefile ]; then make -f /usr/share/selinux/devel/Makefile $(PROJECT).pp; else touch $(PROJECT).pp; fi)
+	cd contrib/selinux && make -f /usr/share/selinux/devel/Makefile $(PROJECT).pp
 
 # Functional testing (manual or automatic)
 
@@ -209,7 +208,7 @@ container-rpm-8: rpm/srpm
 		-v $(CURDIR):/workspace:z \
 		-w /workspace \
 		registry.access.redhat.com/ubi8/ubi:latest \
-		bash -c "dnf install -y golang git make rpm-build systemd-rpm-macros tar gzip && rpmbuild --nodeps --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
+		bash -c "dnf install -y golang git make rpm-build systemd-rpm-macros go-rpm-macros selinux-policy-devel policycoreutils selinux-policy tar gzip && rpmbuild --nodeps --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
 
 rpm-ubi8: container-rpm-8
 
@@ -219,7 +218,7 @@ container-rpm-9: rpm/srpm
 		-v $(CURDIR):/workspace:z \
 		-w /workspace \
 		registry.access.redhat.com/ubi9/ubi:latest \
-		bash -c "dnf install -y golang git make rpm-build systemd-rpm-macros go-rpm-macros tar gzip && rpmbuild --nodeps --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
+		bash -c "dnf install -y golang git make rpm-build systemd-rpm-macros go-rpm-macros selinux-policy-devel policycoreutils selinux-policy tar gzip && rpmbuild --nodeps --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
 
 rpm-ubi9: container-rpm-9
 
@@ -229,7 +228,7 @@ container-rpm-10: rpm/srpm
 		-v $(CURDIR):/workspace:z \
 		-w /workspace \
 		registry.access.redhat.com/ubi10/ubi:latest \
-		bash -c "dnf install -y golang git make rpm-build systemd-rpm-macros go-rpm-macros tar gzip && rpmbuild --nodeps --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
+		bash -c "dnf install -y golang git make rpm-build systemd-rpm-macros go-rpm-macros selinux-policy-devel policycoreutils selinux-policy tar gzip && rpmbuild --nodeps --define '_topdir /workspace/dist/rpmbuild' --rebuild /workspace/dist/rpmbuild/SRPMS/*.src.rpm"
 
 rpm-ubi10: container-rpm-10
 

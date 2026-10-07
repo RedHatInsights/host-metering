@@ -193,7 +193,7 @@ func TestCloudMarketplaceFacts(t *testing.T) {
 
 	factsAzure := SubManValues{
 		"azure_subscription_id": "sub-id-123",
-		"azure_instance_id":      "inst-id-456",
+		"azure_instance_id":     "inst-id-456",
 	}
 	biAzure, err := GetBillingInfo(factsAzure)
 	if err != nil {
@@ -205,7 +205,7 @@ func TestCloudMarketplaceFacts(t *testing.T) {
 
 	factsGCP := SubManValues{
 		"gcp_project_number": "proj-789",
-		"gcp_instance_id":     "inst-999",
+		"gcp_instance_id":    "inst-999",
 	}
 	biGCP, err := GetBillingInfo(factsGCP)
 	if err != nil {
@@ -213,5 +213,62 @@ func TestCloudMarketplaceFacts(t *testing.T) {
 	}
 	if biGCP.Marketplace != "gcp" || biGCP.MarketplaceAccount != "proj-789" || biGCP.MarketplaceInstanceId != "inst-999" {
 		t.Errorf("Unexpected GCP billing info: %+v", biGCP)
+	}
+}
+
+func TestSyspurposeEdgeCases(t *testing.T) {
+	t.Setenv("MOCK_LEGACY_USAGE_UNAVAILABLE", "true")
+	t.Setenv("MOCK_SERVICE_LEVEL_UNAVAILABLE", "true")
+
+	// 1. JSON Array values
+	t.Setenv("MOCK_SYSPURPOSE_JSON", `{"role": ["Production", "Backup"], "service_level_agreement": ["Premium"], "usage": ["Production"]}`)
+	hiArray := &HostInfo{}
+	LoadSubManInformation(hiArray)
+
+	if hiArray.Support != "Premium" {
+		t.Errorf("Expected Support to parse single-element array 'Premium', got: %s", hiArray.Support)
+	}
+	if hiArray.Usage != "Production" {
+		t.Errorf("Expected Usage to parse array value 'Production', got: %s", hiArray.Usage)
+	}
+
+	// 2. JSON Null values (should fall through gracefully to empty)
+	t.Setenv("MOCK_SYSPURPOSE_JSON", `{"role": null, "service_level_agreement": null, "usage": null}`)
+	t.Setenv("MOCK_SYSPURPOSE_USAGE", "")
+	t.Setenv("MOCK_SYSPURPOSE_ROLE", "")
+	t.Setenv("MOCK_SYSPURPOSE_SLA", "")
+	hiNull := &HostInfo{}
+	LoadSubManInformation(hiNull)
+
+	if hiNull.Support != "" {
+		t.Errorf("Expected Support to be empty when JSON values are null, got: %s", hiNull.Support)
+	}
+	if hiNull.Usage != "" {
+		t.Errorf("Expected Usage to be empty when JSON values are null, got: %s", hiNull.Usage)
+	}
+
+	// 3. Malformed JSON recovering via line-by-line fallback
+	t.Setenv("MOCK_SYSPURPOSE_JSON", "{\n  \"role\": \"Production\", INVALID_JSON\n  Role: Production\n  Service-Level: Standard\n  Usage: Development\n}")
+	hiRecover := &HostInfo{}
+	LoadSubManInformation(hiRecover)
+
+	if hiRecover.Support != "Standard" {
+		t.Errorf("Expected Support to recover via line parser 'Standard', got: %s", hiRecover.Support)
+	}
+	if hiRecover.Usage != "Development" {
+		t.Errorf("Expected Usage to recover via line parser 'Development', got: %s", hiRecover.Usage)
+	}
+
+	// 4. On-premise non-cloud facts
+	factsOnPrem := SubManValues{
+		"cpu.cpu_socket(s)": "4",
+		"system.memory":     "16384",
+	}
+	biOnPrem, err := GetBillingInfo(factsOnPrem)
+	if err == nil {
+		t.Errorf("Expected error for non-cloud on-premise facts, got billing info: %+v", biOnPrem)
+	}
+	if biOnPrem.Marketplace != "" {
+		t.Errorf("Expected empty marketplace for on-premise system, got: %s", biOnPrem.Marketplace)
 	}
 }

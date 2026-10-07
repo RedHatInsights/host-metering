@@ -1,7 +1,7 @@
 %bcond_without check
 
 %if ! 0%{?gobuild:1}
-%define gobuild(o:) go build -mod vendor -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${GO_LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -extldflags '${LDFLAGS:-} -Wl,-z,relro -Wl,-z,now'" -a -v %{?**};
+%define gobuild(o:) go build -mod vendor -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${GO_LDFLAGS:-} -extldflags '${LDFLAGS:-} -Wl,-z,relro -Wl,-z,now'" -a -v %{?**};
 %endif
 
 %global goipath         github.com/RedHatInsights/host-metering
@@ -59,11 +59,7 @@ This package installs and sets up the SELinux policy security module for host-me
 %build
 pwd
 %gobuild -o $(pwd)/bin/host-metering %{goipath}
-if [ -f /usr/share/selinux/devel/Makefile ]; then
-    make build-selinux
-else
-    touch contrib/selinux/%{modulename}.pp
-fi
+make build-selinux
 
 %pre selinux
 %selinux_relabel_pre -s %{selinuxtype}
@@ -99,7 +95,7 @@ go test -v ./...
 
 if [ "$1" -le "1" ]; then # First install
    # the daemon needs to be restarted for the custom label to be applied
-   %systemd_postun_with_restart %{modulename}.service
+   systemctl try-restart %{name}.service >/dev/null 2>&1 || :
 fi
 
 %preun

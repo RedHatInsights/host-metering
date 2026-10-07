@@ -1,8 +1,10 @@
 import os
 import time
-import pytest
 
-def test_cert_rotation(tmp_path, run_daemon, host_metering_bin, mock_env, prometheus_url, cert_generator):
+
+def test_cert_rotation(
+    tmp_path, run_daemon, host_metering_bin, mock_env, prometheus_url, cert_generator
+):
     # 1. Setup paths
     config_path = os.path.join(tmp_path, "host-metering.conf")
     cert_path = os.path.join(tmp_path, "cert.pem")
@@ -35,12 +37,14 @@ instance_id=
 
     # 4. Start daemon
     dp = run_daemon(config_path)
-    
+
     # Wait for the daemon to start and initialize
     time.sleep(2)
-    
+
     logs_before = dp.get_stdout() + dp.get_stderr()
-    assert "Watching cert directory" in logs_before, "Daemon should be watching the cert directory"
+    assert (
+        "Watching cert directory" in logs_before
+    ), "Daemon should be watching the cert directory"
 
     # 5. Overwrite certificates on disk (triggering cert rotation / inotify)
     cert_generator(cert_path, key_path, common_name="rotated-host.host-metering.test")
@@ -49,11 +53,18 @@ instance_id=
     triggered = False
     for _ in range(10):
         logs = dp.get_stdout() + dp.get_stderr()
-        if "Host cert updated" in logs or "Host cert removed" in logs or "Host cert loaded" in logs or "HostInfo loaded" in logs:
+        if (
+            "Host cert updated" in logs
+            or "Host cert removed" in logs
+            or "Host cert loaded" in logs
+            or "HostInfo loaded" in logs
+        ):
             triggered = True
             break
         time.sleep(0.5)
 
     dp.stop()
 
-    assert triggered, f"Dynamic reload was not triggered after cert rotation. Logs:\n{dp.get_stdout() + dp.get_stderr()}"
+    assert (
+        triggered
+    ), f"Dynamic reload was not triggered after cert rotation. Logs:\n{dp.get_stdout() + dp.get_stderr()}"

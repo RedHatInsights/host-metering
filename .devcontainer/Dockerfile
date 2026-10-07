@@ -14,8 +14,8 @@ RUN dnf install -y \
     procps-ng \
     && dnf clean all
 
-# Install pytest
-RUN pip3 install pytest
+COPY integration-tests/requirements.txt /tmp/requirements.txt
+RUN pip3 install --no-cache-dir -r /tmp/requirements.txt && rm -f /tmp/requirements.txt
 
 # Set up environment
 ENV IS_IN_CONTAINER=true

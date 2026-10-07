@@ -3,4 +3,3 @@
 
 cd "${WORKDIR:-/workspace/host-metering}"
 exec "$@"
-

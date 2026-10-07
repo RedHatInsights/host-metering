@@ -1,9 +1,12 @@
 import os
 import time
-import requests
-import pytest
 
-def test_backlog_recovery(tmp_path, run_daemon, host_metering_bin, mock_env, prometheus_url, cert_generator):
+import requests
+
+
+def test_backlog_recovery(
+    tmp_path, run_daemon, host_metering_bin, mock_env, prometheus_url, cert_generator
+):
     # 1. Setup paths
     config_path = os.path.join(tmp_path, "host-metering.conf")
     cert_path = os.path.join(tmp_path, "cert.pem")
@@ -37,14 +40,16 @@ instance_id=
 
     # 4. Start daemon with unreachable write_url
     dp = run_daemon(config_path)
-    
+
     # Let it run for 4 seconds to accumulate samples in WAL
     time.sleep(4)
-    
+
     # Flush logs and check daemon stdout/stderr or status
     stderr = dp.get_stderr()
     stdout = dp.get_stdout()
-    
+    assert stderr is not None
+    assert stdout is not None
+
     # Assert daemon compiled and ran, and reported failures to connect (Notification [x sample(s)]: ...)
     # But collected metrics successfully into the WAL
     dp.stop()
@@ -75,7 +80,7 @@ instance_id=
 
     # 6. Start daemon again (it should read backlogged metrics from WAL and push them)
     dp2 = run_daemon(config_path)
-    
+
     # Give it some time to push backlogged metrics
     time.sleep(3)
     dp2.stop()
@@ -83,7 +88,7 @@ instance_id=
     # 7. Query range vector to assert multiple samples exist in Prometheus with no gaps
     query_url = f"{prometheus_url}/api/v1/query"
     params = {"query": "system_cpu_logical_count[1m]"}
-    
+
     found = False
     for _ in range(10):
         try:
@@ -97,8 +102,10 @@ instance_id=
                     if len(values) >= 2:
                         found = True
                         break
-        except Exception as e:
+        except (requests.RequestException, ValueError, KeyError) as e:
             print(f"Query attempt failed: {e}")
         time.sleep(1)
 
-    assert found, "Expected backlogged metrics were not successfully ingested or range query failed"
+    assert (
+        found
+    ), "Expected backlogged metrics were not successfully ingested or range query failed"

@@ -1,20 +1,28 @@
 import os
-import subprocess
 import signal
+import subprocess
 import time
-import pytest
+
 
 def test_cli_version(host_metering_bin):
-    res = subprocess.run([host_metering_bin, "--version"], capture_output=True, text=True)
+    res = subprocess.run(
+        [host_metering_bin, "--version"], capture_output=True, text=True, check=False
+    )
     assert res.returncode == 0
     assert "1.4.0" in res.stdout
 
+
 def test_cli_help(host_metering_bin):
-    res = subprocess.run([host_metering_bin, "help"], capture_output=True, text=True)
+    res = subprocess.run(
+        [host_metering_bin, "help"], capture_output=True, text=True, check=False
+    )
     assert res.returncode == 0
     assert "Usage: host-metering" in res.stdout
 
-def test_daemon_graceful_shutdown_sigterm(tmp_path, run_daemon, prometheus_url, cert_generator):
+
+def test_daemon_graceful_shutdown_sigterm(
+    tmp_path, run_daemon, prometheus_url, cert_generator
+):
     config_path = os.path.join(tmp_path, "host-metering.conf")
     cert_path = os.path.join(tmp_path, "cert.pem")
     key_path = os.path.join(tmp_path, "key.pem")
@@ -52,7 +60,10 @@ instance_id=
     logs = dp.get_stdout() + dp.get_stderr()
     assert "Server stopped" in logs
 
-def test_daemon_graceful_shutdown_sigint(tmp_path, run_daemon, prometheus_url, cert_generator):
+
+def test_daemon_graceful_shutdown_sigint(
+    tmp_path, run_daemon, prometheus_url, cert_generator
+):
     config_path = os.path.join(tmp_path, "host-metering.conf")
     cert_path = os.path.join(tmp_path, "cert.pem")
     key_path = os.path.join(tmp_path, "key.pem")
@@ -87,6 +98,7 @@ instance_id=
     logs = dp.get_stdout() + dp.get_stderr()
     assert "Server stopped" in logs
 
+
 def test_daemon_sighup_reload(tmp_path, run_daemon, prometheus_url, cert_generator):
     config_path = os.path.join(tmp_path, "host-metering.conf")
     cert_path = os.path.join(tmp_path, "cert.pem")
@@ -118,7 +130,7 @@ instance_id=
 
     # Send SIGHUP
     os.killpg(os.getpgid(dp.process.pid), signal.SIGHUP)
-    
+
     # Wait for SIGHUP logs to appear
     reloaded = False
     for _ in range(10):
@@ -129,7 +141,10 @@ instance_id=
         time.sleep(0.5)
 
     dp.stop()
-    assert reloaded, f"SIGHUP reload was not logged. Logs:\n{dp.get_stdout() + dp.get_stderr()}"
+    assert (
+        reloaded
+    ), f"SIGHUP reload was not logged. Logs:\n{dp.get_stdout() + dp.get_stderr()}"
+
 
 def test_invalid_configuration_empty_url(tmp_path, host_metering_bin, cert_generator):
     config_path = os.path.join(tmp_path, "host-metering.conf")
@@ -152,11 +167,20 @@ metrics_wal_path={wal_path}
 
     env = os.environ.copy()
     env.pop("HOST_METERING_WRITE_URL", None)
-    res = subprocess.run([host_metering_bin, "-config", config_path, "daemon"], env=env, capture_output=True, text=True)
+    res = subprocess.run(
+        [host_metering_bin, "-config", config_path, "daemon"],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
     assert res.returncode == 2
     assert "Invalid configuration: WriteURL must be defined" in res.stderr
 
-def test_invalid_configuration_small_write_interval(tmp_path, host_metering_bin, cert_generator):
+
+def test_invalid_configuration_small_write_interval(
+    tmp_path, host_metering_bin, cert_generator
+):
     config_path = os.path.join(tmp_path, "host-metering.conf")
     cert_path = os.path.join(tmp_path, "cert.pem")
     key_path = os.path.join(tmp_path, "key.pem")
@@ -180,6 +204,12 @@ metrics_wal_path={wal_path}
 
     env = os.environ.copy()
     env.pop("HOST_METERING_WRITE_INTERVAL_SEC", None)
-    res = subprocess.run([host_metering_bin, "-config", config_path, "daemon"], env=env, capture_output=True, text=True)
+    res = subprocess.run(
+        [host_metering_bin, "-config", config_path, "daemon"],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
     assert res.returncode == 2
     assert "WriteInterval must be bigger than WriteRetryAttempts" in res.stderr

@@ -15,7 +15,7 @@ services:
   prometheus:
     image: quay.io/prometheus/prometheus:latest
     ports:
-      - 9090:9090
+      - "${PROMETHEUS_HOST_PORT:-9090}:9090"
     volumes:
       - ./local_prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:Z
       - ../../contrib/prometheus:/etc/prometheus/contrib:Z

@@ -238,13 +238,34 @@ hard_coded() {
           fi
           ;;
         usage)
-          echo "${MOCK_SYSPURPOSE_USAGE:-Production}"
+          if [ "${MOCK_SYSPURPOSE_USAGE_UNAVAILABLE}" == "true" ]; then
+            exit 1
+          fi
+          if [ -n "${MOCK_SYSPURPOSE_USAGE+x}" ]; then
+            echo "${MOCK_SYSPURPOSE_USAGE}"
+          else
+            echo "Production"
+          fi
           ;;
         role)
-          echo "${MOCK_SYSPURPOSE_ROLE:-Production}"
+          if [ "${MOCK_SYSPURPOSE_ROLE_UNAVAILABLE}" == "true" ]; then
+            exit 1
+          fi
+          if [ -n "${MOCK_SYSPURPOSE_ROLE+x}" ]; then
+            echo "${MOCK_SYSPURPOSE_ROLE}"
+          else
+            echo "Production"
+          fi
           ;;
         service-level|service_level_agreement)
-          echo "${MOCK_SYSPURPOSE_SLA:-Premium}"
+          if [ "${MOCK_SYSPURPOSE_SLA_UNAVAILABLE}" == "true" ]; then
+            exit 1
+          fi
+          if [ -n "${MOCK_SYSPURPOSE_SLA+x}" ]; then
+            echo "${MOCK_SYSPURPOSE_SLA}"
+          else
+            echo "Premium"
+          fi
           ;;
         *)
           echo "Unsupported syspurpose subcommand: ${2}" >&2
@@ -270,11 +291,11 @@ hard_coded() {
   esac
 }
 
-MOCK_FILE=$(dirname "$0")/subscription-manager-$@
+MOCK_FILE="$(dirname "$0")/subscription-manager-$*"
 
 if [ -f "$MOCK_FILE" ]; then
   echo "####### Mocked output from $MOCK_FILE #######"
-  cat $MOCK_FILE
+  cat "$MOCK_FILE"
 else
   echo "####### Mocked output from hard coded value #######"
   hard_coded "${@}"

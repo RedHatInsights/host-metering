@@ -1,10 +1,13 @@
 import os
 import subprocess
 import time
-import requests
-import pytest
 
-def test_metric_collection_once(tmp_path, host_metering_bin, mock_env, prometheus_url, cert_generator):
+import requests
+
+
+def test_metric_collection_once(
+    tmp_path, host_metering_bin, mock_env, prometheus_url, cert_generator
+):
     # 1. Setup paths
     config_path = os.path.join(tmp_path, "host-metering.conf")
     cert_path = os.path.join(tmp_path, "cert.pem")
@@ -42,14 +45,15 @@ instance_id=
         [host_metering_bin, "-config", config_path, "once"],
         env=env,
         capture_output=True,
-        text=True
+        text=True,
+        check=False,
     )
     assert res.returncode == 0, f"daemon failed: {res.stderr}"
 
     # 5. Query Prometheus with retries
     query_url = f"{prometheus_url}/api/v1/query"
     params = {"query": "system_cpu_logical_count"}
-    
+
     # Wait up to 10 seconds for the metric to show up
     found = False
     for _ in range(10):
@@ -70,8 +74,10 @@ instance_id=
                     assert metric.get("support") == "Premium"
                     found = True
                     break
-        except Exception as e:
+        except (requests.RequestException, ValueError, KeyError, AssertionError) as e:
             print(f"Query attempt failed: {e}")
         time.sleep(1)
 
-    assert found, "Expected metric 'system_cpu_logical_count' was not found in Prometheus or label assertion failed"
+    assert (
+        found
+    ), "Expected metric 'system_cpu_logical_count' was not found in Prometheus or label assertion failed"

@@ -1,9 +1,9 @@
-
+#!/bin/bash
 # Execute this script in the directory with test-cert.cnf
 # Purpose: Create a self-signed certificate for testing
 
 if [ -d consumer ]; then
-  rm -rf consumer
+	rm -rf consumer
 fi
 
 mkdir consumer

@@ -7,7 +7,7 @@ popd
 LOCAL_COMPOSE_FILE=$DEVCONTAINER_PATH/docker-compose.local.yml
 
 if [ ! -f "$LOCAL_COMPOSE_FILE" ]; then
-cat >"$LOCAL_COMPOSE_FILE" <<EOF
+	cat >"$LOCAL_COMPOSE_FILE" <<EOF
 version: '3'
 
 services:

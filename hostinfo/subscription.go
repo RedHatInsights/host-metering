@@ -3,10 +3,12 @@ package hostinfo
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/RedHatInsights/host-metering/logger"
 )
@@ -136,15 +138,18 @@ func GetBillingInfo(facts SubManValues) (BillingInfo, error) {
 	}
 
 	err := fmt.Errorf("unsupported or missing marketplace values")
-	logger.Errorf("Error getting billing info: %s", err.Error())
+	logger.Debugf("Error getting billing info: %s", err.Error())
 	return BillingInfo{}, err
 }
 
 func execCommand(name string, arg ...string) (string, error) {
-	cmd := exec.Command(name, arg...)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
 
-	// Set LANG to C.UTF-8 to force English output for predictable key lookups
-	cmd.Env = append(cmd.Environ(), "LANG=C.UTF-8")
+	cmd := exec.CommandContext(ctx, name, arg...)
+
+	// Set LANG and LC_ALL to C.UTF-8 to force English output for predictable key lookups across all locales
+	cmd.Env = append(cmd.Environ(), "LANG=C.UTF-8", "LC_ALL=C.UTF-8")
 	logger.Debugf("Executing `%s %s`...\n", name, arg)
 
 	var stdout, stderr bytes.Buffer
@@ -152,10 +157,10 @@ func execCommand(name string, arg ...string) (string, error) {
 	err := cmd.Run()
 
 	if err != nil {
-		err = fmt.Errorf("`%s %s` has failed: %s", name, arg, err.Error())
+		err = fmt.Errorf("`%s %s` has failed: %w", name, arg, err)
 		logger.Debugf("Stdout: %s\n", strings.TrimSpace(stdout.String()))
 		logger.Debugf("Stderr: %s\n", strings.TrimSpace(stderr.String()))
-		logger.Errorf("Error executing command: %s", err.Error())
+		logger.Debugf("Error executing command: %s", err.Error())
 		return "", err
 	}
 
@@ -205,11 +210,27 @@ func parseSyspurposeOutput(output string, fieldName string) string {
 		keysToTry := getKeysToTry(fieldName)
 		for _, key := range keysToTry {
 			if val, ok := jsonMap[key]; ok {
+				if val == nil {
+					return ""
+				}
 				if strVal, ok := val.(string); ok {
 					return strings.TrimSpace(strVal)
 				}
+				if arrVal, ok := val.([]interface{}); ok {
+					var elements []string
+					for _, elem := range arrVal {
+						if elemStr, ok := elem.(string); ok {
+							elements = append(elements, strings.TrimSpace(elemStr))
+						} else if elem != nil {
+							elements = append(elements, fmt.Sprintf("%v", elem))
+						}
+					}
+					return strings.Join(elements, ",")
+				}
+				return strings.TrimSpace(fmt.Sprintf("%v", val))
 			}
 		}
+		return ""
 	}
 
 	// Fallback to line-by-line key-value parsing
@@ -256,19 +277,26 @@ func parseSyspurposeOutput(output string, fieldName string) string {
 }
 
 func GetSyspurposeField(fieldName string) (string, error) {
-	// Try subscription-manager syspurpose show first
-	output, err := execSubManCommand("syspurpose", "show")
+	// Try standard "syspurpose show" first
+	var output string
+	var err error
+
+	output, err = execSubManCommand("syspurpose", "show")
 	if err != nil {
-		// Fallback to standalone syspurpose show
 		output, err = execCommand("syspurpose", "show")
 	}
 
-	if err != nil {
-		// Also try subcommands (e.g. syspurpose usage or syspurpose role)
-		output, err = execSubManCommand("syspurpose", fieldName)
-		if err != nil {
-			output, err = execCommand("syspurpose", fieldName)
+	if err == nil && output != "" {
+		val := parseSyspurposeOutput(output, fieldName)
+		if val != "" {
+			return val, nil
 		}
+	}
+
+	// Fallback/alternative: Try specific subcommands (e.g. syspurpose usage or syspurpose role)
+	output, err = execSubManCommand("syspurpose", fieldName)
+	if err != nil {
+		output, err = execCommand("syspurpose", fieldName)
 	}
 
 	if err == nil && output != "" {
@@ -324,7 +352,7 @@ func (values SubManValues) get(name string) (string, error) {
 
 	if !ok {
 		err := fmt.Errorf("`%s` not found", name)
-		logger.Warnf("Unable to get subscription info: %s", err.Error())
+		logger.Debugf("Unable to get subscription info: %s", err.Error())
 		return "", err
 	}
 

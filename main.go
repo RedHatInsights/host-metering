@@ -16,9 +16,6 @@ func main() {
 	configPath := flag.String("config", config.DefaultConfigPath, "Configuration file path")
 	versionFlag := flag.Bool("version", false, "Print version")
 
-	flag.NewFlagSet("help", flag.ExitOnError)
-	flag.NewFlagSet("daemon", flag.ExitOnError)
-	flag.NewFlagSet("once", flag.ExitOnError)
 	flag.Parse()
 
 	if *versionFlag {
@@ -30,7 +27,7 @@ func main() {
 	if len(args) < 1 {
 		fmt.Println("Error: no subcommand specified")
 		printUsage()
-		return
+		os.Exit(1)
 	}
 
 	command := args[0]
@@ -44,13 +41,13 @@ func main() {
 		logMessages.WriteString("Updating config from config file...\n")
 		err := cfg.UpdateFromConfigFile(*configPath)
 		if err != nil {
-			logMessages.WriteString(fmt.Sprintf("Failed to process file: %v\n", err.Error()))
+			fmt.Fprintf(&logMessages, "Failed to process file: %v\n", err.Error())
 		}
 
 		logMessages.WriteString("Updating config from environment variables...\n")
 		err = cfg.UpdateFromEnvVars()
 		if err != nil {
-			logMessages.WriteString(fmt.Sprintf("Failed to process variables: %v\n", err.Error()))
+			fmt.Fprintf(&logMessages, "Failed to process variables: %v\n", err.Error())
 		}
 
 		// initialize the logger according to the given configuration
@@ -87,6 +84,7 @@ func main() {
 	default:
 		fmt.Println("Error: unknown subcommand", command)
 		printUsage()
+		os.Exit(1)
 	}
 }
 

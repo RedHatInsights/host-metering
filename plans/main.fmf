@@ -19,7 +19,6 @@
         - git-core
         - make
         - rpm-build
-        - go-rpm-macros
         - systemd-rpm-macros
         - selinux-policy-devel
         - policycoreutils

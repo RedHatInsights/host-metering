@@ -1,0 +1,33 @@
+summary: Host-metering VM integration tests
+description: |
+    Performs full system-level testing of the host-metering daemon.
+    Builds and installs the host-metering RPM package locally inside the VM
+    to verify actual systemd and SELinux integration. Spawns an isolated
+    Prometheus receiver container and executes the Pytest test suite.
+
+discover:
+    how: fmf
+    test:
+      - /tests/integration
+
+prepare:
+  - name: Install dependencies for building RPM and running tests
+    how: install
+    package:
+      - golang
+      - git-core
+      - make
+      - rpm-build
+      - go-rpm-macros
+      - systemd-rpm-macros
+      - selinux-policy-devel
+      - policycoreutils
+      - selinux-policy
+      - tar
+      - gzip
+      - podman
+      - python3-pip
+      - python3-pytest
+
+execute:
+    how: tmt

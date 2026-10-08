@@ -59,7 +59,11 @@ def generate_cert_and_key(
 
 @pytest.fixture(scope="session")
 def host_metering_bin():
-    """Builds and returns the path to the host-metering binary."""
+    """Returns the path to the host-metering binary. Prioritizes the installed RPM binary if specified."""
+    env_bin = os.environ.get("HOST_METERING_BIN")
+    if env_bin and os.path.exists(env_bin):
+        return env_bin
+
     bin_path = "/tmp/host-metering"
     src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     subprocess.run(["go", "build", "-o", bin_path, "."], cwd=src_dir, check=True)

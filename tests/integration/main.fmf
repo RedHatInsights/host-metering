@@ -1,0 +1,3 @@
+summary: Run the host-metering Pytest integration suite
+test: ./test.sh
+duration: 1h

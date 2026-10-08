@@ -9,7 +9,7 @@ def test_cli_version(host_metering_bin):
         [host_metering_bin, "--version"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,
+        universal_newlines=True,
         check=False,
     )
     assert res.returncode == 0
@@ -21,7 +21,7 @@ def test_cli_help(host_metering_bin):
         [host_metering_bin, "help"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,
+        universal_newlines=True,
         check=False,
     )
     assert res.returncode == 0
@@ -180,7 +180,7 @@ metrics_wal_path={wal_path}
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,
+        universal_newlines=True,
         check=False,
     )
     assert res.returncode == 2
@@ -218,7 +218,7 @@ metrics_wal_path={wal_path}
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,
+        universal_newlines=True,
         check=False,
     )
     assert res.returncode == 2

@@ -46,7 +46,7 @@ instance_id=
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,
+        universal_newlines=True,
         check=False,
     )
     assert res.returncode == 0, f"daemon failed: {res.stderr}"

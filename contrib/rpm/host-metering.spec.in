@@ -28,7 +28,9 @@ Source:         %{name}-%{version}.tar.gz
 
 %if 0%{?rhel} >= 8 || 0%{?fedora}
 BuildRequires: golang >= 1.19
+%if 0%{?rhel} >= 9 || 0%{?fedora}
 BuildRequires: go-rpm-macros
+%endif
 BuildRequires: systemd-rpm-macros
 BuildRequires: selinux-policy-devel
 %endif

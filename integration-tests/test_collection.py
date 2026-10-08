@@ -44,7 +44,8 @@ instance_id=
     res = subprocess.run(
         [host_metering_bin, "-config", config_path, "once"],
         env=env,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
         check=False,
     )

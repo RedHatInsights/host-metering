@@ -6,7 +6,11 @@ import time
 
 def test_cli_version(host_metering_bin):
     res = subprocess.run(
-        [host_metering_bin, "--version"], capture_output=True, text=True, check=False
+        [host_metering_bin, "--version"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
     )
     assert res.returncode == 0
     assert "1.4.0" in res.stdout
@@ -14,7 +18,11 @@ def test_cli_version(host_metering_bin):
 
 def test_cli_help(host_metering_bin):
     res = subprocess.run(
-        [host_metering_bin, "help"], capture_output=True, text=True, check=False
+        [host_metering_bin, "help"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
     )
     assert res.returncode == 0
     assert "Usage: host-metering" in res.stdout
@@ -170,7 +178,8 @@ metrics_wal_path={wal_path}
     res = subprocess.run(
         [host_metering_bin, "-config", config_path, "daemon"],
         env=env,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
         check=False,
     )
@@ -207,7 +216,8 @@ metrics_wal_path={wal_path}
     res = subprocess.run(
         [host_metering_bin, "-config", config_path, "daemon"],
         env=env,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
         check=False,
     )

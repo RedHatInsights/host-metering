@@ -91,6 +91,33 @@ $ curl 'http://localhost:9090/api/v1/query?query=system_cpu_logical_count' | jq
 
 Or visit the Prometheus Web UI at http://localhost:9090/graph?g0.expr=system_cpu_logical_count&g0.tab=0&g0.range_input=1m
 
+### Integration tests
+
+The integration suite runs the daemon against a local Prometheus
+remote-write receiver and asserts metric collection, WAL backlog recovery,
+certificate hot-reload, daemon lifecycle behavior, and that unregistered
+hosts send nothing. It runs in a test container against a real
+subscription-manager registered to a containerized Candlepin server - the
+suite does not mock subscription-manager (the mocks in `mocks/` are for
+the unit tests). It needs a compose tool (podman-compose, docker compose,
+or docker-compose) and curl on the host:
+
+```
+$ integration-tests/run-tests.sh --integration            # default: UBI 10
+$ integration-tests/run-tests.sh --ubi-version 9           # specific major
+$ integration-tests/run-tests.sh --unit                    # Go unit tests
+$ integration-tests/run-tests.sh --all                     # unit + integration
+```
+
+The Candlepin server, credentials, and organization can be overridden via
+the `CANDLEPIN_HOST`, `CANDLEPIN_PORT`, `CANDLEPIN_USERNAME`,
+`CANDLEPIN_PASSWORD`, and `CANDLEPIN_ORG` environment variables (defaults
+match the `ghcr.io/candlepin/candlepin-app` test containers in
+`integration-tests/docker/docker-compose.test.yml`).
+
+Cross-major validation (real RHEL VMs, RPM-installed builds) will run on
+Testing Farm via plans added by a follow-up change.
+
 ### Clean-up
 
 ```

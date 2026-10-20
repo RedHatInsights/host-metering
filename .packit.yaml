@@ -29,4 +29,35 @@ actions:
 jobs:
 - job: copr_build
   trigger: pull_request
-  targets: [fedora-stable, rhel-8-x86_64, rhel-9-x86_64]
+  targets:
+    - fedora-stable
+    - rhel-8-x86_64
+    - rhel-9-x86_64
+    - centos-stream-9-x86_64
+    - centos-stream-10-x86_64
+    - rhel-10-x86_64
+
+- job: tests
+  trigger: pull_request
+  identifier: "integration-tests/centos-stream"
+  targets:
+    - centos-stream-9-x86_64
+    - centos-stream-10-x86_64
+
+- job: tests
+  trigger: pull_request
+  identifier: "integration-tests/rhel"
+  targets:
+    rhel-8-x86_64:
+      distros: [RHEL-8-Nightly]
+    rhel-9-x86_64:
+      distros: [RHEL-9-Nightly]
+    rhel-10-x86_64:
+      distros: [RHEL-10-Nightly]
+  tf_extra_params:
+    environments:
+      - settings:
+          provisioning:
+            tags:
+              BusinessUnit: sst_csi_client_tools
+  use_internal_tf: true

@@ -1,6 +1,11 @@
 #!/bin/bash
 
 # Tries to look for a predefined file, if the file does not exist, it will use hard-coded version
+# Environment knobs used by the test suite:
+#   SIMULATE_RHEL10         - behave like RHEL 10 (removed top-level commands)
+#   MOCK_SYSPURPOSE_JSON    - JSON payload served for `syspurpose --show`
+#   MOCK_SYSPURPOSE_UNAVAILABLE - make the syspurpose command fail
+#   CLOUD_PROVIDER          - cloud facts variant (aws/azure/gcp)
 
 IDENTITY=\
 "system identity: 01234567-89ab-cdef-0123-456789abcdef
@@ -12,7 +17,7 @@ USAGE=\
 "Current Usage: Production"
 
 SERVICE_LEVEL=\
-"Current service level: Premium"
+"Current Service-level: Premium"
 
 FACTS_GENERAL=\
 "cpu.core(s)_per_socket: 4
@@ -199,6 +204,15 @@ show_list_installed() {
   echo "${LIST_INSTALLED}"
 }
 
+rhel10_unknown_command() {
+  # Real sub-man >= 1.30 (RHEL 10) prints a usage listing to stdout and
+  # exits 1 when a removed top-level command is invoked.
+  echo "usage: subscription-manager [options] MODULENAME --help"
+  echo "Modules: attach, config, entitlements, environment, facts, identity, import, list,"
+  echo "         orgs, pools, redeem, register, release, remove, repo, rhsmd, roles, service,"
+  echo "         skus, snooze, status, subscribe, syspurpose, unregister, untag"
+}
+
 hard_coded() {
   # Handle the specified subscription-manager command.
   case "${command:=${1}}" in
@@ -206,10 +220,50 @@ hard_coded() {
       show_identity
       ;;
     usage)
+      if [ "${SIMULATE_RHEL10}" == "true" ]; then
+        rhel10_unknown_command
+        exit 1
+      fi
       show_usage
       ;;
     service-level)
+      if [ "${SIMULATE_RHEL10}" == "true" ]; then
+        rhel10_unknown_command
+        exit 1
+      fi
       show_service_level
+      ;;
+    syspurpose)
+      if [ "${MOCK_SYSPURPOSE_UNAVAILABLE}" == "true" ]; then
+        echo "Error: syspurpose command not available" >&2
+        exit 1
+      fi
+      case "${2}" in
+        ""|--show)
+          # JSON dump of the syspurpose store - the same data the RHSM
+          # D-Bus API serves from /etc/rhsm/syspurpose/syspurpose.json.
+          if [ -n "${MOCK_SYSPURPOSE_JSON}" ]; then
+            echo "${MOCK_SYSPURPOSE_JSON}"
+          else
+            echo '{"role": "Production", "service_level_agreement": "Premium", "usage": "Production"}'
+          fi
+          ;;
+        usage)
+          echo "Current Usage: Production"
+          ;;
+        role)
+          echo "Current Role: Production"
+          ;;
+        service-level|service_level_agreement)
+          echo "Current Service-level: Premium"
+          ;;
+        *)
+          # Real sub-man argparse rejects unknown subcommands with exit 2 -
+          # notably "show" is not a valid subcommand (--show is a flag).
+          echo "invalid choice: '${2}' (choose from 'role', 'service-level', 'usage')" >&2
+          exit 2
+          ;;
+      esac
       ;;
     facts)
       show_facts
@@ -229,12 +283,14 @@ hard_coded() {
   esac
 }
 
-MOCK_FILE=$(dirname "$0")/subscription-manager-$@
+MOCK_FILE="$(dirname "$0")/subscription-manager-$*"
 
 if [ -f "$MOCK_FILE" ]; then
-  echo "####### Mocked output from $MOCK_FILE #######"
-  cat $MOCK_FILE
+  # Banners go to stderr so that stdout carries only the command output,
+  # like the real subscription-manager (whose warnings also go to stderr).
+  echo "####### Mocked output from $MOCK_FILE #######" >&2
+  cat "$MOCK_FILE"
 else
-  echo "####### Mocked output from hard coded value #######"
+  echo "####### Mocked output from hard coded value #######" >&2
   hard_coded "${@}"
 fi

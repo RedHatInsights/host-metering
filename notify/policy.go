@@ -14,6 +14,10 @@ type NotifyPolicy interface {
 
 type GeneralNotifyPolicy struct{}
 
+// ShouldNotify controls whether accumulated samples may be sent. Requiring
+// HostId and ExternalOrganization effectively gates on registration: both
+// come from `subscription-manager identity`, which only reports them once a
+// consumer cert exists (see GetSubManIdentity).
 func (p *GeneralNotifyPolicy) ShouldNotify(samples []prompb.Sample, hostinfo *hostinfo.HostInfo) error {
 
 	count := len(samples)

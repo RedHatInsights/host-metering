@@ -29,4 +29,4 @@ actions:
 jobs:
 - job: copr_build
   trigger: pull_request
-  targets: [fedora-stable, epel-7-x86_64, rhel-8-x86_64, rhel-9-x86_64]
+  targets: [fedora-stable, rhel-8-x86_64, rhel-9-x86_64]

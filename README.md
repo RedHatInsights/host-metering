@@ -36,19 +36,24 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 $ go build
 ```
 
-rpms via mock:
-
-```
-$ make mock   # EPEL 7
-$ make mock-8 # CentOS Stream 8
-$ make mock-9 # CentOS Stream 9
-```
-
-rpms directly via `rpmbuild`
+rpms via `rpmbuild` (cross-distro builds are covered by packit/Copr CI):
 
 ```
 $ make rpm
 ```
+
+The devcontainer image carries the full RPM build toolchain (Go, rpmbuild,
+and the SELinux policy build). It is based on CentOS Stream 10 by default,
+because `selinux-policy-devel` is not available in the UBI repositories.
+To build the RPMs inside the devcontainer image:
+
+```
+$ make podman-containers
+$ podman run --rm -v "$PWD:/workspace/host-metering:Z" \
+    devcontainer_host-metering make -C /workspace/host-metering rpm
+```
+
+The resulting RPMs are written to `dist/rpmbuild/RPMS/`.
 
 ## Testing
 
@@ -72,10 +77,10 @@ It will run `host-metering` with:
 * custom path for metrics WAL
 * Prometheus server started in a podman container
 
-Note: You may specify the UBI version you wish to test with the optional `UBI_VERSION` argument. If not specified, it will default to 7:
+Note: You may specify the base image used for the devcontainer with the optional `BASE_IMAGE` argument (any el-family image carrying the build and test dependencies works; `selinux-policy-devel` rules out the UBI images). If not specified, it will default to CentOS Stream 10:
 
 ```
-$ make test-daemon UBI_VERSION=<version_number>
+$ make test-daemon BASE_IMAGE=quay.io/centos/centos:stream9
 ```
 
 Query Prometheus, e.g., via command:

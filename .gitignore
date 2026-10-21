@@ -8,6 +8,11 @@ contrib/selinux/host-metering.pp
 # Coverage
 coverage.*
 
+# Editor
+.vscode/
+.idea/
+*.swp
+
 # Binary
 host-metering
 dist/host-metering

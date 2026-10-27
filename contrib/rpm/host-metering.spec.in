@@ -38,6 +38,7 @@ BuildRequires: git
 BuildRequires: policycoreutils
 BuildRequires: selinux-policy
 BuildRequires: selinux-policy-devel
+Requires:      subscription-manager
 Requires:      %{name}-selinux = %{version}-%{release}
 
 %description

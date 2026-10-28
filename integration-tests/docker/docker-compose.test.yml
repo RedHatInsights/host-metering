@@ -1,0 +1,68 @@
+services:
+  # Real Candlepin server for subscription-manager registration. Only the
+  # app and its database are needed: the daemon consumes the registration
+  # API (identity, syspurpose) and local facts, never content repos, so
+  # the candlepin-repo image is not started here. The DB service must be
+  # named "postgres" (matches the app's default db_host).
+  postgres:
+    image: ghcr.io/candlepin/candlepin-db:latest
+
+  candlepin:
+    image: ghcr.io/candlepin/candlepin-app:latest
+    depends_on:
+      - postgres
+
+  prometheus-rules-generator:
+    image: docker.io/mikefarah/yq:latest
+    volumes:
+      - ../../contrib/prometheus:/workdir:Z
+    entrypoint: sh
+    command:
+      - -c
+      - "yq .objects[0].spec /workdir/recording-rules-resource.yml > /workdir/recording-rules.yml"
+    userns_mode: host
+    user: root
+
+  prometheus:
+    image: quay.io/prometheus/prometheus:v3
+    ports:
+      - "${PROMETHEUS_HOST_PORT:-9090}:9090"
+    volumes:
+      - ./local_prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:Z
+      - ../../contrib/prometheus:/etc/prometheus/contrib:Z
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-remote-write-receiver'
+      - '--web.enable-admin-api'
+    depends_on:
+      prometheus-rules-generator:
+        condition: service_completed_successfully
+
+  # The integration suite runs in its own UBI-parametrized test image
+  # (Dockerfile in this directory); the devcontainer image is the CentOS
+  # Stream based RPM build environment. The authoritative cross-major
+  # validation runs on Testing Farm VMs against RPM-installed builds -
+  # this service is the fast local lane.
+  tests:
+    build:
+      context: ../../
+      dockerfile: ./integration-tests/docker/Dockerfile
+      args:
+        UBI_VERSION: "${UBI_VERSION:-10}"
+    volumes:
+      - ../../:/workspace/host-metering:Z
+    environment:
+      - IS_IN_CONTAINER=true
+      # Forward the Candlepin overrides documented in the README from the
+      # host, with defaults matching integration-tests/conftest.py.
+      - CANDLEPIN_HOST=${CANDLEPIN_HOST:-candlepin}
+      - CANDLEPIN_PORT=${CANDLEPIN_PORT:-8443}
+      - CANDLEPIN_USERNAME=${CANDLEPIN_USERNAME:-admin}
+      - CANDLEPIN_PASSWORD=${CANDLEPIN_PASSWORD:-admin}
+      - CANDLEPIN_ORG=${CANDLEPIN_ORG:-donaldduck}
+    depends_on:
+      - candlepin
+    command: /bin/sh -c "while sleep 1000; do :; done"

@@ -3,10 +3,10 @@ set -e
 
 BASE_DIR=$(cd "$(dirname "$0")/.." && pwd)
 
-# UBI major used for the containerized integration tests (the devcontainer
-# image). Override with --ubi-version or the UBI_VERSION environment
+# Base image for the containerized integration tests. Override with
+# --ubi-version, --centos-stream-version, or the BASE_IMAGE environment
 # variable; the authoritative cross-major validation runs on Testing Farm.
-DEFAULT_UBI_VERSION=10
+DEFAULT_BASE_IMAGE=registry.access.redhat.com/ubi10/ubi:latest
 
 # Tracking if we spun up Prometheus container
 SPUN_UP=false
@@ -66,14 +66,18 @@ run_unit_tests() {
 }
 
 run_integration_tests() {
-	local version=$1
-	echo "=== Running Integration Tests against UBI ${version} ==="
+	echo "=== Running Integration Tests against ${TARGET_LABEL} ==="
 
 	start_prometheus
 
-	# Build the test container from the devcontainer image
-	echo "Building test container (UBI ${version})..."
-	UBI_VERSION="${version}" $COMPOSE_CMD -f "$BASE_DIR/integration-tests/docker/docker-compose.test.yml" build tests
+	# Build the test container from the selected base image. A failed build
+	# must fail the lane: the compose tag would otherwise keep the previous
+	# base image and silently run the suite against the wrong one.
+	echo "Building test container (${TARGET_LABEL}, base image ${BASE_IMAGE})..."
+	if ! BASE_IMAGE="${BASE_IMAGE}" $COMPOSE_CMD -f "$BASE_DIR/integration-tests/docker/docker-compose.test.yml" build tests; then
+		echo "Error: failed to build the test image (${TARGET_LABEL})." >&2
+		return 1
+	fi
 
 	# Run the pytest command inside the container. The write URL is not
 	# injected as a HOST_METERING_* environment variable: every test
@@ -89,7 +93,8 @@ run_integration_tests() {
 # Parse arguments
 RUN_UNIT=false
 RUN_INTEGRATION=false
-UBI_VERSION="${UBI_VERSION:-$DEFAULT_UBI_VERSION}"
+BASE_IMAGE="${BASE_IMAGE:-$DEFAULT_BASE_IMAGE}"
+TARGET_LABEL="${BASE_IMAGE}"
 PYTEST_FLAGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -107,7 +112,18 @@ while [[ $# -gt 0 ]]; do
 			echo "Error: --ubi-version requires 8, 9, or 10." >&2
 			exit 1
 		fi
-		UBI_VERSION="$2"
+		BASE_IMAGE="registry.access.redhat.com/ubi${2}/ubi:latest"
+		TARGET_LABEL="UBI ${2}"
+		RUN_INTEGRATION=true
+		shift 2
+		;;
+	--centos-stream-version)
+		if [[ -z "$2" || ! "$2" =~ ^(9|10)$ ]]; then
+			echo "Error: --centos-stream-version requires 9 or 10." >&2
+			exit 1
+		fi
+		BASE_IMAGE="quay.io/centos/centos:stream${2}"
+		TARGET_LABEL="CentOS Stream ${2}"
 		RUN_INTEGRATION=true
 		shift 2
 		;;
@@ -136,12 +152,13 @@ done
 
 # If no actions specified, show usage
 if [ "$RUN_UNIT" = false ] && [ "$RUN_INTEGRATION" = false ]; then
-	echo "Usage: $0 [--unit] [--integration] [--ubi-version <8|9|10>] [--all] [pytest_flags...]" >&2
+	echo "Usage: $0 [--unit] [--integration] [--ubi-version <8|9|10>] [--centos-stream-version <9|10>] [--all] [pytest_flags...]" >&2
 	echo "" >&2
-	echo "  --unit            Run Go unit tests on the host" >&2
-	echo "  --integration     Run the integration suite in the devcontainer image (default UBI ${DEFAULT_UBI_VERSION})" >&2
-	echo "  --ubi-version N   Run the integration suite against UBI N (implies --integration)" >&2
-	echo "  --all             Run unit tests and the integration suite" >&2
+	echo "  --unit                     Run Go unit tests on the host" >&2
+	echo "  --integration              Run the integration suite in the test image (default UBI 10)" >&2
+	echo "  --ubi-version N            Run the integration suite against UBI N (implies --integration)" >&2
+	echo "  --centos-stream-version N  Run the integration suite against CentOS Stream N (implies --integration)" >&2
+	echo "  --all                      Run unit tests and the integration suite" >&2
 	exit 1
 fi
 
@@ -151,10 +168,10 @@ if [ "$RUN_UNIT" = true ]; then
 fi
 
 if [ "$RUN_INTEGRATION" = true ]; then
-	if run_integration_tests "$UBI_VERSION"; then
-		echo "=== Integration tests passed (UBI ${UBI_VERSION}) ==="
+	if run_integration_tests; then
+		echo "=== Integration tests passed (${TARGET_LABEL}) ==="
 	else
-		echo "Error: Integration tests failed for UBI ${UBI_VERSION}." >&2
+		echo "Error: Integration tests failed for ${TARGET_LABEL}." >&2
 		exit 1
 	fi
 fi

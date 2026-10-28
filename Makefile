@@ -7,7 +7,7 @@ NEXT_VERSION ?=
 SHORT_COMMIT ?= $(shell git rev-parse --short=8 HEAD)
 AUTORELEASE ?= "git$(shell date "+%Y%m%d%H%M")G$(SHORT_COMMIT)"
 
-UBI_VERSION ?= 7
+BASE_IMAGE ?= quay.io/centos/centos:stream10
 
 DISTDIR ?= $(CURDIR)/dist
 RPMTOPDIR := $(DISTDIR)/rpmbuild
@@ -88,7 +88,7 @@ mocks/consumer/cert.pem mocks/consumer/key.pem:
 
 .PHONY: podman-containers
 podman-containers:
-	podman build --no-cache -t devcontainer_host-metering --build-arg UBI_VERSION=$(UBI_VERSION) -f .devcontainer/Dockerfile .
+	podman build --no-cache -t devcontainer_host-metering --build-arg BASE_IMAGE=$(BASE_IMAGE) -f .devcontainer/Dockerfile .
 	
 .PHONY: prometheus
 prometheus: podman-containers
@@ -172,27 +172,6 @@ rpm/srpm: tarball rpm/spec
 .PHONY: rpm
 rpm: rpm/srpm
 	rpmbuild --define '_topdir $(RPMTOPDIR)' -bb contrib/rpm/$(RPMNAME).spec
-
-.PHONY: rpm/mock
-rpm/mock: rpm/srpm
-	mkdir -p $(DISTDIR)/mock7
-	mock -r contrib/rpm/epel-7-x86_64-custom.cfg \
-	     --resultdir=$(DISTDIR)/mock7/ \
-	     --rebuild $(RPMTOPDIR)/SRPMS/$(shell ls -1 $(RPMTOPDIR)/SRPMS)
-
-.PHONY: rpm/mock-8
-rpm/mock-8: rpm/srpm
-	mkdir -p $(DISTDIR)/mock8
-	mock -r centos-stream-8-x86_64 \
-	     --resultdir=$(DISTDIR)/mock8/ \
-	     --rebuild $(RPMTOPDIR)/SRPMS/$(shell ls -1 $(RPMTOPDIR)/SRPMS)
-
-.PHONY: rpm/mock-9
-rpm/mock-9: rpm/srpm
-	mkdir -p $(DISTDIR)/mock9
-	mock -r centos-stream-9-x86_64 \
-	     --resultdir=$(DISTDIR)/mock9 \
-	     --rebuild $(RPMTOPDIR)/SRPMS/$(shell ls -1 $(RPMTOPDIR)/SRPMS)
 
 # Clean
 .PHONY: clean

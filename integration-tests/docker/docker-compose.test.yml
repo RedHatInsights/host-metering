@@ -41,17 +41,17 @@ services:
       prometheus-rules-generator:
         condition: service_completed_successfully
 
-  # The integration suite runs in its own UBI-parametrized test image
-  # (Dockerfile in this directory); the devcontainer image is the CentOS
-  # Stream based RPM build environment. The authoritative cross-major
-  # validation runs on Testing Farm VMs against RPM-installed builds -
-  # this service is the fast local lane.
+  # The integration suite runs in its own base-image-parametrized test image
+  # (Dockerfile in this directory: UBI or CentOS Stream); the devcontainer
+  # image is the CentOS Stream based RPM build environment. The authoritative
+  # cross-major validation runs on Testing Farm VMs against RPM-installed
+  # builds - this service is the fast local lane.
   tests:
     build:
       context: ../../
       dockerfile: ./integration-tests/docker/Dockerfile
       args:
-        UBI_VERSION: "${UBI_VERSION:-10}"
+        BASE_IMAGE: "${BASE_IMAGE:-registry.access.redhat.com/ubi10/ubi:latest}"
     volumes:
       - ../../:/workspace/host-metering:Z
     environment:

@@ -96,13 +96,62 @@ instance_id=
         _assert_syspurpose_label("usage", "usage")
         _assert_syspurpose_label("support", "service_level_agreement")
 
-        # The test container has no product certificates and no cloud
-        # metadata, so those labels must be absent (empty labels are
-        # filtered out by the daemon).
-        assert "product" not in metric, f"unexpected product label: {metric}"
-        assert (
-            "billing_marketplace" not in metric
-        ), f"unexpected billing_marketplace label: {metric}"
+        # Hosts can be cloud instances (the CentOS Stream TF runs are AWS
+        # EC2) and RHEL guests carry product certificates. Derive the
+        # optional labels from the same subscription-manager data the
+        # daemon reads.
+        expected_products = ",".join(subman_registration.products)
+        if expected_products:
+            assert metric.get("product") == expected_products, (
+                f"product label does not match `subscription-manager list "
+                f"--installed` {expected_products!r}: {metric}"
+            )
+        else:
+            assert "product" not in metric, f"unexpected product label: {metric}"
+
+        def _assert_fact_label(label, expected):
+            if expected:
+                assert metric.get(label) == expected, (
+                    f"{label} label does not match subscription-manager fact "
+                    f"{expected!r}: {metric}"
+                )
+            else:
+                assert label not in metric, (
+                    f"{label} label should be absent for an empty fact: {metric}"
+                )
+
+        facts = subman_registration.facts
+        billing = {}
+        if "aws_instance_id" in facts:
+            billing = {
+                "billing_marketplace": "aws",
+                "billing_marketplace_account": facts.get("aws_account_id", ""),
+                "billing_marketplace_instance_id": facts["aws_instance_id"],
+            }
+        elif "azure_instance_id" in facts:
+            billing = {
+                "billing_marketplace": "azure",
+                "billing_marketplace_account": facts.get("azure_subscription_id", ""),
+                "billing_marketplace_instance_id": facts["azure_instance_id"],
+            }
+        elif "gcp_instance_id" in facts:
+            billing = {
+                "billing_marketplace": "gcp",
+                "billing_marketplace_account": facts.get("gcp_project_number", ""),
+                "billing_marketplace_instance_id": facts["gcp_instance_id"],
+            }
+        if billing:
+            for label, expected in billing.items():
+                _assert_fact_label(label, expected)
+            _assert_fact_label("billing_model", "marketplace")
+        else:
+            for label in (
+                "billing_marketplace",
+                "billing_marketplace_account",
+                "billing_marketplace_instance_id",
+                "billing_model",
+            ):
+                _assert_fact_label(label, "")
         return metric
 
     # Wait up to 10 seconds for the metric to show up

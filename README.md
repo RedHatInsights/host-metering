@@ -104,7 +104,8 @@ or docker-compose) and curl on the host:
 
 ```
 $ integration-tests/run-tests.sh --integration            # default: UBI 10
-$ integration-tests/run-tests.sh --ubi-version 9           # specific major
+$ integration-tests/run-tests.sh --ubi-version 9           # specific UBI major
+$ integration-tests/run-tests.sh --centos-stream-version 9 # CentOS Stream base
 $ integration-tests/run-tests.sh --unit                    # Go unit tests
 $ integration-tests/run-tests.sh --all                     # unit + integration
 ```

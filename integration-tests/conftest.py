@@ -100,6 +100,17 @@ def _parse_key_value_output(output):
     return values
 
 
+def _parse_product_ids(output):
+    """Product ID values from `subscription-manager list --installed`,
+    in output order, mirroring hostinfo.parseSubManOutputMultiVal."""
+    products = []
+    for line in output.splitlines():
+        key, sep, value = line.partition(":")
+        if sep and key.strip().lower() == "product id":
+            products.append(value.strip())
+    return products
+
+
 class SubManRegistration:
     """Real subscription-manager registration against the containerized
     Candlepin server. Exposes the registered identity, facts, and
@@ -110,6 +121,7 @@ class SubManRegistration:
         self.identity = {}
         self.facts = {}
         self.syspurpose = {}
+        self.products = []
         self.registered = False
 
     def register(self):
@@ -148,6 +160,9 @@ class SubManRegistration:
             res = _run_subman(["facts"], check=False)
             self.facts = _parse_key_value_output(res.stdout)
 
+            res = _run_subman(["list", "--installed"], check=False)
+            self.products = _parse_product_ids(res.stdout)
+
             res = _run_subman(["syspurpose", "--show"], check=False)
             if res.returncode == 0:
                 try:
@@ -162,6 +177,7 @@ class SubManRegistration:
         else:
             self.facts = {}
             self.syspurpose = {}
+            self.products = {}
 
 
 def _wait_for_candlepin(timeout_s=180):
@@ -169,10 +185,15 @@ def _wait_for_candlepin(timeout_s=180):
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
         try:
-            resp = requests.get(url, verify=False, timeout=5)
+            # While the webapp is still deploying, the app redirects to the
+            # Tomcat root page which answers 200. Following the redirect
+            # would pass this check too early and make registration fail.
+            resp = requests.get(url, verify=False, timeout=5, allow_redirects=False)
             if resp.status_code == 200:
-                return
-        except requests.RequestException:
+                status = resp.json()
+                if "timeUTC" in status and "mode" in status:
+                    return
+        except (requests.RequestException, ValueError):
             pass
         time.sleep(2)
     raise RuntimeError(f"Candlepin not ready at {url} after {timeout_s}s")
@@ -324,6 +345,15 @@ def run_daemon(host_metering_bin):
 
         dp = DaemonProcess(p, stdout_path, stderr_path, stdout_file, stderr_file)
         processes.append(dp)
+
+        # Fail fast on a daemon that rejected the configuration and exited
+        # before collecting anything, instead of timing out on its logs.
+        time.sleep(0.5)
+        if p.poll() is not None:
+            raise AssertionError(
+                f"daemon exited during startup with code {p.returncode}:\n"
+                f"{dp.get_stdout()}{dp.get_stderr()}"
+            )
         return dp
 
     yield _run

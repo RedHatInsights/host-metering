@@ -46,9 +46,12 @@ def test_unregistered_host_does_not_send(
         os.makedirs(wal_path, exist_ok=True)
         cert_generator(cert_path, key_path)
 
+        # WriteInterval must exceed WriteRetryAttempts * (WriteRetryMaxInt +
+        # WriteTimeout) (3s here) or the daemon rejects the configuration at
+        # startup.
         config_content = f"""[host-metering]
 write_url={prometheus_url}/api/v1/write
-write_interval_sec=2
+write_interval_sec=5
 host_cert_path={cert_path}
 host_cert_key_path={key_path}
 collect_interval_sec=0

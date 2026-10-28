@@ -230,6 +230,12 @@ func (d *Daemon) notify() error {
 	}
 	err = d.notifyPolicy.ShouldNotify(samples, d.hostInfo)
 	if err != nil {
+		// Not sending (e.g. host not registered yet): samples are kept and
+		// retried on later intervals. Two known consequences, kept as future
+		// work: samples collected while unregistered are flushed once
+		// registration happens (bounded by MetricsMaxAge), and the WAL is
+		// not truncated on this path, so a never-registered host accumulates
+		// samples indefinitely.
 		logger.Warnf("Cannot notify: %s\n", err.Error())
 		return nil
 	}

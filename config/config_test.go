@@ -12,7 +12,7 @@ func TestDefaultConfig(t *testing.T) {
 
 	// Define the expected defaults.
 	expectedCfg := "Config:\n" +
-		"|  WriteUrl: http://localhost:9090/api/v1/write\n" +
+		"|  WriteUrl: https://cert.console.redhat.com/api/rhel-telemetry/v1/receive\n" +
 		"|  WriteIntervalSec: 600\n" +
 		"|  HostCertPath: /etc/pki/consumer/cert.pem\n" +
 		"|  HostCertKeyPath: /etc/pki/consumer/key.pem\n" +

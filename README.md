@@ -22,6 +22,20 @@ See output/log:
 # journalctl -feu host-metering
 ```
 
+## Default telemetry endpoint
+
+The compiled-in default `write_url` is the production Red Hat telemetry
+endpoint (`https://cert.console.redhat.com/api/rhel-telemetry/v1/receive`).
+
+Note that no data is actually sent unless the host is registered via
+`subscription-manager` or `rhc`: the daemon authenticates with the RHSM
+consumer identity certificate at `/etc/pki/consumer/cert.pem` (mTLS), which
+only exists after registration.
+
+For local development, override the endpoint via the
+`HOST_METERING_WRITE_URL` environment variable or a config file (see
+[.devcontainer/host-metering.conf](.devcontainer/host-metering.conf)).
+
 ## RPM repository
 
 RPM builds of `main` branch are available at COPR:  https://copr.fedorainfracloud.org/coprs/pvoborni/host-metering/

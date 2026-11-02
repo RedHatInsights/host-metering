@@ -84,6 +84,62 @@ optional_policy(`
     ')
     manage_files_pattern(hostmetering_t, rhsmcertd_config_t, rhsmcertd_config_t)
     rhsmcertd_manage_lib_files(hostmetering_t)
-    rhsmcertd_read_log(hostmetering_t)
+    rhsmcertd_manage_log(hostmetering_t)
     rhsmcertd_dbus_chat(hostmetering_t)
 ')
+
+########################################
+#
+# Rules required once the daemon is started directly by systemd
+# (ExecStart=/usr/bin/host-metering daemon) and actually transitions
+# into hostmetering_t
+#
+
+gen_require(`
+    type cert_t;
+    type cgroup_t;
+')
+
+# The daemon watches the directory of the host certificate (usually
+# /etc/pki/consumer, labeled cert_t) with inotify to detect registration
+# changes, and stats the certificate itself. subscription-manager helpers
+# executed by the daemon additionally manage consumer and entitlement
+# certificates under /etc/pki on registration changes, and reads the
+# consumer certificate and key for the mTLS connection on every notify.
+allow hostmetering_t cert_t:dir { search write add_name remove_name create };
+allow hostmetering_t cert_t:file { create open read write getattr rename unlink setattr };
+# The watch permission for directories is not defined in the RHEL 8 base
+# policy (its kernel predates SELinux inotify watch support), so the
+# module would not compile there - and the kernel does not enforce the
+# permission either, so the rule is simply omitted on RHEL 8.
+ifndef(`distro_rhel8',`
+    allow hostmetering_t cert_t:dir watch;
+')
+
+# subscription-manager attempts to rewrite /etc/dnf/plugins/
+# subscription-manager.conf (labeled etc_t) on every invocation. The
+# rewrite is idempotent housekeeping: the file content does not change,
+# and the distro policy denies the same write to its own confined
+# sub-man caller (rhsmcertd_t), so sub-man tolerates the failure.
+# Granting write on generic etc_t files would be far too broad, so the
+# denial is silenced instead to keep customer audit logs clean.
+gen_require(`
+    type etc_t;
+')
+dontaudit hostmetering_t etc_t:file write;
+
+# subscription-manager helpers executed by the daemon bind local sockets
+# and read the insights-client configuration. The insights_client_etc_t
+# type does not exist in the RHEL 8 base policy (no insights_client
+# interface there), so the rule is required inside optional_policy and
+# is dropped automatically on policies that do not define the type.
+corenet_tcp_bind_generic_node(hostmetering_t)
+optional_policy(`
+    gen_require(`
+        type insights_client_etc_t;
+    ')
+    allow hostmetering_t insights_client_etc_t:dir search;
+')
+
+# Resolving the daemon cgroup membership on cgroup2 filesystems.
+allow hostmetering_t cgroup_t:dir search;

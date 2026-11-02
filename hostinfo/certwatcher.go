@@ -45,6 +45,7 @@ func NewINotifyCertWatcher(certPath string) (*INotifyCertWatcher, error) {
 	// all its files and thus detect when cert is moved in/out, re-created ...
 	err = watcher.Add(dirPath)
 	if err != nil {
+		watcher.Close()
 		return nil, err
 	}
 

@@ -11,19 +11,22 @@ import pytest
 import requests
 import urllib3
 from cryptography import x509
+
+import containers
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 # Integration tests run against a real subscription-manager registered to a
-# containerized Candlepin server (see docker-compose.test.yml). Nothing
-# mocks subscription-manager here; the identity, facts, and syspurpose data
-# the daemon consumes all come from the real binary and server. The host,
-# port, and credentials are configurable so other environments (e.g. a
-# Testing Farm VM with a locally started Candlepin container) can point the
-# suite at their own server.
-CANDLEPIN_HOST = os.environ.get("CANDLEPIN_HOST", "candlepin")
-CANDLEPIN_PORT = int(os.environ.get("CANDLEPIN_PORT", "8443"))
+# Candlepin server, and send metering data to a Prometheus remote-write
+# receiver. By default both run as podman containers managed by the test
+# session itself (see containers.py): they start on first use, publish
+# their ports on dynamically allocated localhost ports (so nothing else
+# on the host - e.g. cockpit on 9090 - can conflict with them), and are
+# torn down when the session ends. Setting CANDLEPIN_HOST or
+# PROMETHEUS_URL points the suite at externally managed servers instead
+# (e.g. the docker-compose topology in integration-tests/docker used by
+# the local developer lane, or shared testing infrastructure).
 CANDLEPIN_USERNAME = os.environ.get("CANDLEPIN_USERNAME", "admin")
 CANDLEPIN_PASSWORD = os.environ.get("CANDLEPIN_PASSWORD", "admin")
 CANDLEPIN_ORG = os.environ.get("CANDLEPIN_ORG", "donaldduck")
@@ -112,12 +115,14 @@ def _parse_product_ids(output):
 
 
 class SubManRegistration:
-    """Real subscription-manager registration against the containerized
-    Candlepin server. Exposes the registered identity, facts, and
-    syspurpose values so tests can derive the labels they expect the
-    daemon to send."""
+    """Real subscription-manager registration against the Candlepin
+    server. Exposes the registered identity, facts, and syspurpose
+    values so tests can derive the labels they expect the daemon to
+    send."""
 
-    def __init__(self):
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
         self.identity = {}
         self.facts = {}
         self.syspurpose = {}
@@ -128,8 +133,8 @@ class SubManRegistration:
         _run_subman(
             [
                 "config",
-                "--server.hostname", CANDLEPIN_HOST,
-                "--server.port", str(CANDLEPIN_PORT),
+                "--server.hostname", self.host,
+                "--server.port", str(self.port),
                 "--server.prefix", "/candlepin",
                 "--server.insecure", "1",
             ]
@@ -180,8 +185,8 @@ class SubManRegistration:
             self.products = {}
 
 
-def _wait_for_candlepin(timeout_s=180):
-    url = f"https://{CANDLEPIN_HOST}:{CANDLEPIN_PORT}/candlepin/status"
+def _wait_for_candlepin(host, port, timeout_s=180):
+    url = f"https://{host}:{port}/candlepin/status"
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
         try:
@@ -200,11 +205,27 @@ def _wait_for_candlepin(timeout_s=180):
 
 
 @pytest.fixture(scope="session")
-def subman_registration():
+def candlepin_endpoint():
+    """The (host, port) of the Candlepin server used by the suite.
+
+    Starts a containerized Candlepin on a dynamically allocated
+    localhost port (see containers.candlepin_server) unless
+    CANDLEPIN_HOST is set, which points the suite at an externally
+    managed server (with CANDLEPIN_PORT, default 8443)."""
+    host = os.environ.get("CANDLEPIN_HOST")
+    if host:
+        yield host, int(os.environ.get("CANDLEPIN_PORT", "8443"))
+        return
+    with containers.candlepin_server() as (host, port):
+        yield host, port
+
+
+@pytest.fixture(scope="session")
+def subman_registration(candlepin_endpoint):
     """Registers the real subscription-manager against the Candlepin
     server once per test session and unregisters on teardown."""
-    _wait_for_candlepin()
-    registration = SubManRegistration()
+    _wait_for_candlepin(*candlepin_endpoint)
+    registration = SubManRegistration(*candlepin_endpoint)
     registration.register()
     yield registration
     registration.unregister()
@@ -225,8 +246,18 @@ def host_metering_bin():
 
 @pytest.fixture(scope="session")
 def prometheus_url():
-    """Returns the Prometheus server URL."""
-    return os.environ.get("PROMETHEUS_URL", "http://localhost:9090")
+    """The base URL of the Prometheus remote-write receiver.
+
+    Starts a containerized Prometheus on a dynamically allocated
+    localhost port (see containers.prometheus_receiver) unless
+    PROMETHEUS_URL is set, which points the suite at an externally
+    managed receiver."""
+    external = os.environ.get("PROMETHEUS_URL")
+    if external:
+        yield external
+        return
+    with containers.prometheus_receiver() as url:
+        yield url
 
 
 @pytest.fixture

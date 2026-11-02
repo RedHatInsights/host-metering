@@ -141,5 +141,7 @@ optional_policy(`
     allow hostmetering_t insights_client_etc_t:dir search;
 ')
 
-# Resolving the daemon cgroup membership on cgroup2 filesystems.
+# Resolving the daemon cgroup membership on cgroup2 filesystems,
+# including reading the CPU limit (cpu.max) of its own cgroup.
 allow hostmetering_t cgroup_t:dir search;
+allow hostmetering_t cgroup_t:file { getattr open read };

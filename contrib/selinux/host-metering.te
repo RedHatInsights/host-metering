@@ -141,6 +141,22 @@ optional_policy(`
     allow hostmetering_t insights_client_etc_t:dir search;
 ')
 
+# subscription-manager helpers executed by the daemon use the cloud-what
+# provider, whose cache lives in /var/cache/cloud-what. The type is
+# declared in the distro rhsmcertd policy module, which grants its own
+# domain manage access; mirror that (read-only would only reveal the
+# next denial when the cache is refreshed). The rule is inside
+# optional_policy so the module still builds where the type does not
+# exist, mirroring how rhsmcertd.if exposes cloud_what_read_cache_files.
+optional_policy(`
+    gen_require(`
+        type cloud_what_var_cache_t;
+    ')
+    files_search_var(hostmetering_t)
+    manage_dirs_pattern(hostmetering_t, cloud_what_var_cache_t, cloud_what_var_cache_t)
+    manage_files_pattern(hostmetering_t, cloud_what_var_cache_t, cloud_what_var_cache_t)
+')
+
 # Resolving the daemon cgroup membership on cgroup2 filesystems,
 # including reading the CPU limit (cpu.max) of its own cgroup.
 allow hostmetering_t cgroup_t:dir search;

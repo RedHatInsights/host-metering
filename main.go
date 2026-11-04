@@ -44,6 +44,12 @@ func main() {
 			fmt.Fprintf(&logMessages, "Failed to process file: %v\n", err.Error())
 		}
 
+		logMessages.WriteString("Updating config from RHSM config file...\n")
+		err = cfg.UpdateFromRhsmConfig(config.DefaultRhsmConfigPath)
+		if err != nil {
+			fmt.Fprintf(&logMessages, "Failed to process RHSM config file: %v\n", err.Error())
+		}
+
 		logMessages.WriteString("Updating config from environment variables...\n")
 		err = cfg.UpdateFromEnvVars()
 		if err != nil {

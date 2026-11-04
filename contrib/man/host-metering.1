@@ -29,7 +29,9 @@ Will be used as the proxy URL for HTTP requests unless overridden by NO_PROXY.
 Will be used as the proxy URL for HTTPS requests unless overridden by NO_PROXY.
 
 As systemd services do not have visibility into environment variables that are active in the user environment by default, the HTTP_PROXY and HTTPS_PROXY variables set within the user environment will not be detected by the host-metering service.
-By default, the host-metering service will use the 'proxy_hostname' and 'proxy_port' as configured in '/etc/rhsm/rhsm.conf'.
+When no HTTP_PROXY or HTTPS_PROXY is set in the service environment, the service uses the proxy configured for subscription-manager: the 'proxy_hostname', 'proxy_port', 'proxy_user' (or 'proxy_username'), 'proxy_password' and 'no_proxy' values of the [server] section in '/etc/rhsm/rhsm.conf'.
+The proxy is always addressed as http://HOST:PORT: the RHSM 'proxy_scheme' option is not used, because RHSM documents it for repository definitions only.
+Hosts matching the RHSM 'no_proxy' list are never proxied through it.
 To use custom proxy settings that will persist across package updates, you can create a .conf override file containing your custom proxy settings within the `/etc/systemd/system/host-metering.service.d/` directory.
 This override configuration will take priority over proxy information available in '/etc/rhsm/rhsm.conf'.
 
@@ -53,6 +55,7 @@ A best effort is made to parse the string and errors are
 ignored.
 
 More details can be found on the official go http documentation: https://pkg.go.dev/net/http#ProxyFromEnvironment
+This variable only applies to the HTTP_PROXY/HTTPS_PROXY environment proxy; exclusions for the proxy read from '/etc/rhsm/rhsm.conf' come from the RHSM 'no_proxy' option.
 
 \fBHOST_METERING_WRITE_URL\fR
 Remote server endpoint.

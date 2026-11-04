@@ -2,7 +2,12 @@ package config
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io/fs"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -32,6 +37,7 @@ const (
 	DefaultLogLevel             = "INFO"
 	DefaultLogPath              = "" //Default to stderr, will be logged in journal.
 	DefaultInstanceID           = ""
+	DefaultRhsmConfigPath       = "/etc/rhsm/rhsm.conf"
 )
 
 type Config struct {
@@ -51,6 +57,10 @@ type Config struct {
 	LogLevel             string // one of "ERROR", "WARN", "INFO", "DEBUG"
 	LogPath              string
 	InstanceID           string
+	ProxyUrl             string // e.g. http://proxy.example.com:3128, empty when unset
+	ProxyUser            string
+	ProxyPassword        string
+	NoProxy              string // comma separated host suffixes excluded from proxying
 }
 
 func NewConfig() *Config {
@@ -94,6 +104,8 @@ func (c *Config) String() string {
 			fmt.Sprintf("|  LogLevel: %s", c.LogLevel),
 			fmt.Sprintf("|  LogPath: %s", c.LogPath),
 			fmt.Sprintf("|  InstanceID: %s", c.InstanceID),
+			fmt.Sprintf("|  ProxyUrl: %s", c.ProxyUrl),
+			fmt.Sprintf("|  NoProxy: %s", c.NoProxy),
 		}, "\n")
 }
 
@@ -279,6 +291,138 @@ func (c *Config) UpdateFromConfigFile(path string) error {
 	}
 
 	return multiError.ErrorOrNil()
+}
+
+// UpdateFromRhsmConfig reads the subscription-manager proxy configuration
+// from the [server] section of the RHSM configuration file. A missing file
+// is not an error: the proxy is optional, and systems without
+// subscription-manager simply do not have one.
+func (c *Config) UpdateFromRhsmConfig(path string) error {
+	if _, err := os.Stat(path); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+
+	config := INIConfig{}
+	if err := config.parseFile(path); err != nil {
+		return err
+	}
+
+	section := "server"
+	hostname := strings.TrimSpace(config[section]["proxy_hostname"])
+	if hostname == "" {
+		c.ProxyUrl, c.ProxyUser, c.ProxyPassword, c.NoProxy = "", "", "", ""
+		return nil
+	}
+
+	if strings.Contains(hostname, "://") {
+		return fmt.Errorf("invalid value of 'proxy_hostname' in %s: %q must not contain a scheme", path, hostname)
+	}
+
+	port := strings.TrimSpace(config[section]["proxy_port"])
+	if port == "" {
+		return fmt.Errorf("invalid RHSM proxy configuration in %s: proxy_hostname is set but proxy_port is missing", path)
+	}
+	proxyPort, err := strconv.ParseUint(port, 10, 16)
+	if err != nil || proxyPort == 0 {
+		return fmt.Errorf("invalid value of 'proxy_port' in %s: %q", path, port)
+	}
+
+	user := strings.TrimSpace(config[section]["proxy_user"])
+	if user == "" {
+		user = strings.TrimSpace(config[section]["proxy_username"])
+	}
+
+	// proxy_scheme is deliberately ignored: RHSM documents it as the scheme
+	// written into repository definitions, not the scheme used to reach the
+	// proxy. An http:// proxy endpoint is what both plain and HTTPS targets
+	// need (HTTPS targets are tunnelled with CONNECT).
+	c.ProxyUrl = "http://" + net.JoinHostPort(hostname, strconv.FormatUint(proxyPort, 10))
+	c.ProxyUser = user
+	c.ProxyPassword = config[section]["proxy_password"]
+	c.NoProxy = strings.TrimSpace(config[section]["no_proxy"])
+	return nil
+}
+
+// ProxyFunc returns the proxy resolver for outgoing HTTP requests. A proxy
+// configured in the service environment (HTTP_PROXY/HTTPS_PROXY) takes
+// priority - that is the documented systemd drop-in override - and the RHSM
+// proxy is the default. Hosts matching the RHSM no_proxy list are never
+// proxied through the RHSM proxy.
+func (c *Config) ProxyFunc() func(*http.Request) (*url.URL, error) {
+	if c.ProxyUrl == "" {
+		return http.ProxyFromEnvironment
+	}
+	proxyUrl, err := url.Parse(c.ProxyUrl)
+	if err != nil || proxyUrl.Host == "" {
+		return http.ProxyFromEnvironment
+	}
+	if c.ProxyUser != "" {
+		if c.ProxyPassword != "" {
+			proxyUrl.User = url.UserPassword(c.ProxyUser, c.ProxyPassword)
+		} else {
+			proxyUrl.User = url.User(c.ProxyUser)
+		}
+	}
+	noProxy := c.NoProxy
+	return func(req *http.Request) (*url.URL, error) {
+		if envProxy, err := http.ProxyFromEnvironment(req); envProxy != nil || err != nil {
+			return envProxy, err
+		}
+		if noProxyMatches(req.URL, noProxy) {
+			return nil, nil
+		}
+		return proxyUrl, nil
+	}
+}
+
+// noProxyMatches reports whether u is covered by an RHSM no_proxy list: a
+// comma separated list of hostname suffixes, each optionally suffixed with a
+// port, plus "*" which excludes every host. A leading dot restricts the match
+// to subdomains, mirroring the NO_PROXY semantics documented for Go.
+func noProxyMatches(u *url.URL, noProxy string) bool {
+	if noProxy == "" {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	port := u.Port()
+	if port == "" {
+		switch u.Scheme {
+		case "http":
+			port = "80"
+		case "https":
+			port = "443"
+		}
+	}
+	for _, entry := range strings.Split(noProxy, ",") {
+		entry = strings.ToLower(strings.TrimSpace(entry))
+		if entry == "" {
+			continue
+		}
+		if entry == "*" {
+			return true
+		}
+		entryHost, entryPort := entry, ""
+		if h, p, err := net.SplitHostPort(entry); err == nil {
+			entryHost, entryPort = h, p
+		}
+		if entryPort != "" && entryPort != port {
+			continue
+		}
+		if entryHost == host {
+			return true
+		}
+		if strings.HasPrefix(entryHost, ".") {
+			if strings.HasSuffix(host, entryHost) {
+				return true
+			}
+		} else if strings.HasSuffix(host, "."+entryHost) {
+			return true
+		}
+	}
+	return false
 }
 
 func parseUint(name string, value string, defaultValue uint) (uint, error) {

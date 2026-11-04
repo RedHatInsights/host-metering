@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -59,11 +60,11 @@ func (n *PrometheusNotifier) createHttpClient() error {
 		return err
 	}
 
-	n.client, err = newMTLSHttpClient(keypair, n.cfg.WriteTimeout)
+	n.client, err = newMTLSHttpClient(keypair, n.cfg.WriteTimeout, n.cfg.ProxyFunc())
 	return err
 }
 
-func newMTLSHttpClient(keypair tls.Certificate, timeout time.Duration) (*http.Client, error) {
+func newMTLSHttpClient(keypair tls.Certificate, timeout time.Duration, proxy func(*http.Request) (*url.URL, error)) (*http.Client, error) {
 	tlsConfig := &tls.Config{
 		Certificates:       []tls.Certificate{keypair},
 		InsecureSkipVerify: tlsInsecureSkipVerify,
@@ -71,7 +72,7 @@ func newMTLSHttpClient(keypair tls.Certificate, timeout time.Duration) (*http.Cl
 	return &http.Client{
 		Timeout: timeout,
 		Transport: &http.Transport{
-			Proxy:                 http.ProxyFromEnvironment,
+			Proxy:                 proxy,
 			TLSClientConfig:       tlsConfig,
 			MaxIdleConns:          2,
 			IdleConnTimeout:       90 * time.Second,

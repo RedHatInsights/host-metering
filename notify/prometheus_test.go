@@ -28,7 +28,8 @@ const (
 	testHostname = "host.example.test"
 )
 
-// Test that http client follows the environment Proxy settings
+// Test that http client prefers the environment Proxy settings over the
+// RHSM proxy configured in the service configuration
 //
 //   - this test is fragile as it is influenced by the environment as ProxyFromEnvironment
 //     is initialized only once, thus if any test before uses it without the env vars set then
@@ -38,10 +39,12 @@ func TestHttpClientProxy(t *testing.T) {
 	keypair, _, _, _ := createTestKeypair(t)
 	httpProxy := "http://proxy.example.com"
 	httpsProxy := "https://proxy.example.com"
+	cfg := config.NewConfig()
+	cfg.ProxyUrl = "http://rhsm-proxy.example.com:3128"
 
 	t.Setenv("HTTP_PROXY", httpProxy)
 	t.Setenv("HTTPS_PROXY", httpsProxy)
-	client, err := newMTLSHttpClient(keypair, 1*time.Second)
+	client, err := newMTLSHttpClient(keypair, 1*time.Second, cfg.ProxyFunc())
 	checkError(t, err, "Failed to create http client")
 	proxyF := client.Transport.(*http.Transport).Proxy
 	if proxyF == nil {

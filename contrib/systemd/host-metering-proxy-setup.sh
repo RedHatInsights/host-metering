@@ -15,7 +15,5 @@ if [ -z "${HTTP_PROXY}" ] || [ -z "${HTTPS_PROXY}" ]; then
 	fi
 fi
 
-export HTTP_PROXY
-export HTTPS_PROXY
-
-exec /usr/bin/host-metering daemon
+mkdir -p /run/host-metering
+printf 'HTTP_PROXY=%s\nHTTPS_PROXY=%s\n' "$HTTP_PROXY" "$HTTPS_PROXY" >/run/host-metering/proxy.env

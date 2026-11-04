@@ -52,11 +52,17 @@ build:
 	@echo "Building the project..."
 	$(GO) build -o $(DISTDIR)/$(PROJECT)
 
+# Distribution identifier passed to the SELinux policy build so the
+# policy can adapt to distro-specific permission sets (e.g. RHEL 8 does
+# not define the dir watch permission). Empty on non-RHEL builds.
+SELINUX_DISTRO := $(shell . /etc/os-release 2>/dev/null; [ "$$ID" = rhel ] && echo rhel$${VERSION_ID%%.*})
+
 .PHONY: build-selinux
 build-selinux:
 	@echo "Building SELinux policy..."
 	cd contrib/selinux && \
-		make -f /usr/share/selinux/devel/Makefile $(PROJECT).pp || exit
+		make -f /usr/share/selinux/devel/Makefile $(PROJECT).pp \
+		$(if $(SELINUX_DISTRO),DISTRO=$(SELINUX_DISTRO)) || exit
 
 # Functional testing (manual or automatic)
 

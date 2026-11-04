@@ -27,17 +27,22 @@ type Daemon struct {
 }
 
 func NewDaemon(config *config.Config) (*Daemon, error) {
-	var err error
 	d := &Daemon{
 		config:           config,
 		notifier:         notify.NewPrometheusNotifier(config),
 		hostInfoProvider: &hostinfo.SubManInfoProvider{},
 		notifyPolicy:     &notify.GeneralNotifyPolicy{},
 	}
-	d.certWatcher, err = hostinfo.NewINotifyCertWatcher(d.config.HostCertPath)
+	// Assign only on success: NewINotifyCertWatcher returns a nil
+	// *INotifyCertWatcher on error, and storing it in the CertWatcher
+	// interface field would make the interface non-nil, so the nil check
+	// in Run() would not protect against a nil-pointer dereference.
+	certWatcher, err := hostinfo.NewINotifyCertWatcher(d.config.HostCertPath)
 	if err != nil {
 		// CertWatch failure should not be fatal
 		logger.Errorf("Cert Watcher initialization failed: %v\n", err.Error())
+	} else {
+		d.certWatcher = certWatcher
 	}
 	if err := d.initMetricsLog(); err != nil {
 		return nil, err

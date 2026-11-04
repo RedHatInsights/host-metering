@@ -14,9 +14,11 @@ const (
 	SendHostnameNo  = "no"
 )
 
+// Production telemetry ingress. For local development override via
+// HOST_METERING_WRITE_URL or a config file, see .devcontainer/host-metering.conf.
 const (
 	DefaultConfigPath           = "/etc/host-metering.conf"
-	DefaultWriteUrl             = "http://localhost:9090/api/v1/write"
+	DefaultWriteUrl             = "https://cert.console.redhat.com/api/rhel-telemetry/v1/receive"
 	DefaultWriteInterval        = 600 * time.Second
 	DefaultCertPath             = "/etc/pki/consumer/cert.pem"
 	DefaultKeyPath              = "/etc/pki/consumer/key.pem"

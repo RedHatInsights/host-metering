@@ -56,6 +56,11 @@ dev_read_sysfs(hostmetering_t)
 
 files_list_tmp(hostmetering_t)
 
+# /etc/host-metering.conf is shipped as a default etc_t file and read by
+# the daemon after the domain transition (see PR #71 for the systemd
+# ExecStart fix that makes the transition reliable).
+files_read_etc_files(hostmetering_t)
+
 init_read_state(hostmetering_t)
 
 libs_exec_ldconfig(hostmetering_t)

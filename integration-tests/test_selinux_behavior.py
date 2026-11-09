@@ -36,6 +36,14 @@ RUNTIME_DIR = "/run/host-metering"
 AUDIT_LOG = "/var/log/audit/audit.log"
 RHSM_CONF = "/etc/rhsm/rhsm.conf"
 DAEMON_CONTEXT = "system_u:system_r:hostmetering_t:s0"
+# Runtime systemd drop-ins: transient by design, so a failed test cannot
+# leave a permanent service override behind.
+UNIT_DROPIN_DIR = "/run/systemd/system/host-metering.service.d"
+# The daemon's write target during the proxy test. It must not match the
+# RHSM no_proxy list that keeps subscription-manager on its direct route to
+# Candlepin, and it must not resolve: an HTTP proxy receives the absolute
+# URI, so the daemon never looks the name up.
+PROXY_TEST_WRITE_URL = "http://write.example.test/api/v1/write"
 
 
 def _rpm_installed():
@@ -168,6 +176,18 @@ def _journal_tail(since_minutes=3):
     return res.stdout
 
 
+def _journal_for_pid(pid):
+    """Journal lines written by an exact daemon process, so a previous
+    service instance cannot satisfy (or pollute) the assertions."""
+    res = subprocess.run(
+        ["journalctl", "-u", SERVICE, f"_PID={pid}", "--no-pager"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        universal_newlines=True,
+    )
+    return res.stdout
+
+
 def _audit_offset():
     try:
         with open(AUDIT_LOG) as f:
@@ -184,15 +204,25 @@ def _denials_since(offset):
 
 
 @contextlib.contextmanager
-def _rhsm_proxy(hostname=None, port=None, no_proxy=None):
+def _rhsm_proxy(hostname=None, port=None, no_proxy=None, env=None):
     """Temporarily write proxy fields into the [server] section of
-    /etc/rhsm/rhsm.conf, restart the service so the daemon re-reads them,
-    and restore both on exit. Fields passed as None are left untouched; a
-    key missing from the guest's template is inserted right after the
-    [server] header. Only the [server] section is touched: the same option
-    names exist in other sections and must keep their values."""
+    /etc/rhsm/rhsm.conf and optional Environment= entries into a runtime
+    systemd drop-in, restart the service so the daemon re-reads both, and
+    restore them on exit. Fields passed as None are left untouched; a key
+    missing from the guest's template is inserted right after the [server]
+    header. Only the [server] section is touched: the same option names
+    exist in other sections and must keep their values."""
     shutil.copyfile(RHSM_CONF, RHSM_CONF + ".test-backup")
+    dropin = None
     try:
+        if env:
+            os.makedirs(UNIT_DROPIN_DIR, exist_ok=True)
+            dropin = os.path.join(UNIT_DROPIN_DIR, "99-host-metering-test.conf")
+            with open(dropin, "w") as f:
+                f.write("[Service]\n")
+                for name, value in env.items():
+                    f.write(f'Environment="{name}={value}"\n')
+            _systemctl("daemon-reload")
         with open(RHSM_CONF) as f:
             lines = f.read().splitlines(keepends=True)
         try:
@@ -230,6 +260,9 @@ def _rhsm_proxy(hostname=None, port=None, no_proxy=None):
         yield
     finally:
         shutil.move(RHSM_CONF + ".test-backup", RHSM_CONF)
+        if dropin is not None and os.path.exists(dropin):
+            os.unlink(dropin)
+            _systemctl("daemon-reload")
         _start_service_fresh()
 
 
@@ -485,7 +518,15 @@ def test_remote_write_uses_rhsm_proxy(subman_registration):
     the proxy configured in rhsm.conf: an HTTP proxy sees the absolute
     request URI for the write URL and the notification is accepted, all
     inside hostmetering_t (the SELinux connect to the proxy port is
-    covered by the existing squid_port rule)."""
+    covered by the existing squid_port rule).
+
+    subscription-manager identity is a Candlepin call, so the Candlepin
+    host stays in no_proxy and reaches the server directly; the recorder
+    only serves the daemon's remote write. The write URL is therefore a
+    non-local name: an HTTP proxy receives it as an absolute URI, so it
+    never needs to resolve. HOST_METERING_WRITE_URL is injected through a
+    transient systemd drop-in, the documented way to override service
+    configuration."""
     try:
         server = ThreadingHTTPServer(("127.0.0.1", 3128), _RecordingProxy)
     except OSError as err:
@@ -495,22 +536,50 @@ def test_remote_write_uses_rhsm_proxy(subman_registration):
     thread.start()
     offset = _audit_offset()
     try:
-        with _rhsm_proxy(hostname="127.0.0.1", port="3128", no_proxy=""):
+        with _rhsm_proxy(
+            hostname="127.0.0.1",
+            port="3128",
+            no_proxy="localhost,127.0.0.1",
+            env={
+                "HOST_METERING_WRITE_URL": PROXY_TEST_WRITE_URL,
+                # One failed notification must not hide the proxy path for
+                # the whole default 600s interval.
+                "HOST_METERING_WRITE_INTERVAL_SEC": "15",
+                "HOST_METERING_WRITE_RETRY_ATTEMPTS": "1",
+                "HOST_METERING_WRITE_RETRY_MAX_INT_SEC": "2",
+                "HOST_METERING_WRITE_TIMEOUT_SEC": "5",
+                # The RHSM proxy must win over any ambient proxy.
+                "HTTP_PROXY": "",
+                "http_proxy": "",
+                "HTTPS_PROXY": "",
+                "https_proxy": "",
+                "NO_PROXY": "",
+                "no_proxy": "",
+            },
+        ):
+            pid = _main_pid()
+            assert pid, "the service is not running after the proxy restart"
             deadline = time.time() + 90
             while time.time() < deadline and not _RecordingProxy.requests:
                 time.sleep(1)
-        assert _RecordingProxy.requests, (
-            "the daemon sent nothing through the RHSM proxy within 90s; "
-            "journal:\n" + _journal_tail()
-        )
+            journal = _journal_for_pid(pid)
+            assert _RecordingProxy.requests, (
+                "the daemon sent nothing through the RHSM proxy within 90s; "
+                "journal:\n" + journal
+            )
+            deadline = time.time() + 10
+            while time.time() < deadline and "Notification successful" not in journal:
+                time.sleep(1)
+                journal = _journal_for_pid(pid)
+            assert "Notification successful" in journal, (
+                "the proxied notification was not accepted; journal:\n"
+                + journal
+            )
         command, path = _RecordingProxy.requests[0]
         assert command == "POST", f"unexpected proxy request: {command} {path}"
-        assert path.endswith("/api/v1/write"), (
-            f"unexpected proxied request URI: {path}"
-        )
-        assert "Notification successful" in _journal_tail(since_minutes=3), (
-            "the proxied notification was not accepted; journal:\n"
-            + _journal_tail()
+        assert path == PROXY_TEST_WRITE_URL, (
+            f"the proxy saw {path!r}, expected the absolute write URI "
+            f"{PROXY_TEST_WRITE_URL!r}"
         )
         denials = _denials_since(offset)
         assert not denials, (

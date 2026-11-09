@@ -100,6 +100,16 @@ gen_require(`
     type cgroup_t;
 ')
 
+# subscription-manager probes IPv6 support on every invocation by binding
+# a socket to ::1 with port 0 (socket(AF_INET6); bind("::1", 0)), then
+# connects to Candlepin. The probe is not tied to the server hostname: it
+# happens even when server.hostname is a plain DNS name, so it cannot be
+# avoided by configuration. Without this rule every identity, facts and
+# list call the daemon makes leaves an AVC denial in the customer audit
+# log. node_bind alone does not let the domain accept connections; that
+# would also need name_bind on the port type.
+corenet_tcp_bind_generic_node(hostmetering_t)
+
 # The daemon only reads certificates: tls.LoadX509KeyPair reads the
 # consumer certificate and key on every notify, subscription-manager
 # helpers read the same pair for identity and list the entitlement and

@@ -21,10 +21,11 @@ import contextlib
 import os
 import re
 import shutil
+import socketserver
 import subprocess
 import threading
 import time
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 import requests
@@ -484,6 +485,16 @@ def test_no_avc_denials_for_hostmetering():
     )
 
 
+class _ThreadingHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
+    """http.server.ThreadingHTTPServer only exists from Python 3.7 and the
+    RHEL 8 lane builds its venv from the guest's Python 3.6, where importing
+    it aborts collection for this whole module. The mixin is what the stdlib
+    class applies; daemon_threads matches it so server_close() does not wait
+    for the handler thread."""
+
+    daemon_threads = True
+
+
 class _RecordingProxy(BaseHTTPRequestHandler):
     """Minimal HTTP proxy: records the request line and answers 200, so a
     proxied remote write succeeds without forwarding it anywhere."""
@@ -528,7 +539,7 @@ def test_remote_write_uses_rhsm_proxy(subman_registration):
     transient systemd drop-in, the documented way to override service
     configuration."""
     try:
-        server = ThreadingHTTPServer(("127.0.0.1", 3128), _RecordingProxy)
+        server = _ThreadingHTTPServer(("127.0.0.1", 3128), _RecordingProxy)
     except OSError as err:
         pytest.skip(f"cannot bind the RHSM proxy port 3128: {err}")
     _RecordingProxy.requests = []

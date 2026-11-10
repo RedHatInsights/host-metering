@@ -46,6 +46,9 @@ auth_read_passwd(hostmetering_t)
 corecmd_exec_bin(hostmetering_t)
 corecmd_exec_shell(hostmetering_t)
 
+# The daemon may only connect to proxy ports with these types; a proxy
+# configured in rhsm.conf on any other port fails with EACCES under enforcing
+# SELinux. That is expected, not a policy bug.
 corenet_tcp_connect_http_port(hostmetering_t)
 corenet_tcp_connect_squid_port(hostmetering_t)
 corenet_tcp_connect_websm_port(hostmetering_t)
@@ -136,6 +139,9 @@ ifndef(`distro_rhel8',`
 # sub-man caller (rhsmcertd_t), so sub-man tolerates the failure.
 # Granting write on generic etc_t files would be far too broad, so the
 # denial is silenced instead to keep customer audit logs clean.
+# The dontaudit is intentionally write-only: a log_path configured under
+# /etc still produces AVC denials on append and open, which is the correct
+# signal for a misconfiguration.
 gen_require(`
     type etc_t;
 ')
@@ -168,6 +174,31 @@ optional_policy(`
     files_search_var(hostmetering_t)
     manage_dirs_pattern(hostmetering_t, cloud_what_var_cache_t, cloud_what_var_cache_t)
     manage_files_pattern(hostmetering_t, cloud_what_var_cache_t, cloud_what_var_cache_t)
+')
+
+# subscription-manager's `facts` collection, which the daemon runs through
+# hostinfo.GetSubManFacts, probes kpatch: it stats /usr/sbin/kpatch, runs
+# `kpatch --version` (a bash script labeled kpatch_exec_t) and lists
+# /var/lib/kpatch (kpatch_var_lib_t) to report the kpatch version. host-metering
+# does not consume that fact (it reads only cpu.cpu_socket(s) and the product
+# list) and subscription-manager tolerates the probe failing, so the denial is
+# silenced instead of granted - as the etc_t write above already does -
+# because executing a kernel-patching tool and reading its module directory
+# from this domain is far more access than a discarded fact is worth.
+# The permission list is exactly what the probe attempts: a permissive
+# hostmetering_t facts run logged { getattr execute } on the script and
+# { getattr open read } on the directory, and nothing else, so no other access
+# is hidden from the audit log. kpatch_exec_t and kpatch_var_lib_t are
+# declared by the distro kpatch policy module; the rule sits in optional_policy
+# so the module still builds where those types are absent, mirroring
+# insights_client_etc_t and cloud_what_var_cache_t above.
+optional_policy(`
+    gen_require(`
+        type kpatch_exec_t;
+        type kpatch_var_lib_t;
+    ')
+    dontaudit hostmetering_t kpatch_exec_t:file { getattr execute };
+    dontaudit hostmetering_t kpatch_var_lib_t:dir { getattr open read };
 ')
 
 # Resolving the daemon cgroup membership on cgroup2 filesystems,

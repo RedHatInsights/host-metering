@@ -100,6 +100,24 @@ def _start_service_fresh():
     _systemctl("restart", SERVICE)
 
 
+def _start_service_with_empty_wal():
+    """Start the service with a cleared runtime directory.
+
+    RuntimeDirectoryPreserve=yes keeps the metrics WAL across restarts, so the
+    service can still hold samples collected before this test ran. The receiver
+    orders samples per series, and the suite's other daemons
+    (test_backlog_recovery, test_collection) already pushed newer samples for the
+    same label set through the same consumer identity, so replaying the older
+    backlog is rejected with "out of order sample" (HTTP 400) and the daemon
+    drops the batch. A reboot clears /run, so clearing the runtime directory
+    here reproduces the state this test asserts on: the certificate read and the
+    delivery inside hostmetering_t, not the ordering of a stale backlog.
+    """
+    _systemctl("stop", SERVICE, check=False)
+    shutil.rmtree(RUNTIME_DIR, ignore_errors=True)
+    _start_service_fresh()
+
+
 def _main_pid():
     res = _systemctl("show", "-p", "MainPID", "--value", SERVICE)
     pid = res.stdout.strip()
@@ -279,8 +297,14 @@ def test_rhsm_proxy_config_is_loaded():
     startup, so an empty value means the file (or its SELinux access) is
     not working. No helper script or environment file is involved."""
     with _rhsm_proxy(hostname="127.0.0.1", port="3128"):
-        time.sleep(3)
-        journal = _journal_tail(since_minutes=2)
+        pid = _main_pid()
+        assert pid, "the service did not restart"
+        journal = _journal_for_pid(pid)
+        deadline = time.time() + 30
+        while time.time() < deadline and \
+                "|  ProxyUrl: http://127.0.0.1:3128" not in journal:
+            time.sleep(1)
+            journal = _journal_for_pid(pid)
         assert "|  ProxyUrl: http://127.0.0.1:3128" in journal, (
             "the daemon did not load the proxy from rhsm.conf; journal:\n"
             + journal
@@ -315,7 +339,7 @@ def test_registered_service_sends_without_denials(
     would simply fail every notification on production systems."""
     offset = _audit_offset()
 
-    _start_service_fresh()
+    _start_service_with_empty_wal()
 
     # Clear anything earlier tests sent, so an empty query result can
     # only mean that this daemon sent nothing (requires the admin API
@@ -399,6 +423,68 @@ def test_service_starts_and_stays_running():
     assert restarts == "0", (
         f"service restarted {restarts} times after a fresh start "
         f"(Result={result})"
+    )
+
+
+@pytest.mark.rpm
+@pytest.mark.systemd
+@pytest.mark.skipif(
+    not _rpm_installed() or not _systemd_available(),
+    reason="requires installed RPM and systemd (Testing Farm VM)",
+)
+def test_metrics_wal_survives_restart():
+    """RuntimeDirectoryPreserve=yes must keep /run/host-metering (and the
+    metrics WAL inside it) across service restarts; systemd deletes the
+    runtime directory contents on stop by default, which silently discarded up
+    to MetricsMaxAge (90 minutes) of buffered metering data. A reboot still
+    clears it: /run is tmpfs. Segments may legitimately disappear when a
+    successful notification truncates the samples already delivered, so the
+    check is that the WAL is not reset."""
+    _start_service_fresh()
+    wal_dir = os.path.join(RUNTIME_DIR, "metrics")
+
+    def _segments():
+        # Prometheus WAL segments are 20-digit zero-padded file names; other
+        # entries (e.g. checkpoint.<n> directories) come and go during
+        # truncation and are not part of the invariant.
+        if not os.path.isdir(wal_dir):
+            return set()
+        return {
+            name
+            for name in os.listdir(wal_dir)
+            if re.fullmatch(r"\d{20}", name)
+        }
+
+    # Wait for the daemon to write its first sample: systemd creates
+    # RUNTIME_DIR before the daemon opens the WAL, so waiting on the directory
+    # alone can observe an empty metrics subdirectory.
+    deadline = time.time() + 60
+    before = set()
+    while time.time() < deadline and not before:
+        before = _segments()
+        if not before:
+            time.sleep(1)
+    assert before, "no WAL segments under " + wal_dir
+    _systemctl("restart", SERVICE)
+    deadline = time.time() + 30
+    while time.time() < deadline and _main_pid() is None:
+        time.sleep(1)
+    assert os.path.isdir(wal_dir), (
+        "runtime directory was wiped on restart; is "
+        "RuntimeDirectoryPreserve=yes set?"
+    )
+    after = _segments()
+    assert after, (
+        "the runtime directory was reset on restart: no WAL segments left; "
+        "is RuntimeDirectoryPreserve=yes set?"
+    )
+    # A send truncates the segments below the checkpoint (RemoveSamples after
+    # a successful notification), so names may legitimately disappear. A wiped
+    # runtime directory instead restarts the WAL from segment 0, which the
+    # monotonic high-water mark detects.
+    assert max(after) >= max(before), (
+        "the WAL restarted from segment 0 on service restart: highest "
+        f"segment {max(before)} before, {max(after)} after"
     )
 
 

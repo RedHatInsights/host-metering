@@ -28,49 +28,6 @@ const (
 	testHostname = "host.example.test"
 )
 
-// Test that http client prefers the environment Proxy settings over the
-// RHSM proxy configured in the service configuration
-//
-//   - this test is fragile as it is influenced by the environment as ProxyFromEnvironment
-//     is initialized only once, thus if any test before uses it without the env vars set then
-//     this will fail.
-func TestHttpClientProxy(t *testing.T) {
-	// Init
-	keypair, _, _, _ := createTestKeypair(t)
-	httpProxy := "http://proxy.example.com"
-	httpsProxy := "https://proxy.example.com"
-	cfg := config.NewConfig()
-	cfg.ProxyUrl = "http://rhsm-proxy.example.com:3128"
-
-	t.Setenv("HTTP_PROXY", httpProxy)
-	t.Setenv("HTTPS_PROXY", httpsProxy)
-	client, err := newMTLSHttpClient(keypair, 1*time.Second, cfg.ProxyFunc())
-	checkError(t, err, "Failed to create http client")
-	proxyF := client.Transport.(*http.Transport).Proxy
-	if proxyF == nil {
-		t.Fatalf("Expected proxy function to be set")
-	}
-
-	// Test https proxy
-	httpsRequest, _ := http.NewRequest("GET", "https://example.com", nil)
-	checkError(t, err, "Failed to create http request")
-	proxyUrl, _ := proxyF(httpsRequest)
-	checkError(t, err, "Failed to get proxy url")
-	if proxyUrl == nil {
-		t.Fatalf("Expected proxy url to be set")
-	}
-	if proxyUrl.String() != httpsProxy {
-		t.Fatalf("Expected https proxy to be %s, got %s", httpsProxy, proxyUrl.String())
-	}
-
-	// Test http proxy
-	httpRequest, _ := http.NewRequest("GET", "http://example.com", nil)
-	proxyUrl, _ = proxyF(httpRequest)
-	if proxyUrl.String() != httpProxy {
-		t.Fatalf("Expected http proxy to be %s, got %s", httpProxy, proxyUrl.String())
-	}
-}
-
 // Test happy path of prometheus notifier
 func TestNotify(t *testing.T) {
 	// Initialize notifier and data

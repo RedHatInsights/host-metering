@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -67,6 +68,26 @@ func TestProxyFunc(t *testing.T) {
 		t.Fatalf("unexpected proxy url: %s", proxyUrl)
 	}
 
+	// NO_PROXY from the service environment also excludes targets from the
+	// rhsm.conf proxy.
+	c.NoProxy = ""
+	t.Setenv("NO_PROXY", "write.example.test")
+	if proxyUrl := resolve(t, c, "http://write.example.test/api/v1/write"); proxyUrl != nil {
+		t.Fatalf("expected the environment NO_PROXY to exclude the target, got %s", proxyUrl)
+	}
+	t.Setenv("NO_PROXY", "")
+
+	// Localhost and loopback targets are never sent to the rhsm.conf proxy.
+	for _, target := range []string{
+		"http://localhost/api/v1/write",
+		"http://127.0.0.1/api/v1/write",
+		"http://[::1]/api/v1/write",
+	} {
+		if proxyUrl := resolve(t, c, target); proxyUrl != nil {
+			t.Fatalf("expected %s not to be proxied, got %s", target, proxyUrl)
+		}
+	}
+
 	// no_proxy matching.
 	noProxyCases := []struct {
 		noProxy string
@@ -85,6 +106,13 @@ func TestProxyFunc(t *testing.T) {
 		{"write.example.test:8080", "http://write.example.test/api/v1/write", true},
 		{"write.example.test:80", "http://write.example.test/api/v1/write", false},
 		{"write.example.test:8080", "http://write.example.test:8080/api/v1/write", false},
+		{"10.0.0.0/8", "http://10.1.2.3/api/v1/write", false},
+		{"10.0.0.0/8", "http://11.1.2.3/api/v1/write", true},
+		{"0.0.1", "http://10.0.0.1/api/v1/write", true},
+		{"10.0.0.1", "http://10.0.0.1/api/v1/write", false},
+		{"[::1]", "http://[::1]/api/v1/write", false},
+		{"::1", "http://[::1]/api/v1/write", false},
+		{"[::1]", "http://[::2]/api/v1/write", true},
 	}
 	c.NoProxy = ""
 	for _, tc := range noProxyCases {
@@ -98,11 +126,11 @@ func TestProxyFunc(t *testing.T) {
 		}
 	}
 
-	// An unusable proxy url falls back to the environment resolver.
+	// An unusable proxy url must fail requests, not go silently unproxied.
 	c.ProxyUrl = "not a url"
 	c.NoProxy = ""
-	if proxyUrl := resolve(t, c, "http://write.example.test/api/v1/write"); proxyUrl != nil {
-		t.Fatalf("expected no proxy for an unparsable proxy url, got %s", proxyUrl)
+	if proxyUrl, err := c.ProxyFunc()(newRequest("http://write.example.test/api/v1/write")); err == nil {
+		t.Fatalf("expected an error for an unparsable proxy url, got %v", proxyUrl)
 	}
 }
 
@@ -138,6 +166,78 @@ func TestProxyFuncRequests(t *testing.T) {
 	if len(requestUris) != 1 || requestUris[0] != expected {
 		t.Fatalf("expected the proxy to receive a single request for %s, got %v", expected, requestUris)
 	}
+}
+
+// proxyEnvChildEnv marks a re-executed child of a proxy environment test.
+const proxyEnvChildEnv = "HOST_METERING_PROXY_TEST_CHILD"
+
+// runProxyEnvChild re-executes the current test binary with a controlled proxy
+// environment: http.ProxyFromEnvironment reads the environment once per
+// process, so environment precedence is only observable in a fresh process.
+// Duplicate keys are fine: os/exec keeps the last value of each variable.
+func runProxyEnvChild(t *testing.T, extraEnv map[string]string) {
+	t.Helper()
+	env := append(os.Environ(),
+		proxyEnvChildEnv+"=1",
+		"HTTP_PROXY=", "http_proxy=",
+		"HTTPS_PROXY=", "https_proxy=",
+		"NO_PROXY=", "no_proxy=",
+	)
+	for name, value := range extraEnv {
+		env = append(env, name+"="+value)
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^"+t.Name()+"$")
+	cmd.Env = env
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("child process failed: %v\n%s", err, out)
+	}
+}
+
+// Test that a configured rhsm.conf proxy wins over the environment for both
+// schemes: a lone HTTP_PROXY or HTTPS_PROXY changes nothing.
+func TestProxyFuncIgnoresEnvWithRhsmProxy(t *testing.T) {
+	if os.Getenv(proxyEnvChildEnv) == "1" {
+		c := NewConfig()
+		c.ProxyUrl = "http://proxy.example.com:3128"
+		for _, target := range []string{
+			"http://write.example.test/api/v1/write",
+			"https://write.example.test/api/v1/write",
+		} {
+			request, err := http.NewRequest("GET", target, nil)
+			checkError(t, err, "failed to create http request")
+			proxyUrl, err := c.ProxyFunc()(request)
+			checkError(t, err, "failed to resolve the proxy")
+			if proxyUrl == nil || proxyUrl.String() != c.ProxyUrl {
+				t.Fatalf("%s: expected the RHSM proxy %s, got %v",
+					target, c.ProxyUrl, proxyUrl)
+			}
+		}
+		return
+	}
+	for _, extraEnv := range []map[string]string{
+		{"HTTP_PROXY": "http://env-proxy.example.com:8080"},
+		{"HTTPS_PROXY": "https://env-proxy.example.com:8443"},
+	} {
+		runProxyEnvChild(t, extraEnv)
+	}
+}
+
+// Test that the environment proxy is used when rhsm.conf configures none.
+func TestProxyFuncEnvFallback(t *testing.T) {
+	if os.Getenv(proxyEnvChildEnv) == "1" {
+		c := NewConfig()
+		request, err := http.NewRequest("GET", "http://write.example.test/api/v1/write", nil)
+		checkError(t, err, "failed to create http request")
+		proxyUrl, err := c.ProxyFunc()(request)
+		checkError(t, err, "failed to resolve the proxy")
+		if proxyUrl == nil || proxyUrl.String() != "http://env-proxy.example.com:8080" {
+			t.Fatalf("expected the environment proxy, got %v", proxyUrl)
+		}
+		return
+	}
+	runProxyEnvChild(t, map[string]string{
+		"HTTP_PROXY": "http://env-proxy.example.com:8080",
+	})
 }
 
 func TestDefaultConfig(t *testing.T) {

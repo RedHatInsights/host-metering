@@ -7,6 +7,12 @@ After=network-online.target
 Type=simple
 Environment=LC_ALL=C.UTF-8
 RuntimeDirectory=host-metering
+# Preserve the runtime directory across restarts: systemd removes it on every
+# stop, which would discard the buffered metrics WAL and up to
+# DefaultMetricsMaxAge (90 minutes) of unsent samples on every service restart
+# and on the %postun upgrade restart. A reboot still clears it, because /run is
+# tmpfs.
+RuntimeDirectoryPreserve=yes
 ExecStart=/usr/bin/host-metering daemon
 ExecReload=/usr/bin/kill -HUP $MAINPID
 

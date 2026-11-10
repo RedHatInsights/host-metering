@@ -347,17 +347,22 @@ func (c *Config) UpdateFromRhsmConfig(path string) error {
 }
 
 // ProxyFunc returns the proxy resolver for outgoing HTTP requests. A proxy
-// configured in the service environment (HTTP_PROXY/HTTPS_PROXY) takes
-// priority - that is the documented systemd drop-in override - and the RHSM
-// proxy is the default. Hosts matching the RHSM no_proxy list are never
-// proxied through the RHSM proxy.
+// configured in /etc/rhsm/rhsm.conf takes priority, mirroring
+// subscription-manager; HTTP_PROXY/HTTPS_PROXY in the service environment are
+// consulted only when rhsm.conf configures no proxy. Targets matching the RHSM
+// no_proxy list or the NO_PROXY environment variable, and localhost and
+// loopback targets, are never sent to the rhsm.conf proxy.
 func (c *Config) ProxyFunc() func(*http.Request) (*url.URL, error) {
 	if c.ProxyUrl == "" {
 		return http.ProxyFromEnvironment
 	}
 	proxyUrl, err := url.Parse(c.ProxyUrl)
 	if err != nil || proxyUrl.Host == "" {
-		return http.ProxyFromEnvironment
+		// Never fall back to the environment resolver here: that silently
+		// sends traffic unproxied when rhsm.conf is misconfigured.
+		return func(*http.Request) (*url.URL, error) {
+			return nil, fmt.Errorf("invalid proxy URL %q", c.ProxyUrl)
+		}
 	}
 	if c.ProxyUser != "" {
 		if c.ProxyPassword != "" {
@@ -367,26 +372,51 @@ func (c *Config) ProxyFunc() func(*http.Request) (*url.URL, error) {
 		}
 	}
 	noProxy := c.NoProxy
+	envNoProxy := getEnv("NO_PROXY", "no_proxy")
 	return func(req *http.Request) (*url.URL, error) {
-		if envProxy, err := http.ProxyFromEnvironment(req); envProxy != nil || err != nil {
-			return envProxy, err
-		}
-		if noProxyMatches(req.URL, noProxy) {
+		if isLocalhost(req.URL) ||
+			noProxyMatches(req.URL, noProxy) ||
+			noProxyMatches(req.URL, envNoProxy) {
 			return nil, nil
 		}
 		return proxyUrl, nil
 	}
 }
 
-// noProxyMatches reports whether u is covered by an RHSM no_proxy list: a
-// comma separated list of hostname suffixes, each optionally suffixed with a
-// port, plus "*" which excludes every host. A leading dot restricts the match
-// to subdomains, mirroring the NO_PROXY semantics documented for Go.
+// getEnv returns the first non-empty value among the named environment
+// variables.
+func getEnv(names ...string) string {
+	for _, name := range names {
+		if value := os.Getenv(name); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+// isLocalhost reports whether u addresses the local machine: a host name equal
+// to "localhost" (ignoring case and one trailing dot) or a loopback IP literal.
+func isLocalhost(u *url.URL) bool {
+	host := strings.TrimSuffix(u.Hostname(), ".")
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+// noProxyMatches reports whether u is covered by a no_proxy list: a comma
+// separated list of hostname suffixes (a leading dot restricts the entry to
+// subdomains), bare IP addresses, CIDR blocks, IPv6 literals, "*" which
+// excludes every host, and any of those forms with an optional :port suffix.
+// Entries are comma separated, trimmed and case insensitive. An entry that
+// looks like an IPv4 literal matches only that address, never as a suffix.
 func noProxyMatches(u *url.URL, noProxy string) bool {
 	if noProxy == "" {
 		return false
 	}
 	host := strings.ToLower(u.Hostname())
+	hostIP := net.ParseIP(host)
 	port := u.Port()
 	if port == "" {
 		switch u.Scheme {
@@ -395,6 +425,17 @@ func noProxyMatches(u *url.URL, noProxy string) bool {
 		case "https":
 			port = "443"
 		}
+	}
+	isIPv4Literal := func(entry string) bool {
+		if entry == "" {
+			return false
+		}
+		for _, r := range entry {
+			if (r < '0' || r > '9') && r != '.' {
+				return false
+			}
+		}
+		return true
 	}
 	for _, entry := range strings.Split(noProxy, ",") {
 		entry = strings.ToLower(strings.TrimSpace(entry))
@@ -409,6 +450,21 @@ func noProxyMatches(u *url.URL, noProxy string) bool {
 			entryHost, entryPort = h, p
 		}
 		if entryPort != "" && entryPort != port {
+			continue
+		}
+		entryHost = strings.Trim(entryHost, "[]")
+		if ip := net.ParseIP(entryHost); ip != nil || isIPv4Literal(entryHost) {
+			if hostIP != nil && ip != nil && ip.Equal(hostIP) {
+				return true
+			}
+			continue
+		}
+		if strings.Contains(entryHost, "/") {
+			if _, ipnet, err := net.ParseCIDR(entryHost); err == nil {
+				if hostIP != nil && ipnet.Contains(hostIP) {
+					return true
+				}
+			}
 			continue
 		}
 		if entryHost == host {

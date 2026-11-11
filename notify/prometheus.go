@@ -13,6 +13,7 @@ import (
 	"github.com/RedHatInsights/host-metering/config"
 	"github.com/RedHatInsights/host-metering/hostinfo"
 	"github.com/RedHatInsights/host-metering/logger"
+	"github.com/RedHatInsights/host-metering/proxy"
 	"github.com/RedHatInsights/host-metering/version"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
@@ -60,7 +61,7 @@ func (n *PrometheusNotifier) createHttpClient() error {
 		return err
 	}
 
-	n.client, err = newMTLSHttpClient(keypair, n.cfg.WriteTimeout, n.cfg.ProxyFunc())
+	n.client, err = newMTLSHttpClient(keypair, n.cfg.WriteTimeout, proxy.ProxyFunc(n.cfg))
 	return err
 }
 

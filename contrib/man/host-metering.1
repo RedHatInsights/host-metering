@@ -33,7 +33,7 @@ configures no proxy, unless the target matches NO_PROXY.
 As systemd services do not have visibility into environment variables that are active in the user environment by default, the HTTP_PROXY and HTTPS_PROXY variables set within the user environment will not be detected by the host-metering service.
 The service uses the proxy configured for subscription-manager: the 'proxy_hostname', 'proxy_port', 'proxy_user' (or 'proxy_username'), 'proxy_password' and 'no_proxy' values of the [server] section in '/etc/rhsm/rhsm.conf'.
 That proxy takes priority over HTTP_PROXY and HTTPS_PROXY, mirroring subscription-manager: the variables are used only when '/etc/rhsm/rhsm.conf' configures no proxy, and setting just one of them never overrides the RHSM proxy for its scheme while the other stays unproxied or follows the environment.
-The proxy is always addressed as http://HOST:PORT: the RHSM 'proxy_scheme' option is not used, because RHSM documents it for repository definitions only.
+The proxy is always addressed as http://HOST:PORT.
 Hosts matching the RHSM 'no_proxy' list or the NO_PROXY variable are never proxied through it.
 Localhost and loopback targets are never sent to the proxy read from '/etc/rhsm/rhsm.conf'.
 To use custom proxy settings that will persist across package updates, configure them for subscription-manager in '/etc/rhsm/rhsm.conf'; a systemd drop-in under `/etc/systemd/system/host-metering.service.d/` only takes effect when that file configures no proxy, and an invalid proxy value there fails the request instead of silently going unproxied.

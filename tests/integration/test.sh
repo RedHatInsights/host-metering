@@ -30,11 +30,15 @@ fi
 export CANDLEPIN_HOST=localhost
 # Local containers must never be reached through an ambient proxy:
 # subscription-manager falls back to HTTP(S)_PROXY environment variables
-# when its rhsm.conf proxy fields are blank, and the daemon's Prometheus
-# client uses the environment proxy as well.
+# when its rhsm.conf proxy fields are blank, and the daemon falls back to
+# the rhsm.conf proxy fields when the environment has none.
 export NO_PROXY="localhost,127.0.0.1${NO_PROXY:+,$NO_PROXY}"
 export no_proxy="$NO_PROXY"
 subscription-manager config --server.no_proxy="localhost,127.0.0.1"
+# The daemon takes its proxy from rhsm.conf when the service environment has
+# none; pin that to "no proxy" so a proxy preconfigured in the guest image
+# cannot intercept the local Prometheus receiver.
+subscription-manager config --server.proxy_hostname="" --server.proxy_port=""
 
 # Set up Python virtual environment (outside the repository so the guest
 # checkout stays clean)

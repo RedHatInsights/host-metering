@@ -46,6 +46,9 @@ auth_read_passwd(hostmetering_t)
 corecmd_exec_bin(hostmetering_t)
 corecmd_exec_shell(hostmetering_t)
 
+# The daemon may only connect to proxy ports with these types; a proxy
+# configured in rhsm.conf on any other port fails with EACCES under enforcing
+# SELinux. That is expected, not a policy bug.
 corenet_tcp_connect_http_port(hostmetering_t)
 corenet_tcp_connect_squid_port(hostmetering_t)
 corenet_tcp_connect_websm_port(hostmetering_t)
@@ -84,6 +87,121 @@ optional_policy(`
     ')
     manage_files_pattern(hostmetering_t, rhsmcertd_config_t, rhsmcertd_config_t)
     rhsmcertd_manage_lib_files(hostmetering_t)
-    rhsmcertd_read_log(hostmetering_t)
+    rhsmcertd_manage_log(hostmetering_t)
     rhsmcertd_dbus_chat(hostmetering_t)
 ')
+
+########################################
+#
+# Rules required once the daemon is started directly by systemd
+# (ExecStart=/usr/bin/host-metering daemon) and actually transitions
+# into hostmetering_t
+#
+
+gen_require(`
+    type cert_t;
+    type cgroup_t;
+')
+
+# subscription-manager probes IPv6 support on every invocation by binding
+# a socket to ::1 with port 0 (socket(AF_INET6); bind("::1", 0)), then
+# connects to Candlepin. The probe is not tied to the server hostname: it
+# happens even when server.hostname is a plain DNS name, so it cannot be
+# avoided by configuration. Without this rule every identity, facts and
+# list call the daemon makes leaves an AVC denial in the customer audit
+# log. node_bind alone does not let the domain accept connections; that
+# would also need name_bind on the port type.
+corenet_tcp_bind_generic_node(hostmetering_t)
+
+# The daemon only reads certificates: tls.LoadX509KeyPair reads the
+# consumer certificate and key on every notify, subscription-manager
+# helpers read the same pair for identity and list the entitlement and
+# product directories, and the cert watcher puts an inotify watch on the
+# consumer certificate directory. Nothing on these paths creates,
+# rewrites, renames or unlinks a certificate - registration and refresh,
+# the only operations that write under /etc/pki, are run by
+# subscription-manager itself, not by the daemon - so the access is
+# read-only and no write-side permission is granted on cert_t.
+allow hostmetering_t cert_t:dir { getattr open read search };
+allow hostmetering_t cert_t:file { getattr open read };
+# The watch permission for directories is not defined in the RHEL 8 base
+# policy (its kernel predates SELinux inotify watch support), so the
+# module would not compile there - and the kernel does not enforce the
+# permission either, so the rule is simply omitted on RHEL 8.
+ifndef(`distro_rhel8',`
+    allow hostmetering_t cert_t:dir watch;
+')
+
+# subscription-manager attempts to rewrite /etc/dnf/plugins/
+# subscription-manager.conf (labeled etc_t) on every invocation. The
+# rewrite is idempotent housekeeping: the file content does not change,
+# and the distro policy denies the same write to its own confined
+# sub-man caller (rhsmcertd_t), so sub-man tolerates the failure.
+# Granting write on generic etc_t files would be far too broad, so the
+# denial is silenced instead to keep customer audit logs clean.
+# The dontaudit is intentionally write-only: a log_path configured under
+# /etc still produces AVC denials on append and open, which is the correct
+# signal for a misconfiguration.
+gen_require(`
+    type etc_t;
+')
+dontaudit hostmetering_t etc_t:file write;
+
+# subscription-manager helpers executed by the daemon traverse the
+# insights-client configuration directory to read the insights
+# machine-id. The insights_client_etc_t type does not exist in the RHEL 8
+# base policy (no insights_client interface there), so the rule is
+# required inside optional_policy and is dropped automatically on
+# policies that do not define the type.
+optional_policy(`
+    gen_require(`
+        type insights_client_etc_t;
+    ')
+    allow hostmetering_t insights_client_etc_t:dir search;
+')
+
+# subscription-manager helpers executed by the daemon use the cloud-what
+# provider, whose cache lives in /var/cache/cloud-what. The type is
+# declared in the distro rhsmcertd policy module, which grants its own
+# domain manage access; mirror that (read-only would only reveal the
+# next denial when the cache is refreshed). The rule is inside
+# optional_policy so the module still builds where the type does not
+# exist, mirroring how rhsmcertd.if exposes cloud_what_read_cache_files.
+optional_policy(`
+    gen_require(`
+        type cloud_what_var_cache_t;
+    ')
+    files_search_var(hostmetering_t)
+    manage_dirs_pattern(hostmetering_t, cloud_what_var_cache_t, cloud_what_var_cache_t)
+    manage_files_pattern(hostmetering_t, cloud_what_var_cache_t, cloud_what_var_cache_t)
+')
+
+# subscription-manager's `facts` collection, which the daemon runs through
+# hostinfo.GetSubManFacts, probes kpatch: it stats /usr/sbin/kpatch, runs
+# `kpatch --version` (a bash script labeled kpatch_exec_t) and lists
+# /var/lib/kpatch (kpatch_var_lib_t) to report the kpatch version. host-metering
+# does not consume that fact (it reads only cpu.cpu_socket(s) and the product
+# list) and subscription-manager tolerates the probe failing, so the denial is
+# silenced instead of granted - as the etc_t write above already does -
+# because executing a kernel-patching tool and reading its module directory
+# from this domain is far more access than a discarded fact is worth.
+# The permission list is exactly what the probe attempts: a permissive
+# hostmetering_t facts run logged { getattr execute } on the script and
+# { getattr open read } on the directory, and nothing else, so no other access
+# is hidden from the audit log. kpatch_exec_t and kpatch_var_lib_t are
+# declared by the distro kpatch policy module; the rule sits in optional_policy
+# so the module still builds where those types are absent, mirroring
+# insights_client_etc_t and cloud_what_var_cache_t above.
+optional_policy(`
+    gen_require(`
+        type kpatch_exec_t;
+        type kpatch_var_lib_t;
+    ')
+    dontaudit hostmetering_t kpatch_exec_t:file { getattr execute };
+    dontaudit hostmetering_t kpatch_var_lib_t:dir { getattr open read };
+')
+
+# Resolving the daemon cgroup membership on cgroup2 filesystems,
+# including reading the CPU limit (cpu.max) of its own cgroup.
+allow hostmetering_t cgroup_t:dir search;
+allow hostmetering_t cgroup_t:file { getattr open read };

@@ -27,7 +27,9 @@ func TestDefaultConfig(t *testing.T) {
 		"|  MetricsWALPath: /var/run/host-metering/metrics\n" +
 		"|  LogLevel: INFO\n" +
 		"|  LogPath: \n" +
-		"|  InstanceID: \n"
+		"|  InstanceID: \n" +
+		"|  ProxyUrl: \n" +
+		"|  NoProxy: \n"
 
 	// Create the default configuration.
 	c := NewConfig()
@@ -75,7 +77,9 @@ func TestConfigFile(t *testing.T) {
 		"|  MetricsWALPath: /tmp/metrics\n" +
 		"|  LogLevel: ERROR\n" +
 		"|  LogPath: /tmp/log\n" +
-		"|  InstanceID: test-instance\n"
+		"|  InstanceID: test-instance\n" +
+		"|  ProxyUrl: \n" +
+		"|  NoProxy: \n"
 
 	// Update the configuration from a valid config file.
 	fileContent := "[host-metering]\n" +
@@ -156,7 +160,9 @@ func TestEnvVariables(t *testing.T) {
 		"|  MetricsWALPath: /tmp/metrics\n" +
 		"|  LogLevel: ERROR\n" +
 		"|  LogPath: /tmp/log\n" +
-		"|  InstanceID: test-instance\n"
+		"|  InstanceID: test-instance\n" +
+		"|  ProxyUrl: \n" +
+		"|  NoProxy: \n"
 
 	// Set valid environment variables.
 	t.Setenv("HOST_METERING_WRITE_URL", "http://test/url")
@@ -209,6 +215,129 @@ func TestEnvVariables(t *testing.T) {
 	checkString(t, c.String(), expectedCfg)
 	checkString(t, err.Error(), expectedMsg)
 
+}
+
+func TestRhsmConfigFile(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/rhsm.conf"
+
+	// A missing file is not an error: the proxy is optional.
+	c := NewConfig()
+	err := c.UpdateFromRhsmConfig(dir + "/missing")
+	checkError(t, err, "a missing RHSM config file must not be an error")
+	if c.ProxyUrl != "" || c.ProxyUser != "" || c.ProxyPassword != "" || c.NoProxy != "" {
+		t.Fatalf("unexpected proxy configuration: %+v", c)
+	}
+
+	// An empty file and a file without proxy keys leave the proxy unset.
+	for _, content := range []string{
+		"",
+		"[server]\nhostname = localhost\n",
+		"[server]\nproxy_hostname = \nproxy_port = 3128\n",
+	} {
+		createConfigFile(t, path, content)
+		c = NewConfig()
+		err = c.UpdateFromRhsmConfig(path)
+		checkError(t, err, "an empty RHSM proxy configuration must not be an error")
+		if c.ProxyUrl != "" || c.ProxyUser != "" || c.ProxyPassword != "" || c.NoProxy != "" {
+			t.Fatalf("unexpected proxy configuration for %q: %+v", content, c)
+		}
+	}
+
+	// A proxy hostname and port, with credentials and a no_proxy list.
+	createConfigFile(t, path, "[server]\n"+
+		"hostname = localhost\n"+
+		"proxy_hostname = proxy.example.com\n"+
+		"proxy_port = 3128\n"+
+		"proxy_user = proxyuser\n"+
+		"proxy_password = proxypassword\n"+
+		"no_proxy = localhost, .example.test\n")
+	c = NewConfig()
+	err = c.UpdateFromRhsmConfig(path)
+	checkError(t, err, "failed to read the RHSM proxy configuration")
+	if c.ProxyUrl != "http://proxy.example.com:3128" {
+		t.Fatalf("unexpected proxy url: %s", c.ProxyUrl)
+	}
+	if c.ProxyUser != "proxyuser" {
+		t.Fatalf("unexpected proxy user: %s", c.ProxyUser)
+	}
+	if c.ProxyPassword != "proxypassword" {
+		t.Fatalf("unexpected proxy password: %s", c.ProxyPassword)
+	}
+	if c.NoProxy != "localhost, .example.test" {
+		t.Fatalf("unexpected no_proxy: %s", c.NoProxy)
+	}
+	// The password must never end up in the logged configuration.
+	if strings.Contains(c.String(), "proxypassword") {
+		t.Fatalf("the password is printed in the configuration:\n%s", c.String())
+	}
+
+	// proxy_username is accepted as an alias of proxy_user.
+	createConfigFile(t, path, "[server]\n"+
+		"proxy_hostname = proxy.example.com\n"+
+		"proxy_port = 3128\n"+
+		"proxy_username = aliasuser\n")
+	c = NewConfig()
+	err = c.UpdateFromRhsmConfig(path)
+	checkError(t, err, "failed to read the RHSM proxy configuration")
+	if c.ProxyUser != "aliasuser" {
+		t.Fatalf("unexpected proxy user: %s", c.ProxyUser)
+	}
+
+	// Only the [server] section is read.
+	createConfigFile(t, path, "[rhsm]\n"+
+		"proxy_hostname = proxy.example.com\n"+
+		"proxy_port = 3128\n")
+	c = NewConfig()
+	err = c.UpdateFromRhsmConfig(path)
+	checkError(t, err, "failed to read the RHSM config file")
+	if c.ProxyUrl != "" {
+		t.Fatalf("expected the [rhsm] section to be ignored, got %s", c.ProxyUrl)
+	}
+
+	// Invalid proxy configurations are reported.
+	invalidCases := []struct {
+		name    string
+		content string
+		message string
+	}{
+		{
+			name:    "missing port",
+			content: "[server]\nproxy_hostname = proxy.example.com\n",
+			message: "proxy_port is missing",
+		},
+		{
+			name:    "non numeric port",
+			content: "[server]\nproxy_hostname = proxy.example.com\nproxy_port = http\n",
+			message: "invalid value of 'proxy_port'",
+		},
+		{
+			name:    "zero port",
+			content: "[server]\nproxy_hostname = proxy.example.com\nproxy_port = 0\n",
+			message: "invalid value of 'proxy_port'",
+		},
+		{
+			name:    "out of range port",
+			content: "[server]\nproxy_hostname = proxy.example.com\nproxy_port = 70000\n",
+			message: "invalid value of 'proxy_port'",
+		},
+		{
+			name:    "scheme in hostname",
+			content: "[server]\nproxy_hostname = http://proxy.example.com\nproxy_port = 3128\n",
+			message: "must not contain a scheme",
+		},
+	}
+	for _, tc := range invalidCases {
+		createConfigFile(t, path, tc.content)
+		c = NewConfig()
+		err = c.UpdateFromRhsmConfig(path)
+		if err == nil {
+			t.Fatalf("%s: expected an error for %q", tc.name, tc.content)
+		}
+		if !strings.Contains(err.Error(), tc.message) {
+			t.Fatalf("%s: unexpected error: %v", tc.name, err)
+		}
+	}
 }
 
 func clearEnvironment() {

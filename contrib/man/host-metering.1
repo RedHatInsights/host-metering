@@ -23,20 +23,20 @@ Default is /etc/host-metering.conf
 .PP
 
 \fBHTTP_PROXY\fR
-Will be used as the proxy URL for HTTP requests unless overridden by NO_PROXY.
+Will be used as the proxy URL for HTTP requests when '/etc/rhsm/rhsm.conf'
+configures no proxy, unless the target matches NO_PROXY.
 
 \fBHTTPS_PROXY\fR
-Will be used as the proxy URL for HTTPS requests unless overridden by NO_PROXY.
+Will be used as the proxy URL for HTTPS requests when '/etc/rhsm/rhsm.conf'
+configures no proxy, unless the target matches NO_PROXY.
 
 As systemd services do not have visibility into environment variables that are active in the user environment by default, the HTTP_PROXY and HTTPS_PROXY variables set within the user environment will not be detected by the host-metering service.
-By default, the host-metering service will use the 'proxy_hostname' and 'proxy_port' as configured in '/etc/rhsm/rhsm.conf'.
-To use custom proxy settings that will persist across package updates, you can create a .conf override file containing your custom proxy settings within the `/etc/systemd/system/host-metering.service.d/` directory.
-This override configuration will take priority over proxy information available in '/etc/rhsm/rhsm.conf'.
-
-Example override file contents:
-[Service]
-Environment="HTTP_PROXY=http://proxy.example.com:3465"
-Environment="HTTPS_PROXY=http://proxy.example.com:3465"
+The service uses the proxy configured for subscription-manager: the 'proxy_hostname', 'proxy_port', 'proxy_user' (or 'proxy_username'), 'proxy_password' and 'no_proxy' values of the [server] section in '/etc/rhsm/rhsm.conf'.
+That proxy takes priority over HTTP_PROXY and HTTPS_PROXY, mirroring subscription-manager: the variables are used only when '/etc/rhsm/rhsm.conf' configures no proxy, and setting just one of them never overrides the RHSM proxy for its scheme while the other stays unproxied or follows the environment.
+The proxy is always addressed as http://HOST:PORT.
+Hosts matching the RHSM 'no_proxy' list or the NO_PROXY variable are never proxied through it.
+Localhost and loopback targets are never sent to the proxy read from '/etc/rhsm/rhsm.conf'.
+To use custom proxy settings that will persist across package updates, configure them for subscription-manager in '/etc/rhsm/rhsm.conf'; a systemd drop-in under `/etc/systemd/system/host-metering.service.d/` only takes effect when that file configures no proxy, and an invalid proxy value there fails the request instead of silently going unproxied.
 
 \fBNO_PROXY\fR
 Specifies a string that contains comma-separated values
@@ -53,6 +53,8 @@ A best effort is made to parse the string and errors are
 ignored.
 
 More details can be found on the official go http documentation: https://pkg.go.dev/net/http#ProxyFromEnvironment
+This variable excludes targets from both proxy sources: a target matched by NO_PROXY is sent to neither the HTTP_PROXY/HTTPS_PROXY proxy nor the proxy read from '/etc/rhsm/rhsm.conf'.
+The RHSM 'no_proxy' option uses the same syntax as described above.
 
 \fBHOST_METERING_WRITE_URL\fR
 Remote server endpoint.

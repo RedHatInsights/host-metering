@@ -1,6 +1,8 @@
+import contextlib
 import datetime
 import json
 import os
+import shutil
 import signal
 import subprocess
 import time
@@ -227,6 +229,73 @@ def host_metering_bin():
 def prometheus_url():
     """Returns the Prometheus server URL."""
     return os.environ.get("PROMETHEUS_URL", "http://localhost:9090")
+
+
+# Runtime systemd drop-in directory for the host-metering service: drop-ins
+# under /run are transient (tmpfs, cleared on reboot), so even a crashed
+# test session cannot leave a permanent service override behind.
+UNIT_DROPIN_DIR = "/run/systemd/system/host-metering.service.d"
+
+
+def _service_can_run():
+    """True where the installed host-metering systemd service can run: a
+    real systemd init and the RPM installed. The container-based dev
+    environment has neither and never starts the service."""
+    if not (os.path.exists("/run/systemd/system") and shutil.which("systemctl")):
+        return False
+    if not shutil.which("rpm"):
+        return False
+    res = subprocess.run(
+        ["rpm", "-q", "host-metering"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    return res.returncode == 0
+
+
+@pytest.fixture(scope="session", autouse=True)
+def service_receiver_write_url(prometheus_url):
+    """Point the installed service's remote write at the session receiver.
+
+    The compiled-in default write_url is the production telemetry
+    endpoint (the shipped /etc/host-metering.conf only documents it), so
+    every test that starts the stock systemd service would otherwise
+    attempt to send the test guest's telemetry there: production rejects
+    the test Candlepin's certificates, failing the delivery assertions.
+
+    The pin is a runtime systemd drop-in, named to sort before the proxy
+    test's 99-host-metering-test.conf so that test's own write URL wins
+    while it runs. It is installed only where the service can run, and
+    removed (with the service stopped) when the session ends: left
+    running, the service would target the production default again.
+    """
+    if not _service_can_run():
+        yield
+        return
+    dropin = os.path.join(UNIT_DROPIN_DIR, "50-test-receiver.conf")
+    try:
+        os.makedirs(UNIT_DROPIN_DIR, exist_ok=True)
+        with open(dropin, "w") as f:
+            f.write(
+                "[Service]\n"
+                f"Environment=HOST_METERING_WRITE_URL={prometheus_url}/api/v1/write\n"
+            )
+        subprocess.run(["systemctl", "daemon-reload"], check=True)
+        # A service already running when the session starts (e.g. started
+        # by the RPM preset on a host where the suite was launched
+        # directly) must not keep the production write_url while the
+        # early tests run; try-restart re-execs it only if it is active.
+        subprocess.run(
+            ["systemctl", "try-restart", "host-metering.service"], check=False
+        )
+        yield prometheus_url
+    finally:
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(dropin)
+        subprocess.run(["systemctl", "daemon-reload"], check=False)
+        subprocess.run(
+            ["systemctl", "stop", "host-metering.service"], check=False
+        )
 
 
 @pytest.fixture

@@ -1,4 +1,4 @@
-.TH "HOST-METERING\&.CONF" "5" "10/31/2023" "HOST-METERING" "File Formats and Conventions"
+.TH "HOST-METERING\&.CONF" "5" "11/12/2026" "HOST-METERING" "File Formats and Conventions"
 
 .SH "NAME"
 host-metering.conf \- the configuration file for host-metering
@@ -7,6 +7,15 @@ host-metering.conf \- the configuration file for host-metering
 .PP
 The file has an ini\-style syntax and consists of sections and parameters.
 Only the [host-metering] section is recognized.
+.PP
+The configuration file shipped with the RPM only lists the user\-facing
+options (write_url, send_hostname, log_level and log_path)\&. All options
+described in this manual page remain configurable and are honored when set
+in the configuration file\&.
+.PP
+Changes to the configuration file require a \fBsystemctl restart
+host\-metering\fR to take effect; the ExecReload signal only refreshes
+host information\&.
 
 .SH "SECTIONS"
 .SS "[host-metering]"
@@ -17,7 +26,9 @@ Only the [host-metering] section is recognized.
 .PP
 write_url (string)
 .RS 4
-Remote server endpoint.
+Remote server endpoint\&. Defaults to
+https://cert\&.console\&.redhat\&.com/api/rhel\-telemetry/v1/receive,
+the production RHEL telemetry endpoint\&.
 .RE
 
 .PP
@@ -108,6 +119,7 @@ Path to log file. Default is empty - stderr.
 instance_id (string)
 .RS 4
 Instance id. Default is empty.
+.RE
 
 .SH "EXAMPLES"
 .PP
@@ -121,6 +133,5 @@ Instance id. Default is empty.
 log_level = DEBUG
 .fi
 
-.PP
 .SH "SEE ALSO"
 .BR host-metering(1)

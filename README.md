@@ -22,6 +22,20 @@ See output/log:
 # journalctl -feu host-metering
 ```
 
+## Default telemetry endpoint
+
+The compiled-in default `write_url` is the production Red Hat telemetry
+endpoint (`https://cert.console.redhat.com/api/rhel-telemetry/v1/receive`).
+
+Note that no data is actually sent unless the host is registered via
+`subscription-manager` or `rhc`: the daemon authenticates with the RHSM
+consumer identity certificate at `/etc/pki/consumer/cert.pem` (mTLS), which
+only exists after registration.
+
+For local development, override the endpoint via the
+`HOST_METERING_WRITE_URL` environment variable or a config file (see
+[.devcontainer/host-metering.conf](.devcontainer/host-metering.conf)).
+
 ## RPM repository
 
 RPM builds of `main` branch are available at COPR:  https://copr.fedorainfracloud.org/coprs/pvoborni/host-metering/
@@ -145,7 +159,11 @@ sudo dnf install podman-compose
 There is an option to run make commands inside the `docker-compose` generated environment. Just prefix a make command you would like to run with `podman-`. e.g. to run `make test` in a container, use `make podman-test`.
 
 ## Mocking subscription-manager commands
-`mocked_run.sh` is a shortcut to running `go run main.go` with  mocked context.
+`mocked_run.sh` is a shortcut to running `go run main.go` with mocked context.
+The mocked run is self-contained: it writes to the local Prometheus
+receiver at `http://localhost:9090` (override with `HOST_METERING_WRITE_URL`,
+e.g. `http://prometheus:9090` inside the devcontainer's compose network),
+never to the production endpoint.
 
 ### Preparing the mocks
 Inside the `mocks` folder run `./mock_from_host.sh` to generate outputs that will be used as mocks.

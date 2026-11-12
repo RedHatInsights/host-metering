@@ -56,53 +56,12 @@ More details can be found on the official go http documentation: https://pkg.go.
 This variable excludes targets from both proxy sources: a target matched by NO_PROXY is sent to neither the HTTP_PROXY/HTTPS_PROXY proxy nor the proxy read from '/etc/rhsm/rhsm.conf'.
 The RHSM 'no_proxy' option uses the same syntax as described above.
 
-\fBHOST_METERING_WRITE_URL\fR
-Remote server endpoint.
-
-\fBHOST_METERING_WRITE_INTERVAL_SEC\fR
-Interval between writes to remote server in seconds.
-
-\fBHOST_METERING_HOST_CERT_PATH\fR
-Path to host certificate that is used for authentication with remote server.
-
-\fBHOST_METERING_HOST_CERT_KEY_PATH\fR
-Path to host certificate key that is used for authentication with remote server.
-
-\fBHOST_METERING_COLLECT_INTERVAL_SEC\fR
-Interval between collecting host metrics in seconds.
-
-\fBHOST_METERING_LABEL_REFRESH_INTERVAL_SEC\fR
-Interval between refreshing host labels in seconds.
-
-\fBHOST_METERING_SEND_HOSTNAME\fR
-Send hostname to remote server. By default \fByes\fR set to \fBno\fR to disable.
-
-\fBHOST_METERING_WRITE_RETRY_ATTEMPTS\fR
-Number of write attempts to remote server.
-
-\fBHOST_METERING_WRITE_RETRY_MIN_INT_SEC\fR
-Minimum interval between write retries in seconds.
-
-\fBHOST_METERING_WRITE_RETRY_MAX_INT_SEC\fR
-Maximum interval between write retries in seconds.
-
-\fBHOST_METERING_WRITE_TIMEOUT_SEC\fR
-Timeout for write to remote server in seconds.
-
-\fBHOST_METERING_METRICS_MAX_AGE_SEC\fR
-Maximum age of collected metrics in seconds. After the time, the metrics are dropped.
-
-\fBHOST_METERING_METRICS_WAL_PATH\fR
-Path to directory where write ahead log files are stored.
-
-\fBHOST_METERING_LOG_LEVEL\fR
-Log level. Possible values are: DEBUG, INFO, WARN, ERROR.
-
-\fBHOST_METERING_LOG_PATH\fR
-Path to log file. Default is empty - stderr.
-
-\fBHOST_METERING_INSTANCE_ID\fR
-Instance id. Default is empty.
+\fBHOST_METERING_<OPTION>\fR
+Every option of host-metering.conf(5) can be overridden through an
+environment variable named \fBHOST_METERING_<OPTION>\fR in uppercase
+(e.g. \fBHOST_METERING_WRITE_URL\fR). Environment variables are applied
+last and take precedence over /etc/host-metering.conf; note that systemd
+drop-in \fBEnvironment=\fR entries are such variables.
 
 .SH "FILES"
 .PP
@@ -114,6 +73,7 @@ Default configuration file.
 \fI/var/run/host-metering\fR
 .RS 4
 The default directory for storing write ahead log files
+.RE
 
 .SH "EXIT STATUS"
 0 if the command was successful

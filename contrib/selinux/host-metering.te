@@ -59,6 +59,11 @@ dev_read_sysfs(hostmetering_t)
 
 files_list_tmp(hostmetering_t)
 
+# /etc/host-metering.conf is shipped as a default etc_t file and read by
+# the daemon after the domain transition (the unit starts the daemon
+# directly, so the transition applies).
+files_read_etc_files(hostmetering_t)
+
 init_read_state(hostmetering_t)
 
 libs_exec_ldconfig(hostmetering_t)
@@ -139,9 +144,10 @@ ifndef(`distro_rhel8',`
 # sub-man caller (rhsmcertd_t), so sub-man tolerates the failure.
 # Granting write on generic etc_t files would be far too broad, so the
 # denial is silenced instead to keep customer audit logs clean.
-# The dontaudit is intentionally write-only: a log_path configured under
-# /etc still produces AVC denials on append and open, which is the correct
-# signal for a misconfiguration.
+# The dontaudit is intentionally write-only: reading etc_t files is
+# granted (files_read_etc_files above), so a log_path configured under
+# /etc still produces AVC denials on append (or on create for a new
+# file), which is the correct signal for a misconfiguration.
 gen_require(`
     type etc_t;
 ')

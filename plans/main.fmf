@@ -25,6 +25,7 @@
         - systemd-rpm-macros
         - selinux-policy-devel
         - policycoreutils
+        - libselinux-utils
         - selinux-policy
         - tar
         - gzip

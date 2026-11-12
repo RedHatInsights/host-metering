@@ -150,40 +150,6 @@ def _audit_denials(lines):
     ]
 
 
-def _candlepin_available():
-    """True when the containerized Candlepin server is reachable (it is
-    started by tests/integration/test.sh on Testing Farm guests)."""
-    host = os.environ.get("CANDLEPIN_HOST", "candlepin")
-    port = os.environ.get("CANDLEPIN_PORT", "8443")
-    try:
-        resp = requests.get(
-            f"https://{host}:{port}/candlepin/status",
-            verify=False,
-            timeout=5,
-            allow_redirects=False,
-        )
-        return resp.status_code == 200
-    except requests.RequestException:
-        return False
-
-
-def _prometheus_is_receiver():
-    """True when the Prometheus URL points at an actual Prometheus with
-    the remote-write receiver API. Guards against port squatters - on
-    RHEL cloud images cockpit-tls listens on 9090 and answers 200 HTML
-    on any path, which the container script's readiness check cannot
-    distinguish from a ready Prometheus."""
-    url = os.environ.get("PROMETHEUS_URL", "http://localhost:9090")
-    try:
-        resp = requests.get(f"{url}/api/v1/status/buildinfo", timeout=5)
-        return (
-            resp.status_code == 200
-            and resp.json().get("status") == "success"
-        )
-    except (requests.RequestException, ValueError):
-        return False
-
-
 def _journal_tail(since_minutes=3):
     res = subprocess.run(
         ["journalctl", "-u", "host-metering", "--no-pager",
@@ -317,13 +283,9 @@ def test_rhsm_proxy_config_is_loaded():
 @pytest.mark.skipif(
     not _rpm_installed()
     or not _systemd_available()
-    or not _selinux_module_active()
-    or not _candlepin_available()
-    or not _prometheus_is_receiver(),
-    reason="requires installed RPM, systemd, enforcing SELinux, a "
-    "reachable Candlepin server and the test Prometheus receiver on "
-    "PROMETHEUS_URL (Testing Farm VM; port 9090 must not be squatted "
-    "by e.g. cockpit)",
+    or not _selinux_module_active(),
+    reason="requires installed RPM, systemd and enforcing SELinux "
+    "(Testing Farm VM)",
 )
 def test_registered_service_sends_without_denials(
     subman_registration, prometheus_url
@@ -605,10 +567,9 @@ class _RecordingProxy(BaseHTTPRequestHandler):
 @pytest.mark.skipif(
     not _rpm_installed()
     or not _systemd_available()
-    or not _selinux_module_active()
-    or not _candlepin_available(),
-    reason="requires installed RPM, systemd, enforcing SELinux and a "
-    "reachable Candlepin server (Testing Farm VM)",
+    or not _selinux_module_active(),
+    reason="requires installed RPM, systemd and enforcing SELinux "
+    "(Testing Farm VM)",
 )
 def test_remote_write_uses_rhsm_proxy(subman_registration):
     """On a registered host the daemon must send its remote write through

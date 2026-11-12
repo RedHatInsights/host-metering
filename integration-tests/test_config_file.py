@@ -18,6 +18,7 @@ invoking this suite.
 """
 
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -140,16 +141,29 @@ def test_config_file_installed_by_rpm():
     not _rpm_installed() or not _systemd_available(),
     reason="requires installed RPM and systemd (Testing Farm VM)",
 )
-def test_config_file_feature_activation_systemd():
+def test_config_file_feature_activation_systemd(prometheus_url):
     """Editing /etc/host-metering.conf and restarting the service must
-    activate the change: log_level = DEBUG shows up in the journal."""
+    activate the change: log_level = DEBUG shows up in the journal.
+
+    The write_url is pointed at the session's Prometheus receiver at the
+    same time: the shipped default is the production telemetry ingress,
+    and this test runs while the suite has the host registered, which
+    would otherwise make the service send real telemetry from the test
+    guest."""
     with open(INSTALLED_CONF) as f:
         backup = f.read()
     try:
         content = backup
         assert "#log_level = INFO" in content
+        content = content.replace("#log_level = INFO", "log_level = DEBUG")
+        content = re.sub(
+            r"(?m)^#write_url\s*=.*$",
+            f"write_url = {prometheus_url}/api/v1/write",
+            content,
+            count=1,
+        )
         with open(INSTALLED_CONF, "w") as f:
-            f.write(content.replace("#log_level = INFO", "log_level = DEBUG"))
+            f.write(content)
 
         # Epoch marker: journalctl --since accepts @<epoch>, which has no
         # one-second-granularity or midnight-wrap window.
